@@ -1,24 +1,15 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Performance Log</title>
+{% extends 'base.html' %}
+{% block title %}Performance Log | FitLah NSmen Portal{% endblock %}
+{% block content %}
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #F1F5F9;
+  .performance-page {
     color: #0F172A;
-    padding: 32px;
-    min-height: 100vh;
+    width: 100%;
   }
 
-  .header-section { margin-bottom: 28px; }
-  .header-section h1 { font-size: 24px; font-weight: 800; color: #0F172A; }
-  .header-section p { font-size: 14px; color: #64748B; margin-top: 4px; }
+  .performance-page .header-section { margin-bottom: 0; }
+  .performance-page .header-section h1 { font-size: 24px; font-weight: 800; color: #0F172A; }
+  .performance-page .header-section p { font-size: 14px; color: #64748B; margin-top: 4px; }
 
   .log-workspace-grid {
     display: grid;
@@ -254,14 +245,12 @@
   }
 
   @media (max-width: 700px) {
-    body { padding: 16px; }
     .log-workspace-grid { grid-template-columns: 1fr; }
     .calendar-card { position: static; }
   }
 </style>
-</head>
-<body>
 
+<div class="performance-page">
 <div class="header-row">
   <div class="header-section">
     <h1>Performance Log</h1>
@@ -339,22 +328,36 @@
   let currentMonth = today.getMonth();
   let selectedDate = null;
 
-  // entries: { 'YYYY-MM-DD': [{name, type, score, time, notes}] }
-  let entries = JSON.parse(localStorage.getItem('perfLog') || '{}');
+  // entries: { 'YYYY-MM-DD': [{id, name, type, score, time, notes}] }
+  let entries = {};
 
-  // Seed some demo data if empty
-  if (Object.keys(entries).length === 0) {
-    const d = (y, m, day) => `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const now = new Date();
-    const y = now.getFullYear(), mo = now.getMonth();
-    entries[d(y, mo, 3)] = [{name:'Morning Run', type:'logged', score:'5 km', time:'28:00 min', notes:'Steady pace throughout.'}];
-    entries[d(y, mo, 7)] = [{name:'Push-ups Challenge', type:'ippt', score:'48 reps', time:'2:00 min', notes:'New personal best!'}, {name:'Sit-ups', type:'logged', score:'60 reps', time:'2:30 min', notes:'Good form maintained.'}];
-    entries[d(y, mo, 12)] = [{name:'ICT Parade', type:'ict', score:'—', time:'3h', notes:'Full attendance.'}];
-    entries[d(y, mo, 18)] = [{name:'2.4 km Run', type:'ippt', score:'11:45 min', time:'11:45 min', notes:'Slightly winded at 2 km mark.'}];
-    save();
+  function setEntriesFromLogs(logs) {
+    entries = {};
+    logs.forEach(log => {
+      const key = log.date;
+      if (!entries[key]) entries[key] = [];
+      entries[key].push({
+        id: log.id,
+        name: log.name || log.event,
+        type: log.type || 'logged',
+        score: log.score || '',
+        time: log.time || '',
+        notes: log.notes || ''
+      });
+    });
   }
 
-  function save() { localStorage.setItem('perfLog', JSON.stringify(entries)); }
+  async function loadEntries() {
+    const response = await fetch('/api/performance-log');
+    const data = await response.json();
+    if (!data.success) {
+      alert(data.error || 'Could not load performance log.');
+      return;
+    }
+    setEntriesFromLogs(data.logs);
+    renderCalendar();
+    renderDetails();
+  }
 
   function dateKey(y, m, d) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -444,7 +447,7 @@
       empty.innerHTML = `<div class="icon">🏃</div><p>No entries for this day.<br><strong>Click "Add Entry"</strong> to log something.</p>`;
       panel.appendChild(empty);
     } else {
-      dayEntries.forEach((entry, idx) => {
+      dayEntries.forEach((entry) => {
         const card = document.createElement('div');
         card.className = 'agenda-card';
         card.innerHTML = `
@@ -456,7 +459,7 @@
                   <div class="agenda-date">${friendlyDate(key)} &middot; ${typeName(entry.type)}</div>
                   <div class="agenda-name">${entry.name}</div>
                 </div>
-                <button class="delete-btn" title="Delete entry" onclick="deleteEntry('${key}', ${idx})">&#x2715;</button>
+                <button class="delete-btn" title="Delete entry" onclick="deleteEntry(${entry.id})">&#x2715;</button>
               </div>
               <div class="recording-metric-container">
                 ${entry.score ? `<div class="metric-block-large">
@@ -484,13 +487,17 @@
     return t === 'logged' ? 'Workout' : t.toUpperCase();
   }
 
-  function deleteEntry(key, idx) {
+  async function deleteEntry(logId) {
     if (!confirm('Delete this entry?')) return;
-    entries[key].splice(idx, 1);
-    if (entries[key].length === 0) delete entries[key];
-    save();
-    renderCalendar();
-    renderDetails();
+    const response = await fetch(`/api/performance-log/${logId}`, {
+      method: 'DELETE'
+    });
+    const data = await response.json();
+    if (!data.success) {
+      alert(data.error || 'Could not delete entry.');
+      return;
+    }
+    await loadEntries();
   }
 
   function changeMonth(dir) {
@@ -520,36 +527,44 @@
     if (e.target === document.getElementById('modalOverlay')) closeModal();
   }
 
-  function saveEntry() {
+  async function saveEntry() {
     const name = document.getElementById('eventName').value.trim();
     if (!name) { alert('Please enter an event name.'); return; }
 
     const key = selectedDate || dateKey(today.getFullYear(), today.getMonth(), today.getDate());
-    if (!entries[key]) entries[key] = [];
-
-    entries[key].push({
+    const response = await fetch('/api/performance-log', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        date: key,
       name,
       type: document.getElementById('eventType').value,
       score: document.getElementById('eventScore').value.trim(),
       time: document.getElementById('eventTime').value.trim(),
       notes: document.getElementById('eventNotes').value.trim(),
+      })
     });
 
-    save();
+    const data = await response.json();
+    if (!data.success) {
+      alert(data.error || 'Could not save entry.');
+      return;
+    }
+
     closeModal();
 
     // Navigate to the correct month if needed
     const [y, m] = key.split('-').map(Number);
     currentYear = y; currentMonth = m - 1;
     selectedDate = key;
-    renderCalendar();
-    renderDetails();
+    await loadEntries();
   }
 
   // Init
   selectedDate = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
   renderCalendar();
   renderDetails();
+  loadEntries();
 </script>
-</body>
-</html>
+</div>
+{% endblock %}

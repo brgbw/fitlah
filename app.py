@@ -50,6 +50,7 @@ def init_db():
         ensure_auth_tables(db)
         ensure_group_invite_schema(db)
         ensure_personal_best_data(db)
+        ensure_performance_log_schema(db)
         save_db(db)
         return
 
@@ -58,6 +59,7 @@ def init_db():
         ensure_auth_tables(db)
         ensure_group_invite_schema(db)
         ensure_personal_best_data(db)
+        ensure_performance_log_schema(db)
         save_db(db)
         return
     
@@ -214,6 +216,7 @@ def init_db():
     ensure_auth_tables(db)
     ensure_group_invite_schema(db)
     ensure_personal_best_data(db)
+    ensure_performance_log_schema(db)
     save_db(db)
 
 
@@ -309,6 +312,22 @@ def ensure_personal_best_data(db):
                 **best,
                 "updated_at": datetime.now().strftime("%Y-%m-%d")
             })
+
+
+def ensure_performance_log_schema(db):
+    """Scope performance logs by NRIC and normalize fields used by the UI."""
+    db.setdefault("performance_log", [])
+    default_nric = "S3456789C"
+
+    for log in db["performance_log"]:
+        log.setdefault("nric", default_nric)
+        log.setdefault("type", "logged")
+        log.setdefault("time", "")
+        log.setdefault("notes", "")
+        if "name" not in log:
+            log["name"] = log.get("event", "Performance Entry")
+        if "event" not in log:
+            log["event"] = log.get("name", "Performance Entry")
 
 
 def current_user():
@@ -544,7 +563,11 @@ def logout():
 def dashboard():
     user = current_user()
     workouts = query_db("workout")
-    recent_logs = sorted(query_db("performance_log"), key=lambda x: x['id'], reverse=True)[:3]
+    recent_logs = sorted(
+        query_db("performance_log", lambda x: x.get("nric") == user.get("nric")),
+        key=lambda x: x['id'],
+        reverse=True
+    )[:3]
     return render_template("dashboard.html", user=user, workouts=workouts, recent_logs=recent_logs)
 
 
@@ -676,8 +699,67 @@ def add_member():
 @app.route("/performance")
 @login_required
 def performance():
-    logs = sorted(query_db("performance_log"), key=lambda x: x['id'], reverse=True)
+    user = current_user()
+    logs = sorted(
+        query_db("performance_log", lambda x: x.get("nric") == user.get("nric")),
+        key=lambda x: x['id'],
+        reverse=True
+    )
     return render_template("performance_log.html", logs=logs)
+
+
+@app.route("/api/performance-log", methods=["GET"])
+@login_required
+def api_performance_logs():
+    user = current_user()
+    logs = sorted(
+        query_db("performance_log", lambda x: x.get("nric") == user.get("nric")),
+        key=lambda x: (x.get("date", ""), x.get("id", 0))
+    )
+    return jsonify({"success": True, "logs": logs})
+
+
+@app.route("/api/performance-log", methods=["POST"])
+@login_required
+def api_create_performance_log():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    date = (data.get("date") or "").strip()
+
+    if not name or not date:
+        return jsonify({"success": False, "error": "Event name and date are required"}), 400
+
+    db = get_db()
+    new_log = {
+        "id": max([log.get("id", 0) for log in db.get("performance_log", [])], default=0) + 1,
+        "nric": current_user().get("nric"),
+        "event": name,
+        "name": name,
+        "type": data.get("type") or "logged",
+        "score": (data.get("score") or "").strip(),
+        "time": (data.get("time") or "").strip(),
+        "date": date,
+        "notes": (data.get("notes") or "").strip()
+    }
+    db.setdefault("performance_log", []).append(new_log)
+    return jsonify({"success": True, "log": new_log}), 201
+
+
+@app.route("/api/performance-log/<int:log_id>", methods=["DELETE"])
+@login_required
+def api_delete_performance_log(log_id):
+    db = get_db()
+    user = current_user()
+    before = len(db.get("performance_log", []))
+    db["performance_log"] = [
+        log for log in db.get("performance_log", [])
+        if not (log.get("id") == log_id and log.get("nric") == user.get("nric"))
+    ]
+
+    if len(db["performance_log"]) == before:
+        return jsonify({"success": False, "error": "Log not found"}), 404
+
+    return jsonify({"success": True})
 
 
 @app.route("/webcam")
