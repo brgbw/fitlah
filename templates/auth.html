@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if mode == 'signup' %}Sign Up{% else %}Login{% endif %} | FitLah NSmen Portal</title>
+    <style>
+        :root {
+            --primary: #00A86B;
+            --primary-hover: #008F5B;
+            --bg-body: #E2E8F0;
+            --bg-card: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #CBD5E1;
+            --accent-blue: #2563EB;
+            --accent-blue-light: #EFF6FF;
+            --accent-rose: #E11D48;
+            --accent-rose-light: #FFE4E6;
+            --bg-badge: #E8F8F2;
+            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        body {
+            min-height: 100vh;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: grid;
+            place-items: center;
+            padding: 28px;
+        }
+        .auth-shell {
+            width: min(960px, 100%);
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            min-height: 560px;
+        }
+        .brand-panel {
+            background-color: #F8FAFC;
+            border-right: 1px solid var(--border);
+            padding: 36px 28px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .logo span { color: var(--primary); }
+        .brief-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .brief-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .brief-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .brief-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .form-panel {
+            padding: 44px;
+            display: flex;
+            align-items: center;
+        }
+        .auth-form-wrap {
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+        .mode-badge {
+            display: inline-block;
+            background-color: var(--bg-badge);
+            color: var(--primary);
+            border: 1px solid #BCEBD9;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 9px;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 12px;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+        .subcopy {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.45;
+            margin-bottom: 28px;
+        }
+        .form-grid {
+            display: grid;
+            gap: 14px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        label {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background-color: #F8FAFC;
+            color: var(--text-main);
+            padding: 11px 12px;
+            outline: none;
+            font-size: 14px;
+            transition: all 0.15s ease;
+        }
+        input:focus {
+            border-color: var(--primary);
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.12);
+        }
+        .error-box {
+            background-color: var(--accent-rose-light);
+            color: var(--accent-rose);
+            border: 1px solid #FECDD3;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 18px;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background-color 0.15s ease;
+        }
+        .submit-btn:hover {
+            background-color: var(--primary-hover);
+        }
+        .switch-row {
+            margin-top: 18px;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .switch-row a {
+            color: var(--primary);
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .demo-note {
+            margin-top: 18px;
+            padding: 10px 12px;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.45;
+            background-color: #F8FAFC;
+        }
+        @media (max-width: 760px) {
+            body { padding: 16px; }
+            .auth-shell { grid-template-columns: 1fr; }
+            .brand-panel { gap: 28px; border-right: none; border-bottom: 1px solid var(--border); }
+            .form-panel { padding: 30px 22px; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <main class="auth-shell">
+        <aside class="brand-panel">
+            <div class="logo">Fit<span>Lah</span></div>
+            <div class="brief-stack">
+                <div class="brief-card">
+                    <div class="brief-label">Identity</div>
+                    <div class="brief-value">NRIC Login</div>
+                </div>
+                <div class="brief-card">
+                    <div class="brief-label">Portal</div>
+                    <div class="brief-value">IPPT Tracking Center</div>
+                </div>
+                <div class="brief-card">
+                    <div class="brief-label">Data Store</div>
+                    <div class="brief-value">serverdata/database.json</div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="form-panel">
+            <div class="auth-form-wrap">
+                <div class="mode-badge">{% if mode == 'signup' %}Create Account{% else %}Secure Access{% endif %}</div>
+                <h1>{% if mode == 'signup' %}Set up your FitLah account{% else %}Welcome back{% endif %}</h1>
+                <p class="subcopy">
+                    {% if mode == 'signup' %}
+                    Use your NRIC as your username and set your own password.
+                    {% else %}
+                    Sign in with your NRIC and password to continue to your dashboard.
+                    {% endif %}
+                </p>
+
+                {% if error %}
+                <div class="error-box">{{ error }}</div>
+                {% endif %}
+
+                <form method="post" class="form-grid">
+                    {% if mode == 'signup' %}
+                    <div class="form-field">
+                        <label for="name">Full Name</label>
+                        <input id="name" name="name" type="text" autocomplete="name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="rank">Rank</label>
+                            <input id="rank" name="rank" type="text" placeholder="e.g. Lieutenant">
+                        </div>
+                        <div class="form-field">
+                            <label for="unit">Unit</label>
+                            <input id="unit" name="unit" type="text" placeholder="e.g. 5th Guards">
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="form-field">
+                        <label for="nric">NRIC</label>
+                        <input id="nric" name="nric" type="text" autocomplete="username" maxlength="9" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="password">Password</label>
+                        <input id="password" name="password" type="password" autocomplete="{% if mode == 'signup' %}new-password{% else %}current-password{% endif %}" required>
+                    </div>
+                    {% if mode == 'signup' %}
+                    <div class="form-field">
+                        <label for="confirm_password">Confirm Password</label>
+                        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required>
+                    </div>
+                    {% endif %}
+                    <button class="submit-btn" type="submit">{% if mode == 'signup' %}Create Account{% else %}Login{% endif %}</button>
+                </form>
+
+                <div class="switch-row">
+                    {% if mode == 'signup' %}
+                    Already registered? <a href="{{ url_for('login') }}">Login</a>
+                    {% else %}
+                    New to FitLah? <a href="{{ url_for('signup') }}">Sign up</a>
+                    {% endif %}
+                </div>
+
+                {% if mode == 'login' %}
+                <div class="demo-note">
+                    Seeded demo NRICs from the group roster can log in with password <strong>password123</strong>, or use sign up to set a new password for that NRIC.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>

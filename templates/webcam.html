@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* Active Vision Layout Splitter */
+    .vision-workspace {
+        display: grid;
+        grid-template-columns: 1fr 220px;
+        gap: 20px;
+        flex: 1;
+        min-height: 500px;
+        margin-bottom: 20px;
+    }
+
+    /* Video Feed Container */
+    .video-feed-card {
+        background-color: #0F172A;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        border: 1px solid #334155;
+        height: 500px; /* Force fixed height so starting camera doesn't cause scrolling */
+    }
+
+    /* Live Overlay Indicators Removed */
+
+    /* Right Side Diagnostic Rails */
+    .diagnostics-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .metric-v-card {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 16px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        flex: 1; /* This makes the cards fill the vertical space equally */
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .metric-v-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 4px 10px -3px rgba(0, 0, 0, 0.04);
+    }
+
+    .counter-focus-valid {
+        background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+        border-color: #BBF7D0;
+    }
+
+    .counter-focus-valid .hud-lbl { 
+        color: #166534; 
+    }
+    
+    .counter-focus-invalid {
+        background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%);
+        border-color: #FECDD3;
+    }
+
+    .counter-focus-invalid .hud-lbl { 
+        color: #BE123C; 
+    }
+
+    .giant-counter {
+        font-size: 42px;
+        font-weight: 800;
+        line-height: 1;
+        margin-top: 8px;
+        letter-spacing: -1px;
+    }
+
+    .counter-focus-valid .giant-counter { color: #15803D; }
+    .counter-focus-invalid .giant-counter { color: #E11D48; }
+
+    .giant-counter span {
+        font-size: 14px;
+        font-weight: 600;
+        opacity: 0.7;
+        letter-spacing: 0;
+    }
+
+    .form-status-alert {
+        background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+        border-color: #FDE68A;
+    }
+
+    .status-msg-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: #B45309;
+        margin-top: 8px;
+        line-height: 1.4;
+    }
+
+    /* Control Interface Strip */
+    .control-strip {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        flex-shrink: 0;
+    }
+
+    .status-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .stop-btn {
+        background-color: var(--accent-red);
+        color: #ffffff;
+        border: none;
+        padding: 12px 24px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 8px;
+        cursor: pointer;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        transition: all 0.2s ease;
+    }
+
+    .stop-btn:hover {
+        opacity: 0.9;
+    }
+</style>
+
+<div class="header-section" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+            <h1 id="stationHeader" style="font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px;">Exercise Recording Station</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Record and upload both your Push-Up and Sit-Up sessions.</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="modePushupBtn" class="stop-btn" style="background-color: var(--primary); padding: 8px 16px;" onclick="setExerciseMode('pushup')">Push-Up</button>
+            <button id="modeSitupBtn" class="stop-btn" style="background-color: var(--text-muted); padding: 8px 16px;" onclick="setExerciseMode('situp')">Sit-Up</button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Computer Vision Analytics Interface Grid -->
+<div class="vision-workspace">
+    <!-- Live Target Video Capture Array Panel -->
+    <div class="video-feed-card">
+
+        <!-- Dynamic Video Elements for Live Feed and Playback -->
+        <video id="liveVideo" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none;"></video>
+        <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
+    </div>
+
+    <!-- Right Diagnostic Readout Columns -->
+    <div class="diagnostics-sidebar">
+        <div class="metric-v-card counter-focus-valid">
+            <div class="hud-lbl">Valid Repetitions</div>
+            <div class="giant-counter" id="repCounter">14 <span>/ 60</span></div>
+        </div>
+        <div class="metric-v-card counter-focus-invalid">
+            <div class="hud-lbl">Invalid Reps</div>
+            <div class="giant-counter" id="invalidRepCounter">2 <span>/ Warn</span></div>
+        </div>
+        <div class="metric-v-card form-status-alert">
+            <div class="hud-lbl" style="color: #92400E;">AI Recommendation</div>
+            <p class="status-msg-text" id="warningMessage">Keep spine rigid. Core deflection detected during extension phase.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Control Operations Bar Strip -->
+<div class="control-strip" style="flex-wrap: wrap; gap: 10px;">
+    <div class="status-pill" style="width: 100%; margin-bottom: 8px; justify-content: space-between;">
+        <div style="display: flex; gap: 16px;">
+            <span id="statusPushup" style="color: var(--accent-red); font-weight: 700;">✗ Push-Up Pending</span>
+            <span id="statusSitup" style="color: var(--accent-red); font-weight: 700;">✗ Sit-Up Pending</span>
+        </div>
+        <div id="timerDisplay" style="font-size: 18px; font-weight: 800; color: var(--accent-red); display: none;">01:00</div>
+    </div>
+    <button class="stop-btn" id="startCamBtn" onclick="startCamera()" style="background-color: var(--accent-blue);">Start Camera</button>
+    <button class="stop-btn" id="startRecBtn" onclick="startRecording()" style="background-color: var(--accent-red); display: none;">Start Recording</button>
+    <button class="stop-btn" id="stopRecBtn" onclick="stopRecording()" style="background-color: var(--text-muted); display: none;">Stop Recording</button>
+    <button class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="background-color: var(--primary); display: none;">Upload Video</button>
+    <button class="stop-btn" id="completeBtn" onclick="saveAndReturn()" style="background-color: var(--text-muted); opacity: 0.5; pointer-events: none; margin-left: auto;">Complete & Save Session</button>
+</div>
+
+<script>
+    let currentMode = 'pushup';
+    let pushupUploaded = false;
+    let situpUploaded = false;
+    
+    let stream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let videoBlob = null;
+    
+    let timerInterval = null;
+    let timeLeft = 60;
+    
+    const liveVideo = document.getElementById('liveVideo');
+    const playbackVideo = document.getElementById('playbackVideo');
+    const startCamBtn = document.getElementById('startCamBtn');
+    const startRecBtn = document.getElementById('startRecBtn');
+    const stopRecBtn = document.getElementById('stopRecBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const completeBtn = document.getElementById('completeBtn');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const modePushupBtn = document.getElementById('modePushupBtn');
+    const modeSitupBtn = document.getElementById('modeSitupBtn');
+    
+    function setExerciseMode(mode) {
+        currentMode = mode;
+        if (mode === 'pushup') {
+            modePushupBtn.style.backgroundColor = 'var(--primary)';
+            modeSitupBtn.style.backgroundColor = 'var(--text-muted)';
+            document.getElementById('stationHeader').innerText = "Push-up Recording Mode";
+        } else {
+            modeSitupBtn.style.backgroundColor = 'var(--primary)';
+            modePushupBtn.style.backgroundColor = 'var(--text-muted)';
+            document.getElementById('stationHeader').innerText = "Sit-up Recording Mode";
+        }
+        
+        if (stream) {
+            startRecBtn.style.display = 'inline-block';
+            stopRecBtn.style.display = 'none';
+            uploadBtn.style.display = 'none';
+            liveVideo.style.display = 'block';
+            playbackVideo.style.display = 'none';
+            playbackVideo.src = '';
+            videoBlob = null;
+            recordedChunks = [];
+        }
+    }
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            liveVideo.srcObject = stream;
+            liveVideo.style.display = 'block';
+            playbackVideo.style.display = 'none';
+            
+            startCamBtn.style.display = 'none';
+            startRecBtn.style.display = 'inline-block';
+        } catch (err) {
+            alert('Could not access camera: ' + err.message);
+        }
+    }
+
+    function updateTimer() {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function startRecording() {
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        
+        mediaRecorder.ondataavailable = function(e) {
+            if (e.data.size > 0) {
+                recordedChunks.push(e.data);
+            }
+        };
+        
+        mediaRecorder.onstop = function() {
+            videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+            const videoURL = URL.createObjectURL(videoBlob);
+            liveVideo.style.display = 'none';
+            playbackVideo.style.display = 'block';
+            playbackVideo.src = videoURL;
+            
+            stopRecBtn.style.display = 'none';
+            uploadBtn.style.display = 'inline-block';
+            timerDisplay.style.display = 'none';
+        };
+        
+        startRecBtn.style.display = 'none';
+        stopRecBtn.style.display = 'inline-block';
+        timerDisplay.style.display = 'block';
+        
+        timeLeft = 60;
+        updateTimer();
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimer();
+            if (timeLeft <= 0) {
+                stopRecording();
+            }
+        }, 1000);
+        
+        mediaRecorder.start();
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            clearInterval(timerInterval);
+        }
+    }
+
+    async function uploadVideo() {
+        if (!videoBlob) return;
+        
+        uploadBtn.innerText = 'Uploading...';
+        uploadBtn.style.pointerEvents = 'none';
+        
+        const formData = new FormData();
+        formData.append('video', videoBlob, 'recording.webm');
+        formData.append('exercise', currentMode);
+        
+        try {
+            const response = await fetch('/api/upload-video', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`${currentMode.toUpperCase()} video uploaded successfully!`);
+                if (currentMode === 'pushup') {
+                    pushupUploaded = true;
+                    const status = document.getElementById('statusPushup');
+                    status.innerText = '✓ Push-Up Logged';
+                    status.style.color = 'var(--primary)';
+                } else {
+                    situpUploaded = true;
+                    const status = document.getElementById('statusSitup');
+                    status.innerText = '✓ Sit-Up Logged';
+                    status.style.color = 'var(--primary)';
+                }
+                
+                checkCompletion();
+                
+                uploadBtn.innerText = 'Uploaded ✓';
+            } else {
+                alert('Upload failed: ' + result.error);
+                uploadBtn.innerText = 'Upload Video';
+                uploadBtn.style.pointerEvents = 'auto';
+            }
+        } catch (err) {
+            alert('Upload error: ' + err.message);
+            uploadBtn.innerText = 'Upload Video';
+            uploadBtn.style.pointerEvents = 'auto';
+        }
+    }
+
+    function checkCompletion() {
+        if (pushupUploaded && situpUploaded) {
+            completeBtn.style.opacity = '1';
+            completeBtn.style.pointerEvents = 'auto';
+            completeBtn.style.backgroundColor = 'var(--primary)';
+            
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+            }
+        }
+    }
+
+    function saveAndReturn() {
+        if (!pushupUploaded || !situpUploaded) {
+            alert("Please record and upload both Push-Up and Sit-Up sessions first.");
+            return;
+        }
+        alert("Session fully completed and saved! Returning to dashboard.");
+        window.location.href = "{{ url_for('dashboard') }}"; 
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+        setExerciseMode('pushup');
+    });
+</script>
+{% endblock %}

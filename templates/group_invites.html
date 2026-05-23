@@ -1,0 +1,789 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .header-section {
+        margin-bottom: 24px;
+    }
+    .header-section h1 {
+        font-size: 26px;
+        font-weight: 700;
+        color: #0F172A;
+        margin-bottom: 6px;
+    }
+    .header-section p {
+        font-size: 14px;
+        color: #64748B;
+    }
+
+    /* Split Layout */
+    .sync-grid-split {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* Group Tabs/Filters */
+    .filter-row {
+        display: flex;
+        gap: 6px;
+        background-color: #FFFFFF;
+        padding: 8px;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .filter-pill {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748B;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: transparent;
+    }
+    .filter-pill:hover {
+        color: #0F172A;
+    }
+    .filter-pill.active {
+        background-color: #f1f5f9;
+        color: #0F172A;
+    }
+    .create-group-pill {
+        background-color: #E8F8F2;
+        color: #00A86B !important;
+        font-weight: 700;
+        margin-left: auto;
+    }
+    .create-group-pill:hover {
+        background-color: #00A86B;
+        color: #ffffff !important;
+    }
+
+    /* Inline Add Member Form */
+    .inline-add-member {
+        display: flex;
+        gap: 6px;
+        background-color: #FFFFFF;
+        padding: 12px;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
+    }
+    .inline-add-member input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #0F172A;
+        outline: none;
+        background-color: #F8FAFC;
+    }
+    .inline-add-member input:focus {
+        border-color: #00A86B;
+        background-color: #FFFFFF;
+    }
+    .inline-add-member button {
+        background-color: #0F172A;
+        color: #ffffff;
+        border: none;
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .inline-add-member button:hover {
+        background-color: #1A2332;
+    }
+
+    .section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #64748B;
+        margin-bottom: 20px;
+    }
+
+    /* Leaderboard Table */
+    .sync-table-container {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+        margin-bottom: 32px;
+    }
+    .sync-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+    .sync-table th {
+        background-color: #F8FAFC;
+        padding: 14px 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748B;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .sync-table td {
+        padding: 14px 20px;
+        font-size: 13px;
+        color: #0F172A;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .sync-table tr:last-child td {
+        border-bottom: none;
+    }
+    .sync-table tr:hover {
+        background-color: #F8FAFC;
+    }
+    .pb-cell {
+        min-width: 104px;
+    }
+    .pb-value {
+        font-size: 15px;
+        font-weight: 800;
+        color: #0F172A;
+        line-height: 1.1;
+    }
+    .pb-unit {
+        display: block;
+        margin-top: 2px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    
+    .user-id-tag {
+        font-size: 11px;
+        color: #64748B;
+        font-family: monospace;
+        display: block;
+        margin-top: 2px;
+    }
+
+    .status-badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .status-badge-pill.gold { 
+        background-color: #FEF3C7; 
+        color: #D97706; 
+    }
+    .status-badge-pill.silver { 
+        background-color: #F1F5F9; 
+        color: #475569; 
+    }
+    .status-badge-pill.incomplete { 
+        background-color: #FFE4E6; 
+        color: #E11D48; 
+    }
+
+    /* Panel Box */
+    .panel-box {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Invite Cards Stack */
+    .invite-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .invite-card {
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 14px;
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .invite-meta .sender {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .invite-meta .group-target {
+        font-size: 12px;
+        color: #64748B;
+        margin-top: 1px;
+    }
+    .invite-actions {
+        display: flex;
+        gap: 6px;
+    }
+    .invite-actions button {
+        flex: 1;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        text-transform: uppercase;
+        transition: all 0.2s ease;
+    }
+    .btn-accept {
+        background-color: #E8F8F2;
+        color: #00A86B;
+    }
+    .btn-accept:hover {
+        background-color: #00A86B;
+        color: white;
+    }
+    .btn-decline {
+        background-color: #f1f5f9;
+        color: #64748B;
+    }
+    .btn-decline:hover {
+        background-color: #E2E8F0;
+        color: #0F172A;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(4px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .modal-overlay.active {
+        display: flex;
+    }
+    .modal-window {
+        background-color: #FFFFFF;
+        width: 480px;
+        border-radius: 14px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        border: 1px solid #E2E8F0;
+        overflow: hidden;
+        animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+        from { transform: scale(0.96); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+        padding: 24px 24px 16px 24px;
+        border-bottom: 1px solid #E2E8F0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .close-icon-btn {
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: #64748B;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .close-icon-btn:hover {
+        color: #0F172A;
+    }
+    .modal-body {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .form-element-block {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .form-element-block label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748B;
+    }
+    .form-element-block input, .form-element-block select {
+        padding: 10px 12px;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #0F172A;
+        outline: none;
+        background-color: #F8FAFC;
+        font-family: inherit;
+    }
+    .form-element-block input:focus, .form-element-block select:focus {
+        border-color: #00A86B;
+        background-color: #ffffff;
+    }
+    
+    .token-input-row {
+        display: flex;
+        gap: 6px;
+    }
+    .token-input-row input {
+        flex: 1;
+    }
+    .btn-add-token {
+        background-color: #0F172A;
+        color: #ffffff;
+        border: none;
+        padding: 0 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-add-token:hover {
+        background-color: #1A2332;
+    }
+    .token-tray-box {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 34px;
+        padding: 6px;
+        border: 1px dashed #E2E8F0;
+        border-radius: 6px;
+        background-color: #fafafa;
+    }
+    .identity-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background-color: #f1f5f9;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        font-family: monospace;
+    }
+    .identity-chip span {
+        color: #E11D48;
+        cursor: pointer;
+        font-weight: bold;
+        font-family: sans-serif;
+    }
+
+    .modal-footer {
+        padding: 16px 24px 24px 24px;
+        border-top: 1px solid #E2E8F0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .btn-modal-cancel {
+        background-color: transparent;
+        border: 1px solid #E2E8F0;
+        color: #64748B;
+        padding: 10px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-modal-cancel:hover {
+        background-color: #F8FAFC;
+        color: #0F172A;
+    }
+    .btn-modal-submit {
+        background-color: #00A86B;
+        border: none;
+        color: #ffffff;
+        padding: 10px 24px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-modal-submit:hover {
+        background-color: #008F5B;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 30px 0;
+        color: #64748B;
+        font-size: 12px;
+    }
+</style>
+
+<div class="header-section">
+    <h1>Custom Training Groups</h1>
+    <p>Create private training rooms, invite buddy clusters securely using identifiers, and review combined IPPT logs.</p>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="createGroupModal">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3>Create Private Training Group</h3>
+            <button class="close-icon-btn" onclick="closeModal('createGroupModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-element-block">
+                <label for="newGroupName">Group Name</label>
+                <input type="text" id="newGroupName" class="form-input" placeholder="e.g., Bedok Runners / Section 2 Kakis" required>
+            </div>
+            <div class="form-element-block">
+                <label for="groupFocus">Training Focus Target</label>
+                <select id="groupFocus" class="form-input">
+                    <option value="all">Comprehensive Sync (All Exercises)</option>
+                    <option value="pushups">Push-Up Volume Focus</option>
+                    <option value="situps">Sit-Up Cadence Focus</option>
+                    <option value="pullups">Pull-Up Lockout Focus</option>
+                </select>
+            </div>
+            <div class="form-element-block">
+                <label>Invite Buddies via Identifier</label>
+                <div class="token-input-row">
+                    <input type="text" id="modalTokenInput" class="form-input" placeholder="Enter masked ID (e.g., SXXXX789A)">
+                    <button class="btn-add-token" onclick="addChipToken()">Invite</button>
+                </div>
+            </div>
+            <div class="form-element-block">
+                <label style="font-size: 10px;">Pending Invitations Stack</label>
+                <div class="token-tray-box" id="modalTokenTray">
+                    <!-- Chips will be added here -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('createGroupModal')">Cancel</button>
+            <button class="btn-modal-submit" onclick="submitCreateGroup()">Launch Group</button>
+        </div>
+    </div>
+</div>
+
+<!-- Split Layout -->
+<div class="sync-grid-split">
+    
+    <!-- Left Column -->
+    <div class="left-workspace-column">
+        
+        <!-- Filter Row with Group Tabs -->
+        <div class="filter-row" id="groupTabsRow">
+            {% for item in group_data %}
+            <div class="filter-pill {% if loop.first %}active{% endif %}" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">{{ item.group.name }}</div>
+            {% endfor %}
+            <div class="filter-pill create-group-pill" onclick="openModal('createGroupModal')">+ Create Group</div>
+        </div>
+
+        <!-- Inline Add Member Form -->
+        <div class="inline-add-member">
+            <input type="text" id="memberIdInput" class="form-input" placeholder="Enter buddy's identifier (e.g., SXXXX789A)" maxlength="9">
+            <button onclick="addMemberToGroup()">Send Invite</button>
+        </div>
+
+        <div class="section-title" id="tableTitleContext">Group Roster Records - Personal Bests</div>
+        
+        <!-- Leaderboard Table -->
+        <div class="sync-table-container">
+            <table class="sync-table">
+                <thead>
+                    <tr>
+                        <th>Personnel Name</th>
+                        <th>PB Push-Ups</th>
+                        <th>PB Sit-Ups</th>
+                        <th>PB 2.4km Run</th>
+                        <th>IPPT Status</th>
+                    </tr>
+                </thead>
+                <tbody id="groupTableBody">
+                    {% if group_data %}
+                        {% for member in group_data[0].members %}
+                        <tr>
+                            <td>
+                                <strong>{{ member.name }}</strong>
+                                <span class="user-id-tag">{{ member.nric }}</span>
+                            </td>
+                            <td class="pb-cell">
+                                <div class="pb-value">{{ member.personal_best.pushups or '--' }}</div>
+                                <span class="pb-unit">Reps</span>
+                            </td>
+                            <td class="pb-cell">
+                                <div class="pb-value">{{ member.personal_best.situps or '--' }}</div>
+                                <span class="pb-unit">Reps</span>
+                            </td>
+                            <td class="pb-cell">
+                                <div class="pb-value">{{ member.personal_best.run_time or '--:--' }}</div>
+                                <span class="pb-unit">Minutes</span>
+                            </td>
+                            <td>
+                                {% if member.pushups and member.pushups >= 50 %}
+                                    <span class="status-badge-pill gold">Gold</span>
+                                {% elif member.pushups and member.pushups >= 35 %}
+                                    <span class="status-badge-pill silver">Silver</span>
+                                {% else %}
+                                    <span class="status-badge-pill incomplete">Pending Sync</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-state">No groups available. Create a group to get started.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Panel Column -->
+    <div class="right-panel-column">
+        <div class="section-title">Incoming Invites</div>
+        <div class="panel-box">
+            <div class="invite-stack" id="inviteStackContainer">
+                {% if invites %}
+                    {% for invite in invites %}
+                    {% if invite.status == 'Pending' %}
+                    <div class="invite-card" id="invite-{{ invite.id }}">
+                        <div class="invite-meta">
+                            <div class="sender">{{ invite.sender }}</div>
+                            <div class="group-target">wants you to join "{{ invite.group_name }}"</div>
+                        </div>
+                        <div class="invite-actions">
+                            <button class="btn-accept" onclick="acceptInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Accept</button>
+                            <button class="btn-decline" onclick="declineInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Decline</button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% endif %}
+                <div style="font-size:12px; color:#64748B; text-align:center; padding:10px 0;" id="emptyState" {% if invites %}style="display:none;"{% endif %}>No pending invitations found.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    const groupRosterData = {{ group_data | tojson }};
+
+    function renderRoster(groupId) {
+        const tableBody = document.getElementById('groupTableBody');
+        const selected = groupRosterData.find(item => item.group.id === Number(groupId));
+
+        if (!selected || selected.members.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No roster records available for this group yet.</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = selected.members.map(member => {
+            const best = member.personal_best || {};
+            const pushups = Number(best.pushups || 0);
+            let status = '<span class="status-badge-pill incomplete">Pending Sync</span>';
+            if (pushups >= 50) {
+                status = '<span class="status-badge-pill gold">Gold</span>';
+            } else if (pushups >= 35) {
+                status = '<span class="status-badge-pill silver">Silver</span>';
+            }
+
+            return `
+                <tr>
+                    <td>
+                        <strong>${escapeHtml(member.name || 'NSman')}</strong>
+                        <span class="user-id-tag">${escapeHtml(member.nric || '')}</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${best.pushups || '--'}</div>
+                        <span class="pb-unit">Reps</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${best.situps || '--'}</div>
+                        <span class="pb-unit">Reps</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${escapeHtml(best.run_time || '--:--')}</div>
+                        <span class="pb-unit">Minutes</span>
+                    </td>
+                    <td>${status}</td>
+                </tr>`;
+        }).join('');
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[char]));
+    }
+
+    function selectTab(tabElement) {
+        if (tabElement.classList.contains('create-group-pill')) return;
+        const pills = document.querySelectorAll('.filter-pill:not(.create-group-pill)');
+        pills.forEach(p => p.classList.remove('active'));
+        tabElement.classList.add('active');
+        document.getElementById('tableTitleContext').innerText = `${tabElement.innerText} Roster Records - Personal Bests`;
+        renderRoster(tabElement.dataset.groupId);
+    }
+
+    function addChipToken() {
+        const input = document.getElementById('modalTokenInput');
+        const val = input.value.trim().toUpperCase();
+        if (!val) return;
+
+        const tray = document.getElementById('modalTokenTray');
+        const chip = document.createElement('div');
+        chip.className = 'identity-chip';
+        chip.dataset.nric = val;
+        chip.innerHTML = `${val} <span onclick="this.parentElement.remove()">&times;</span>`;
+        
+        tray.appendChild(chip);
+        input.value = '';
+    }
+
+    function submitCreateGroup() {
+        const groupName = document.getElementById('newGroupName').value.trim();
+        const invitedNrics = Array.from(document.querySelectorAll('#modalTokenTray .identity-chip'))
+            .map(chip => chip.dataset.nric)
+            .filter(Boolean);
+        if (!groupName) {
+            alert('Please enter a group name.');
+            return;
+        }
+
+        fetch('/api/create-group', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ group_name: groupName, invited_nrics: invitedNrics })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to create group'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Failed to create group');
+        });
+    }
+
+    function addMemberToGroup() {
+        const input = document.getElementById('memberIdInput');
+        const val = input.value.trim().toUpperCase();
+        const activeTab = document.querySelector('.filter-pill.active:not(.create-group-pill)');
+        if (!val) {
+            alert('Please enter a member identifier.');
+            return;
+        }
+        if (!activeTab) {
+            alert('Create or select a group first.');
+            return;
+        }
+
+        fetch('/api/add-member', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                group_id: Number(activeTab.dataset.groupId),
+                nric: val
+            })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                alert(`Invitation sent to ${val}.`);
+                input.value = '';
+            } else {
+                alert(data.error || 'Could not send invite.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Could not send invite.');
+        });
+    }
+
+    function acceptInvite(inviteId, cardId) {
+        fetch(`/api/accept-invite/${inviteId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(err => console.error('Error:', err));
+    }
+
+    function declineInvite(inviteId, cardId) {
+        fetch(`/api/decline-invite/${inviteId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(err => console.error('Error:', err));
+    }
+
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+</script>
+{% endblock %}

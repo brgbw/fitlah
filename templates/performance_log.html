@@ -1,0 +1,555 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Performance Log</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #F1F5F9;
+    color: #0F172A;
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  .header-section { margin-bottom: 28px; }
+  .header-section h1 { font-size: 24px; font-weight: 800; color: #0F172A; }
+  .header-section p { font-size: 14px; color: #64748B; margin-top: 4px; }
+
+  .log-workspace-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 32px;
+    width: 100%;
+  }
+
+  .calendar-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 24px;
+    height: fit-content;
+    position: sticky;
+    top: 32px;
+  }
+
+  .calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .calendar-month-title { font-size: 16px; font-weight: 700; color: #0F172A; }
+
+  .nav-btn {
+    background: none;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #334155;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .nav-btn:hover { background: #F8FAFC; }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    text-align: center;
+  }
+
+  .weekday-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #F8FAFC;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0F172A;
+    cursor: pointer;
+    transition: all 0.15s;
+    gap: 2px;
+  }
+  .calendar-day:hover { border-color: #00A86B; background: #E8F8F2; }
+  .calendar-day.today { border-color: #00A86B; color: #00A86B; }
+  .calendar-day.active-selected { background: #00A86B; color: #FFF; border-color: #00A86B; }
+  .calendar-day.empty { background: transparent; border: none; cursor: default; }
+  .calendar-day.empty:hover { background: transparent; border: none; }
+
+  .day-dots { display: flex; gap: 3px; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .dot.logged { background: #00A86B; }
+  .dot.ippt { background: #E11D48; }
+  .dot.ict { background: #2563EB; }
+  .calendar-day.active-selected .dot.logged { background: rgba(255,255,255,0.9); }
+
+  .details-display-stack { display: flex; flex-direction: column; gap: 20px; }
+
+  .agenda-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .agenda-item { display: flex; gap: 16px; }
+
+  .agenda-color-bar { width: 4px; border-radius: 2px; flex-shrink: 0; }
+  .agenda-color-bar.logged { background: #00A86B; }
+  .agenda-color-bar.ict { background: #2563EB; }
+  .agenda-color-bar.ippt { background: #E11D48; }
+
+  .agenda-details { display: flex; flex-direction: column; width: 100%; }
+  .agenda-date { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
+  .agenda-name { font-size: 18px; font-weight: 700; color: #0F172A; margin-top: 2px; }
+
+  .recording-metric-container {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding-top: 16px;
+    margin-top: 12px;
+    border-top: 1px solid #E2E8F0;
+    flex-wrap: wrap;
+  }
+
+  .metric-block-large { display: flex; flex-direction: column; gap: 4px; }
+  .metric-label-small { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-value-huge { font-size: 32px; font-weight: 800; color: #0F172A; line-height: 1.1; }
+  .metric-value-huge span { font-size: 14px; font-weight: 600; color: #64748B; }
+  .metric-divider-line { width: 1px; height: 44px; background: #E2E8F0; }
+
+  .no-entry {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94A3B8;
+    font-size: 14px;
+  }
+  .no-entry .icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* Add Entry Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 28px;
+    width: 420px;
+    max-width: 95vw;
+  }
+
+  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #0F172A;
+    font-family: inherit;
+    background: #F8FAFC;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #00A86B; background: #fff; }
+  .form-group textarea { resize: vertical; min-height: 72px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: #00A86B; color: #fff; }
+  .btn-primary:hover { background: #008F5A; }
+  .btn-secondary { background: #F1F5F9; color: #334155; }
+  .btn-secondary:hover { background: #E2E8F0; }
+
+  .add-entry-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #00A86B;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .add-entry-btn:hover { background: #008F5A; }
+
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #64748B; font-weight: 600; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .delete-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #94A3B8;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .delete-btn:hover { background: #FEE2E2; color: #E11D48; }
+
+  .selected-date-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748B;
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 16px; }
+    .log-workspace-grid { grid-template-columns: 1fr; }
+    .calendar-card { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header-row">
+  <div class="header-section">
+    <h1>Performance Log</h1>
+    <p>Track your fitness entries and progress notes.</p>
+  </div>
+  <button class="add-entry-btn" onclick="openModal()">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    Add Entry
+  </button>
+</div>
+
+<div class="log-workspace-grid">
+  <!-- Calendar -->
+  <div class="calendar-card">
+    <div class="calendar-nav">
+      <button class="nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+      <div class="calendar-month-title" id="monthTitle"></div>
+      <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#00A86B"></div>Workout</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>ICT</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E11D48"></div>IPPT</div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="details-display-stack" id="detailsPanel"></div>
+</div>
+
+<!-- Add Entry Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <h2>Add Performance Entry</h2>
+    <div class="form-group">
+      <label>Event Name</label>
+      <input type="text" id="eventName" placeholder="e.g. Push-ups Challenge" />
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select id="eventType">
+        <option value="logged">Workout</option>
+        <option value="ict">ICT</option>
+        <option value="ippt">IPPT</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Score / Reps</label>
+        <input type="text" id="eventScore" placeholder="e.g. 45 reps" />
+      </div>
+      <div class="form-group">
+        <label>Time</label>
+        <input type="text" id="eventTime" placeholder="e.g. 2:15 min" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="eventNotes" placeholder="Any notes about your performance..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const WEEKDAYS = ['S','M','T','W','T','F','S'];
+
+  let today = new Date();
+  let currentYear = today.getFullYear();
+  let currentMonth = today.getMonth();
+  let selectedDate = null;
+
+  // entries: { 'YYYY-MM-DD': [{name, type, score, time, notes}] }
+  let entries = JSON.parse(localStorage.getItem('perfLog') || '{}');
+
+  // Seed some demo data if empty
+  if (Object.keys(entries).length === 0) {
+    const d = (y, m, day) => `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const now = new Date();
+    const y = now.getFullYear(), mo = now.getMonth();
+    entries[d(y, mo, 3)] = [{name:'Morning Run', type:'logged', score:'5 km', time:'28:00 min', notes:'Steady pace throughout.'}];
+    entries[d(y, mo, 7)] = [{name:'Push-ups Challenge', type:'ippt', score:'48 reps', time:'2:00 min', notes:'New personal best!'}, {name:'Sit-ups', type:'logged', score:'60 reps', time:'2:30 min', notes:'Good form maintained.'}];
+    entries[d(y, mo, 12)] = [{name:'ICT Parade', type:'ict', score:'—', time:'3h', notes:'Full attendance.'}];
+    entries[d(y, mo, 18)] = [{name:'2.4 km Run', type:'ippt', score:'11:45 min', time:'11:45 min', notes:'Slightly winded at 2 km mark.'}];
+    save();
+  }
+
+  function save() { localStorage.setItem('perfLog', JSON.stringify(entries)); }
+
+  function dateKey(y, m, d) {
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+
+  function friendlyDate(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return `${MONTHS[m-1]} ${d}, ${y}`;
+  }
+
+  function renderCalendar() {
+    const title = document.getElementById('monthTitle');
+    title.textContent = `${MONTHS[currentMonth]} ${currentYear}`;
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    WEEKDAYS.forEach(w => {
+      const el = document.createElement('div');
+      el.className = 'weekday-label';
+      el.textContent = w;
+      grid.appendChild(el);
+    });
+
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const el = document.createElement('div');
+      el.className = 'calendar-day empty';
+      grid.appendChild(el);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = dateKey(currentYear, currentMonth, day);
+      const dayEntries = entries[key] || [];
+      const isToday = (today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === day);
+      const isSelected = selectedDate === key;
+
+      const el = document.createElement('div');
+      el.className = 'calendar-day' + (isToday ? ' today' : '') + (isSelected ? ' active-selected' : '');
+      el.innerHTML = `<span>${day}</span>`;
+
+      if (dayEntries.length > 0) {
+        const dots = document.createElement('div');
+        dots.className = 'day-dots';
+        const types = [...new Set(dayEntries.map(e => e.type))];
+        types.forEach(t => {
+          const dot = document.createElement('div');
+          dot.className = `dot ${t}`;
+          dots.appendChild(dot);
+        });
+        el.appendChild(dots);
+      }
+
+      el.addEventListener('click', () => selectDay(key));
+      grid.appendChild(el);
+    }
+  }
+
+  function selectDay(key) {
+    selectedDate = key;
+    renderCalendar();
+    renderDetails();
+  }
+
+  function renderDetails() {
+    const panel = document.getElementById('detailsPanel');
+    panel.innerHTML = '';
+
+    const key = selectedDate;
+
+    if (!key) {
+      panel.innerHTML = `<div class="no-entry"><div class="icon">📅</div><p>Select a date to view entries.</p></div>`;
+      return;
+    }
+
+    const dayEntries = entries[key] || [];
+    const header = document.createElement('div');
+    header.className = 'selected-date-header';
+    header.textContent = friendlyDate(key);
+    panel.appendChild(header);
+
+    if (dayEntries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'no-entry';
+      empty.innerHTML = `<div class="icon">🏃</div><p>No entries for this day.<br><strong>Click "Add Entry"</strong> to log something.</p>`;
+      panel.appendChild(empty);
+    } else {
+      dayEntries.forEach((entry, idx) => {
+        const card = document.createElement('div');
+        card.className = 'agenda-card';
+        card.innerHTML = `
+          <div class="agenda-item">
+            <div class="agenda-color-bar ${entry.type}"></div>
+            <div class="agenda-details">
+              <div style="display:flex;align-items:center;">
+                <div>
+                  <div class="agenda-date">${friendlyDate(key)} &middot; ${typeName(entry.type)}</div>
+                  <div class="agenda-name">${entry.name}</div>
+                </div>
+                <button class="delete-btn" title="Delete entry" onclick="deleteEntry('${key}', ${idx})">&#x2715;</button>
+              </div>
+              <div class="recording-metric-container">
+                ${entry.score ? `<div class="metric-block-large">
+                  <div class="metric-label-small">Score / Reps</div>
+                  <div class="metric-value-huge">${entry.score}</div>
+                </div>` : ''}
+                ${entry.score && entry.time ? '<div class="metric-divider-line"></div>' : ''}
+                ${entry.time ? `<div class="metric-block-large">
+                  <div class="metric-label-small">Time</div>
+                  <div class="metric-value-huge">${entry.time}</div>
+                </div>` : ''}
+                ${entry.notes ? `${(entry.score || entry.time) ? '<div class="metric-divider-line"></div>' : ''}<div class="metric-block-large" style="flex:1;">
+                  <div class="metric-label-small">Notes</div>
+                  <div style="font-size:13.5px;color:#334155;line-height:1.5;">${entry.notes}</div>
+                </div>` : ''}
+              </div>
+            </div>
+          </div>`;
+        panel.appendChild(card);
+      });
+    }
+  }
+
+  function typeName(t) {
+    return t === 'logged' ? 'Workout' : t.toUpperCase();
+  }
+
+  function deleteEntry(key, idx) {
+    if (!confirm('Delete this entry?')) return;
+    entries[key].splice(idx, 1);
+    if (entries[key].length === 0) delete entries[key];
+    save();
+    renderCalendar();
+    renderDetails();
+  }
+
+  function changeMonth(dir) {
+    currentMonth += dir;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    renderCalendar();
+  }
+
+  // Modal
+  function openModal() {
+    // Default date to selected or today
+    document.getElementById('modalOverlay').classList.add('open');
+    document.getElementById('eventName').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.getElementById('eventName').value = '';
+    document.getElementById('eventScore').value = '';
+    document.getElementById('eventTime').value = '';
+    document.getElementById('eventNotes').value = '';
+    document.getElementById('eventType').value = 'logged';
+  }
+
+  function closeModalOnBg(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  function saveEntry() {
+    const name = document.getElementById('eventName').value.trim();
+    if (!name) { alert('Please enter an event name.'); return; }
+
+    const key = selectedDate || dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+    if (!entries[key]) entries[key] = [];
+
+    entries[key].push({
+      name,
+      type: document.getElementById('eventType').value,
+      score: document.getElementById('eventScore').value.trim(),
+      time: document.getElementById('eventTime').value.trim(),
+      notes: document.getElementById('eventNotes').value.trim(),
+    });
+
+    save();
+    closeModal();
+
+    // Navigate to the correct month if needed
+    const [y, m] = key.split('-').map(Number);
+    currentYear = y; currentMonth = m - 1;
+    selectedDate = key;
+    renderCalendar();
+    renderDetails();
+  }
+
+  // Init
+  selectedDate = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  renderCalendar();
+  renderDetails();
+</script>
+</body>
+</html>
