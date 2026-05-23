@@ -244,6 +244,74 @@
     margin-bottom: 4px;
   }
 
+  .ai-coach-block {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #E2E8F0;
+    width: 100%;
+  }
+
+  .ai-coach-block h5 {
+    font-size: 12px;
+    font-weight: 800;
+    color: #00A86B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ai-coach-summary {
+    font-size: 13.5px;
+    color: #334155;
+    line-height: 1.55;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    background: #F8FAFC;
+    border-radius: 8px;
+    border-left: 3px solid #00A86B;
+  }
+
+  .ai-coach-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 700px) {
+    .ai-coach-grid { grid-template-columns: 1fr; }
+  }
+
+  .ai-coach-list h6 {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+  }
+
+  .ai-coach-list.dos h6 { color: #15803D; }
+  .ai-coach-list.donts h6 { color: #BE123C; }
+
+  .ai-coach-list ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.45;
+  }
+
+  .ai-coach-list li { margin-bottom: 4px; }
+
+  .ai-coach-focus {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #64748B;
+    font-style: italic;
+  }
+
   @media (max-width: 700px) {
     .log-workspace-grid { grid-template-columns: 1fr; }
     .calendar-card { position: static; }
@@ -342,7 +410,9 @@
         type: log.type || 'logged',
         score: log.score || '',
         time: log.time || '',
-        notes: log.notes || ''
+        notes: log.notes || '',
+        ai_recommendation: log.ai_recommendation || null,
+        session_id: log.session_id || null
       });
     });
   }
@@ -473,9 +543,10 @@
                 </div>` : ''}
                 ${entry.notes ? `${(entry.score || entry.time) ? '<div class="metric-divider-line"></div>' : ''}<div class="metric-block-large" style="flex:1;">
                   <div class="metric-label-small">Notes</div>
-                  <div style="font-size:13.5px;color:#334155;line-height:1.5;">${entry.notes}</div>
+                  <div style="font-size:13.5px;color:#334155;line-height:1.5;">${escapeHtml(entry.notes)}</div>
                 </div>` : ''}
               </div>
+              ${renderAiCoachBlock(entry.ai_recommendation)}
             </div>
           </div>`;
         panel.appendChild(card);
@@ -485,6 +556,29 @@
 
   function typeName(t) {
     return t === 'logged' ? 'Workout' : t.toUpperCase();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+  }
+
+  function renderAiCoachBlock(ai) {
+    if (!ai || !ai.summary) return '';
+    const dos = (ai.dos || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const donts = (ai.donts || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const focus = (ai.focus_areas || []).join(' · ');
+    return `
+      <div class="ai-coach-block">
+        <h5>✦ AI Personalised Coach</h5>
+        <div class="ai-coach-summary">${escapeHtml(ai.summary)}</div>
+        <div class="ai-coach-grid">
+          ${dos ? `<div class="ai-coach-list dos"><h6>What to do</h6><ul>${dos}</ul></div>` : ''}
+          ${donts ? `<div class="ai-coach-list donts"><h6>What to avoid</h6><ul>${donts}</ul></div>` : ''}
+        </div>
+        ${focus ? `<div class="ai-coach-focus"><strong>Next focus:</strong> ${escapeHtml(focus)}</div>` : ''}
+      </div>`;
   }
 
   async function deleteEntry(logId) {

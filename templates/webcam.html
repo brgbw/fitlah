@@ -11,6 +11,14 @@
         flex: 1;
         min-height: 500px;
         margin-bottom: 20px;
+        align-items: start;
+    }
+
+    .vision-main-column {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
     }
 
     /* Video Feed Container */
@@ -177,32 +185,330 @@
 
     .stop-btn:hover {
         opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .stop-btn:active {
+        transform: translateY(0);
+    }
+
+    .header-section h1 {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.6px;
+    }
+
+    .header-section p {
+        font-size: 14px;
+        color: var(--text-muted);
+        margin-top: 6px;
+        max-width: 520px;
+        line-height: 1.5;
+    }
+
+    .mode-toggle {
+        display: flex;
+        gap: 6px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 4px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .mode-toggle .stop-btn {
+        text-transform: none;
+        letter-spacing: 0;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        background: transparent;
+        color: var(--text-muted);
+    }
+
+    .mode-toggle .stop-btn.mode-active {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0, 168, 107, 0.35);
+    }
+
+    .video-feed-card {
+        box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
+    }
+
+    .metric-v-card .hud-lbl {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+    }
+
+    .control-strip {
+        border-radius: 14px;
+        padding: 18px 22px;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .control-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        flex: 1;
+    }
+
+    .control-actions .stop-btn {
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .control-actions .stop-btn#startCamBtn {
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    }
+
+    .control-actions .stop-btn#uploadBtn {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    }
+
+    .control-actions .stop-btn#completeBtn {
+        margin-left: auto;
+    }
+
+    .session-timer {
+        font-size: 28px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        color: var(--primary);
+        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+        border: 2px solid #A7F3D0;
+        border-radius: 12px;
+        padding: 10px 20px;
+        min-width: 100px;
+        text-align: center;
+        letter-spacing: 1px;
+    }
+
+    .session-timer.timer-active {
+        color: #DC2626;
+        background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        border-color: #FECACA;
+        animation: timer-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes timer-pulse {
+        50% { opacity: 0.85; }
+    }
+
+    .hands-ok-badge {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .hands-ok-badge.ok {
+        background: #DCFCE7;
+        color: #166534;
+    }
+
+    .hands-ok-badge.bad {
+        background: #FFE4E6;
+        color: #BE123C;
+    }
+
+    .ai-reco-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 22px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .ai-reco-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .ai-reco-header h3 {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.3px;
+    }
+
+    .ai-reco-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .ai-reco-status {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin-bottom: 12px;
+    }
+
+    .ai-reco-status.loading {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .ai-reco-status.error {
+        color: #BE123C;
+    }
+
+    .ai-reco-summary {
+        font-size: 14px;
+        color: var(--text-main);
+        line-height: 1.6;
+        margin-bottom: 16px;
+        padding: 14px 16px;
+        background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+        border-radius: 10px;
+        border-left: 4px solid var(--primary);
+    }
+
+    .ai-reco-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    @media (max-width: 900px) {
+        .ai-reco-columns {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .ai-reco-block h4 {
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    }
+
+    .ai-reco-block.dos h4 { color: #15803D; }
+    .ai-reco-block.donts h4 { color: #BE123C; }
+
+    .ai-reco-block ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .ai-reco-block li {
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text-main);
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        border-radius: 8px;
+        background: #F8FAFC;
+    }
+
+    .ai-reco-block.dos li {
+        background: #F0FDF4;
+        border: 1px solid #DCFCE7;
+    }
+
+    .ai-reco-block.donts li {
+        background: #FFF1F2;
+        border: 1px solid #FFE4E6;
+    }
+
+    .ai-reco-focus {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+    }
+
+    .ai-reco-focus h4 {
+        font-size: 12px;
+        font-weight: 800;
+        color: #1D4ED8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .ai-reco-focus p {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
     }
 </style>
 
 <div class="header-section" style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 20px;">
         <div>
-            <h1 id="stationHeader" style="font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px;">Exercise Recording Station</h1>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Record and upload both your Push-Up and Sit-Up sessions.</p>
+            <h1 id="stationHeader">Exercise Recording Station</h1>
+            <p>Side-on camera view. Your first valid rep starts a 1-minute recording session.</p>
         </div>
-        <div style="display: flex; gap: 8px;">
-            <button id="modePushupBtn" class="stop-btn" style="background-color: var(--primary); padding: 8px 16px;" onclick="setExerciseMode('pushup')">Push-Up</button>
-            <button id="modeSitupBtn" class="stop-btn" style="background-color: var(--text-muted); padding: 8px 16px;" onclick="setExerciseMode('situp')">Sit-Up</button>
+        <div class="mode-toggle">
+            <button id="modePushupBtn" type="button" class="stop-btn mode-active" onclick="setExerciseMode('pushup')">Push-Up</button>
+            <button id="modeSitupBtn" type="button" class="stop-btn" onclick="setExerciseMode('situp')">Sit-Up</button>
         </div>
     </div>
 </div>
 
 <!-- Main Computer Vision Analytics Interface Grid -->
 <div class="vision-workspace">
-    <!-- Live Target Video Capture Array Panel -->
-    <div class="video-feed-card">
+    <div class="vision-main-column">
+        <!-- Live Target Video Capture Array Panel -->
+        <div class="video-feed-card">
+            <div class="camera-placeholder" id="cameraPlaceholder">Camera and pose model idle</div>
+            <video id="sourceVideo" autoplay muted playsinline></video>
+            <canvas id="poseCanvas" width="960" height="540"></canvas>
+            <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
+        </div>
 
-        <!-- Dynamic Video Elements for Live Feed and Playback -->
-        <div class="camera-placeholder" id="cameraPlaceholder">Camera and pose model idle</div>
-        <video id="sourceVideo" autoplay muted playsinline></video>
-        <canvas id="poseCanvas" width="960" height="540"></canvas>
-        <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
+        <!-- AI personalised coach (text metrics only, no video sent) -->
+        <section class="ai-reco-panel" id="aiRecoPanel">
+            <div class="ai-reco-header">
+                <span class="ai-reco-icon">✦</span>
+                <h3>AI Personalised Coach</h3>
+            </div>
+            <p class="ai-reco-status" id="aiRecoStatus">
+                Complete a session and review your recording to receive tailored push-up or sit-up advice.
+            </p>
+            <div id="aiRecoSummary" class="ai-reco-summary" style="display: none;"></div>
+            <div class="ai-reco-columns" id="aiRecoColumns" style="display: none;">
+                <div class="ai-reco-block dos">
+                    <h4>What to do</h4>
+                    <ul id="aiRecoDos"></ul>
+                </div>
+                <div class="ai-reco-block donts">
+                    <h4>What to avoid</h4>
+                    <ul id="aiRecoDonts"></ul>
+                </div>
+            </div>
+            <div class="ai-reco-focus" id="aiRecoFocus" style="display: none;">
+                <h4>Next session focus</h4>
+                <p id="aiRecoFocusText"></p>
+            </div>
+        </section>
     </div>
 
     <!-- Right Diagnostic Readout Columns -->
@@ -217,26 +523,23 @@
             <div class="giant-counter" id="invalidRepCounter">0 <span>/ Warn</span></div>
         </div>
         <div class="metric-v-card form-status-alert">
-            <div class="hud-lbl" style="color: #92400E;">AI Recommendation</div>
+            <div class="hud-lbl" style="color: #92400E;">Coach</div>
             <p class="status-msg-text" id="warningMessage">Keep spine rigid. Core deflection detected during extension phase.</p>
+            <span id="handsBadge" class="hands-ok-badge bad" style="display: none;">Hands on ears required</span>
         </div>
     </div>
 </div>
 
 <!-- Control Operations Bar Strip -->
-<div class="control-strip" style="flex-wrap: wrap; gap: 10px;">
-    <div class="status-pill" style="width: 100%; margin-bottom: 8px; justify-content: space-between;">
-        <div style="display: flex; gap: 16px;">
-            <span id="statusPushup" style="color: var(--accent-red); font-weight: 700;">✗ Push-Up Pending</span>
-            <span id="statusSitup" style="color: var(--accent-red); font-weight: 700;">✗ Sit-Up Pending</span>
-        </div>
-        <div id="timerDisplay" style="font-size: 18px; font-weight: 800; color: var(--accent-red); display: none;">01:00</div>
+<div class="control-strip">
+    <div class="control-actions">
+        <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
+        <button type="button" class="stop-btn" id="startRecBtn" onclick="startRecording()" style="background-color: var(--text-muted); display: none;">Arm Session</button>
+        <button type="button" class="stop-btn" id="stopRecBtn" onclick="stopRecording()" style="background-color: #64748B; display: none;">Stop Early</button>
+        <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
+        <button type="button" class="stop-btn" id="completeBtn" onclick="saveAndReturn()" style="background-color: var(--text-muted); opacity: 0.5; pointer-events: none;">Done — Back to Dashboard</button>
     </div>
-    <button class="stop-btn" id="startCamBtn" onclick="startCamera()" style="background-color: var(--accent-blue);">Start Camera</button>
-    <button class="stop-btn" id="startRecBtn" onclick="startRecording()" style="background-color: var(--accent-red); display: none;">Start Recording</button>
-    <button class="stop-btn" id="stopRecBtn" onclick="stopRecording()" style="background-color: var(--text-muted); display: none;">Stop Recording</button>
-    <button class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="background-color: var(--primary); display: none;">Upload Video</button>
-    <button class="stop-btn" id="completeBtn" onclick="saveAndReturn()" style="background-color: var(--text-muted); opacity: 0.5; pointer-events: none; margin-left: auto;">Complete & Save Session</button>
+    <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
 </div>
 
 <script>
@@ -252,10 +555,23 @@
     let timerInterval = null;
     let timeLeft = 60;
     let isRecording = false;
+    let sessionArmed = false;
+    let sessionStarted = false;
+    let positionReady = false;
+    let positionLockFrames = 0;
+    let isReplayMode = false;
+    let sessionStartedAt = null;
     let validReps = 0;
     let invalidReps = 0;
     let stage = null;
     let lastInvalidAt = 0;
+    let lastRepAt = 0;
+    let lastLandmarks = null;
+    let handsOnEarsStreak = 0;
+    let cvMetrics = null;
+    let lastSessionMetrics = null;
+    let lastSessionId = null;
+    let aiRecoLoading = false;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -270,6 +586,14 @@
     const timerDisplay = document.getElementById('timerDisplay');
     const modePushupBtn = document.getElementById('modePushupBtn');
     const modeSitupBtn = document.getElementById('modeSitupBtn');
+    const handsBadge = document.getElementById('handsBadge');
+    const aiRecoStatus = document.getElementById('aiRecoStatus');
+    const aiRecoSummary = document.getElementById('aiRecoSummary');
+    const aiRecoColumns = document.getElementById('aiRecoColumns');
+    const aiRecoDos = document.getElementById('aiRecoDos');
+    const aiRecoDonts = document.getElementById('aiRecoDonts');
+    const aiRecoFocus = document.getElementById('aiRecoFocus');
+    const aiRecoFocusText = document.getElementById('aiRecoFocusText');
 
     const BODY_CONNECTIONS = [
         [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
@@ -280,27 +604,32 @@
     const BODY_LANDMARK_INDICES = new Set(BODY_CONNECTIONS.flat());
 
     function setExerciseMode(mode) {
-        if (isRecording) return;
+        if (isRecording || sessionStarted) return;
         currentMode = mode;
         resetRepState();
 
         if (mode === 'pushup') {
-            modePushupBtn.style.backgroundColor = 'var(--primary)';
-            modeSitupBtn.style.backgroundColor = 'var(--text-muted)';
+            modePushupBtn.classList.add('mode-active');
+            modeSitupBtn.classList.remove('mode-active');
+            handsBadge.style.display = 'none';
             document.getElementById('stationHeader').innerText = 'Push-up Recording Mode';
-            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Keep hands below shoulders and move through a full down-up cycle.';
+            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Get into push-up position — your first full rep will start the 1-minute timer.';
         } else {
-            modeSitupBtn.style.backgroundColor = 'var(--primary)';
-            modePushupBtn.style.backgroundColor = 'var(--text-muted)';
+            modeSitupBtn.classList.add('mode-active');
+            modePushupBtn.classList.remove('mode-active');
+            handsBadge.style.display = 'inline-block';
             document.getElementById('stationHeader').innerText = 'Sit-up Recording Mode';
-            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Lie down fully, then sit up until your torso closes toward your knees.';
+            document.getElementById('warningMessage').innerText = 'Hands on ears at all times. Lie back, then sit up — first valid rep starts the 1-minute timer.';
         }
 
         if (stream) {
-            startRecBtn.style.display = 'inline-block';
+            armSession();
             uploadBtn.style.display = 'none';
             playbackVideo.style.display = 'none';
             poseCanvas.style.display = 'block';
+            isReplayMode = false;
+            detectLoopRunning = true;
+            runPoseLoop();
         }
     }
 
@@ -325,6 +654,7 @@
             startCamBtn.style.display = 'none';
             startRecBtn.style.display = 'inline-block';
             detectLoopRunning = true;
+            armSession();
             runPoseLoop();
         } catch (err) {
             alert('Could not access camera or pose model: ' + err.message);
@@ -347,8 +677,13 @@
     }
 
     async function runPoseLoop() {
-        if (!detectLoopRunning || !pose || sourceVideo.readyState < 2) return;
-        await pose.send({ image: sourceVideo });
+        if (!detectLoopRunning || !pose) return;
+        const imageSource = isReplayMode ? playbackVideo : sourceVideo;
+        if (imageSource.readyState < 2) {
+            requestAnimationFrame(runPoseLoop);
+            return;
+        }
+        await pose.send({ image: imageSource });
         requestAnimationFrame(runPoseLoop);
     }
 
@@ -358,18 +693,26 @@
         ctx.drawImage(results.image, 0, 0, poseCanvas.width, poseCanvas.height);
 
         if (!results.poseLandmarks) {
-            setWarning('No body detected. Keep your full side profile inside the frame.');
+            if (!isReplayMode) {
+                setWarning('No body detected. Keep your full side profile inside the frame.');
+            }
             ctx.restore();
             return;
         }
 
         const landmarks = results.poseLandmarks;
+        lastLandmarks = landmarks;
         drawBodySkeleton(landmarks);
+        if (currentMode === 'situp') {
+            drawHandsOnEarsGuide(landmarks);
+        }
 
-        if (currentMode === 'pushup') {
-            analyzePushup(landmarks);
-        } else {
-            analyzeSitup(landmarks);
+        if (!isReplayMode) {
+            if (currentMode === 'pushup') {
+                analyzePushup(landmarks);
+            } else {
+                analyzeSitup(landmarks);
+            }
         }
 
         drawHudOverlay();
@@ -411,61 +754,232 @@
             : { shoulder: landmarks[12], elbow: landmarks[14], wrist: landmarks[16], hip: landmarks[24], knee: landmarks[26], ankle: landmarks[28] };
     }
 
+    function visibleLoose(point, minVis) {
+        minVis = minVis === undefined ? 0.25 : minVis;
+        return point && (point.visibility || 0) > minVis;
+    }
+
+    /** Loose plank / push-up zone — does not require arms extended (so down-phase still counts). */
+    function isInPushupStartZone(side) {
+        if (!visibleLoose(side.shoulder) || !visibleLoose(side.hip)) return false;
+        const notStandingUpright = Math.abs(side.shoulder.y - side.hip.y) < 0.45;
+        const armsForward = visibleLoose(side.elbow) || visibleLoose(side.wrist);
+        return notStandingUpright && armsForward;
+    }
+
+    function wristNearEar(wrist, ear, refLen) {
+        if (!visibleLoose(wrist, 0.22) || !visibleLoose(ear, 0.22)) return null;
+        const maxDist = Math.max(0.1, refLen * 0.8);
+        return distance(wrist, ear) <= maxDist;
+    }
+
+    function handsOnEars(landmarks) {
+        const lw = landmarks[15];
+        const rw = landmarks[16];
+        const le = landmarks[7];
+        const re = landmarks[8];
+        const ls = landmarks[11];
+        const rs = landmarks[12];
+        const leftRef = visibleLoose(ls) ? distance(ls, le) : 0.14;
+        const rightRef = visibleLoose(rs) ? distance(rs, re) : 0.14;
+        const left = wristNearEar(lw, le, leftRef);
+        const right = wristNearEar(rw, re, rightRef);
+        const leftKnown = left !== null;
+        const rightKnown = right !== null;
+
+        if (leftKnown && rightKnown) return left && right;
+        if (leftKnown && visibleLoose(rw, 0.28)) return left && right === true;
+        if (rightKnown && visibleLoose(lw, 0.28)) return right && left === true;
+        if (leftKnown) return left;
+        if (rightKnown) return right;
+        return false;
+    }
+
+    function updateHandsBadge(onEars) {
+        if (currentMode !== 'situp') return;
+        handsBadge.style.display = 'inline-block';
+        if (onEars) {
+            handsBadge.className = 'hands-ok-badge ok';
+            handsBadge.textContent = '✓ Hands on ears';
+        } else {
+            handsBadge.className = 'hands-ok-badge bad';
+            handsBadge.textContent = '✗ Hands must touch ears';
+        }
+    }
+
+    function drawHandsOnEarsGuide(landmarks) {
+        const pairs = [[15, 7], [16, 8]];
+        const onEars = handsOnEars(landmarks);
+        for (const [wIdx, eIdx] of pairs) {
+            const w = landmarks[wIdx];
+            const e = landmarks[eIdx];
+            if ((w.visibility || 0) > 0.25 && (e.visibility || 0) > 0.25) {
+                ctx.beginPath();
+                ctx.moveTo(w.x * poseCanvas.width, w.y * poseCanvas.height);
+                ctx.lineTo(e.x * poseCanvas.width, e.y * poseCanvas.height);
+                ctx.strokeStyle = onEars ? '#22C55E' : '#F43F5E';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+        }
+    }
+
+    function isInSitupStartZone(side) {
+        if (!visibleLoose(side.shoulder) || !visibleLoose(side.hip)) return false;
+        const hipAngle = visibleLoose(side.knee)
+            ? angle(side.shoulder, side.hip, side.knee)
+            : 110;
+        const kneeBent = !visibleLoose(side.knee) || !visibleLoose(side.ankle) ||
+            angle(side.hip, side.knee, side.ankle) < 170;
+        return kneeBent && hipAngle > 100;
+    }
+
+    function updatePositionLock(inPosition) {
+        if (inPosition) {
+            positionLockFrames++;
+        } else {
+            positionLockFrames = 0;
+        }
+        positionReady = positionLockFrames >= 5;
+    }
+
     function analyzePushup(landmarks) {
         const side = bestSide(landmarks);
-        const trunkLength = distance(side.shoulder, side.hip);
-        if (!visible(side.shoulder, side.wrist, side.hip) || trunkLength < 0.05) {
-            setWarning('Show shoulder, wrist, and hip clearly for push-up counting.');
+        const hasCoreLandmarks = visibleLoose(side.shoulder) && visibleLoose(side.hip) &&
+            (visibleLoose(side.elbow) || visibleLoose(side.wrist));
+
+        if (!hasCoreLandmarks) {
+            if (!sessionStarted) {
+                positionLockFrames = 0;
+                positionReady = false;
+            }
+            setWarning('Show your side profile — shoulder, hip, and arm in frame.');
             return;
         }
 
-        const depth = (side.wrist.y - side.shoulder.y) / trunkLength;
-        const inPosition = side.wrist.y >= side.shoulder.y - 0.05 && Math.abs(side.shoulder.y - side.hip.y) < 0.32;
+        const inStartZone = isInPushupStartZone(side);
+        if (!sessionStarted) {
+            updatePositionLock(inStartZone);
+        }
 
-        if (!inPosition) {
-            markInvalid('Get into push-up position: hands below shoulders, body roughly horizontal.');
+        const trunkLen = Math.max(distance(side.shoulder, side.hip), 0.08);
+        let elbowAngle = 180;
+        if (visibleLoose(side.elbow)) {
+            const wrist = visibleLoose(side.wrist) ? side.wrist : side.elbow;
+            elbowAngle = angle(side.shoulder, side.elbow, wrist);
+        }
+
+        const shoulderDrop = (side.shoulder.y - side.hip.y) / trunkLen;
+        if (!sessionStarted && !inStartZone) {
+            setWarning('Get into a push-up / plank position (side-on). First rep starts the timer.');
             return;
         }
 
-        setWarning('Position locked. Complete a full down-up cycle.');
-        if (depth < 0.35) {
+        if (!sessionStarted) {
+            if (inStartZone) positionReady = true;
+            setWarning('Go down, then push back up — first full rep starts recording.');
+        } else {
+            setWarning('Recording — bend arms down, then push up.');
+        }
+
+        const isDown = elbowAngle < 115 || shoulderDrop > 0.08;
+        const isUp = elbowAngle > 132 || shoulderDrop < 0.06;
+
+        if (isDown) {
             stage = 'down';
-        } else if (depth > 0.65 && stage === 'down') {
+        } else if (isUp && stage === 'down') {
             countValidRep('up');
         }
+        samplePushupMetrics(elbowAngle, shoulderDrop, inStartZone);
     }
 
     function analyzeSitup(landmarks) {
         const side = bestSide(landmarks);
-        if (!visible(side.shoulder, side.hip, side.knee)) {
-            setWarning('Show shoulder, hip, and knee clearly for sit-up counting.');
+        const hasCore = visibleLoose(side.shoulder) && visibleLoose(side.hip);
+
+        if (!hasCore) {
+            if (!sessionStarted) {
+                positionLockFrames = 0;
+                positionReady = false;
+            }
+            updateHandsBadge(false);
+            setWarning('Show your side profile — shoulders, hips, and head in frame.');
             return;
         }
 
-        const hipAngle = angle(side.shoulder, side.hip, side.knee);
-        const kneeBent = angle(side.hip, side.knee, side.ankle) < 150 || (side.ankle.visibility || 0) < 0.4;
+        const hipAngle = visibleLoose(side.knee)
+            ? angle(side.shoulder, side.hip, side.knee)
+            : 110;
+        const earsOk = handsOnEars(landmarks);
+        updateHandsBadge(earsOk);
 
-        if (!kneeBent) {
-            markInvalid('Bend your knees and keep your side profile visible.');
+        if (!earsOk) {
+            handsOnEarsStreak = 0;
+            if (isRecording) {
+                sampleSitupMetrics(hipAngle, false);
+            }
+            if (sessionStarted || isRecording) {
+                markInvalid('Keep both hands touching your ears — reps will not count otherwise.');
+            } else {
+                setWarning('Place hands behind your head with wrists touching your ears before starting.');
+            }
+            return;
+        }
+        handsOnEarsStreak++;
+
+        const inStartZone = isInSitupStartZone(side);
+
+        if (!sessionStarted && !inStartZone) {
+            setWarning('Lie back with knees bent, hands on ears. First sit-up starts the timer.');
             return;
         }
 
-        setWarning('Position locked. Lie back, then sit up toward your knees.');
-        if (hipAngle > 135) {
+        if (!sessionStarted) {
+            if (inStartZone) positionReady = true;
+            setWarning('Lie back, then sit up — keep hands on ears. First rep starts recording.');
+        } else {
+            setWarning('Recording — lie back, sit up, hands stay on ears.');
+        }
+
+        const isDown = hipAngle > 118;
+        const isUp = hipAngle < 108;
+
+        if (isDown && earsOk) {
             stage = 'down';
-        } else if (hipAngle < 95 && stage === 'down') {
+        } else if (isUp && stage === 'down' && earsOk && handsOnEarsStreak >= 2) {
             countValidRep('up');
+        } else if (isUp && stage === 'down' && !earsOk) {
+            markInvalid('Hands left your ears — rep not counted.');
+            stage = null;
         }
+        sampleSitupMetrics(hipAngle, earsOk);
     }
 
     function countValidRep(nextStage) {
-        if (!isRecording) {
+        if (!sessionArmed && !sessionStarted) {
             stage = nextStage;
             updateCounters();
             return;
         }
+
+        if (Date.now() - lastRepAt < 500) {
+            stage = nextStage;
+            return;
+        }
+
+        if (currentMode === 'situp' && lastLandmarks && !handsOnEars(lastLandmarks)) {
+            markInvalid('Hands must touch ears at the top of each rep.');
+            stage = nextStage;
+            return;
+        }
+
+        lastRepAt = Date.now();
+
+        if (!sessionStarted) {
+            beginSessionRecording();
+        }
+
         validReps++;
-        print(validReps);
         stage = nextStage;
         updateCounters();
     }
@@ -506,10 +1020,180 @@
         ctx.fillText(`Invalid: ${invalidReps}`, 32, 76);
         ctx.fillStyle = '#BBF7D0';
         ctx.fillText(`Stage: ${stage || 'ready'}`, 142, 76);
+        if (isRecording && timerDisplay.style.display !== 'none') {
+            ctx.fillStyle = '#FDE68A';
+            ctx.fillText(timerDisplay.textContent, 200, 48);
+        }
     }
 
     function setWarning(text) {
         document.getElementById('warningMessage').innerText = text;
+    }
+
+    function initCvMetrics() {
+        cvMetrics = {
+            exercise: currentMode,
+            frames_sampled: 0,
+            elbow_down_angles: [],
+            elbow_up_angles: [],
+            hip_down_angles: [],
+            hip_up_angles: [],
+            hands_off_ears_samples: 0,
+            hands_on_ears_samples: 0,
+            shallow_rep_signals: 0,
+            form_flags: []
+        };
+    }
+
+    function noteFormFlag(flag) {
+        if (!cvMetrics || !isRecording) return;
+        if (!cvMetrics.form_flags.includes(flag)) {
+            cvMetrics.form_flags.push(flag);
+        }
+    }
+
+    function avgAngle(arr) {
+        if (!arr || !arr.length) return null;
+        return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+    }
+
+    function samplePushupMetrics(elbowAngle, shoulderDrop, inStartZone) {
+        if (!isRecording || !cvMetrics) return;
+        cvMetrics.frames_sampled++;
+        if (cvMetrics.frames_sampled % 5 !== 0) return;
+        if (elbowAngle < 115) cvMetrics.elbow_down_angles.push(Math.round(elbowAngle));
+        if (elbowAngle > 130) cvMetrics.elbow_up_angles.push(Math.round(elbowAngle));
+        if (!inStartZone) noteFormFlag('torso alignment drifted from plank');
+        if (elbowAngle > 95 && elbowAngle < 128) cvMetrics.shallow_rep_signals++;
+    }
+
+    function sampleSitupMetrics(hipAngle, earsOk) {
+        if (!isRecording || !cvMetrics) return;
+        cvMetrics.frames_sampled++;
+        if (cvMetrics.frames_sampled % 5 !== 0) return;
+        if (hipAngle > 115) cvMetrics.hip_down_angles.push(Math.round(hipAngle));
+        if (hipAngle < 112) cvMetrics.hip_up_angles.push(Math.round(hipAngle));
+        if (earsOk) cvMetrics.hands_on_ears_samples++;
+        else {
+            cvMetrics.hands_off_ears_samples++;
+            noteFormFlag('hands left ears during session');
+        }
+        if (hipAngle > 105 && hipAngle < 118) noteFormFlag('partial sit-up depth detected');
+    }
+
+    function finalizeSessionMetrics() {
+        const duration = Math.max(1, 60 - timeLeft);
+        const total = validReps + invalidReps;
+        const m = cvMetrics || {};
+        const payload = {
+            exercise: currentMode,
+            valid_reps: validReps,
+            invalid_reps: invalidReps,
+            duration_seconds: duration,
+            reps_per_minute: Math.round((validReps / duration) * 60),
+            invalid_rep_rate_pct: total ? Math.round((invalidReps / total) * 100) : 0,
+            frames_analyzed: m.frames_sampled || 0,
+            form_flags: m.form_flags ? m.form_flags.slice() : []
+        };
+        if (currentMode === 'pushup') {
+            payload.avg_elbow_angle_down = avgAngle(m.elbow_down_angles);
+            payload.avg_elbow_angle_up = avgAngle(m.elbow_up_angles);
+            payload.shallow_rep_signals = m.shallow_rep_signals || 0;
+            if (payload.avg_elbow_angle_down && payload.avg_elbow_angle_down > 105) {
+                payload.form_flags.push('limited push-up depth on several reps');
+            }
+        } else {
+            payload.avg_hip_angle_lying = avgAngle(m.hip_down_angles);
+            payload.avg_hip_angle_sitting = avgAngle(m.hip_up_angles);
+            const handsTotal = (m.hands_on_ears_samples || 0) + (m.hands_off_ears_samples || 0);
+            payload.hands_on_ears_compliance_pct = handsTotal
+                ? Math.round(((m.hands_on_ears_samples || 0) / handsTotal) * 100)
+                : null;
+            if (payload.hands_on_ears_compliance_pct !== null && payload.hands_on_ears_compliance_pct < 85) {
+                payload.form_flags.push('hands frequently off ears');
+            }
+        }
+        return payload;
+    }
+
+    function resetAiRecoPanel() {
+        aiRecoStatus.className = 'ai-reco-status';
+        aiRecoStatus.textContent = 'Complete a session and review your recording to receive tailored push-up or sit-up advice.';
+        aiRecoSummary.style.display = 'none';
+        aiRecoColumns.style.display = 'none';
+        aiRecoFocus.style.display = 'none';
+        aiRecoDos.innerHTML = '';
+        aiRecoDonts.innerHTML = '';
+    }
+
+    function setAiRecoLoading(exerciseLabel) {
+        aiRecoLoading = true;
+        aiRecoStatus.className = 'ai-reco-status loading';
+        aiRecoStatus.textContent = `Analysing your ${exerciseLabel} session metrics and building personalised tips…`;
+        aiRecoSummary.style.display = 'none';
+        aiRecoColumns.style.display = 'none';
+        aiRecoFocus.style.display = 'none';
+    }
+
+    function renderAiRecommendation(data) {
+        aiRecoLoading = false;
+        aiRecoStatus.className = 'ai-reco-status';
+        aiRecoStatus.textContent = 'Personalised feedback based on your computer-vision session data:';
+
+        if (data.summary) {
+            aiRecoSummary.textContent = data.summary;
+            aiRecoSummary.style.display = 'block';
+        }
+
+        aiRecoDos.innerHTML = '';
+        (data.dos || []).forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            aiRecoDos.appendChild(li);
+        });
+        aiRecoDonts.innerHTML = '';
+        (data.donts || []).forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            aiRecoDonts.appendChild(li);
+        });
+        aiRecoColumns.style.display = (data.dos?.length || data.donts?.length) ? 'grid' : 'none';
+
+        if (data.focus_areas && data.focus_areas.length) {
+            aiRecoFocusText.textContent = data.focus_areas.join(' · ');
+            aiRecoFocus.style.display = 'block';
+        }
+    }
+
+    function renderAiRecoError(message) {
+        aiRecoLoading = false;
+        aiRecoStatus.className = 'ai-reco-status error';
+        aiRecoStatus.textContent = message;
+    }
+
+    async function fetchAiRecommendation(metrics, force = false) {
+        if (!metrics || (aiRecoLoading && !force)) return;
+        const label = metrics.exercise === 'pushup' ? 'push-up' : 'sit-up';
+        setAiRecoLoading(label);
+        const payload = { ...metrics };
+        if (lastSessionId) {
+            payload.session_id = lastSessionId;
+        }
+        try {
+            const response = await fetch('/api/ai-recommendation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (data.success) {
+                renderAiRecommendation(data);
+            } else {
+                renderAiRecoError(data.error || 'Could not generate AI recommendation.');
+            }
+        } catch (err) {
+            renderAiRecoError('AI coach unavailable: ' + err.message);
+        }
     }
 
     function updateCounters() {
@@ -523,17 +1207,46 @@
         invalidReps = 0;
         stage = null;
         lastInvalidAt = 0;
+        lastRepAt = 0;
+        positionLockFrames = 0;
+        positionReady = false;
+        sessionStarted = false;
+        sessionStartedAt = null;
+        isRecording = false;
+        isReplayMode = false;
         videoBlob = null;
         recordedChunks = [];
-        uploadBtn.innerText = 'Upload Video';
+        uploadBtn.innerText = 'Save Session';
         uploadBtn.style.pointerEvents = 'auto';
+        handsOnEarsStreak = 0;
+        cvMetrics = null;
         updateCounters();
+    }
+
+    function armSession() {
+        if (isRecording || sessionStarted) return;
+        sessionArmed = true;
+        positionLockFrames = 0;
+        positionReady = false;
+        stage = null;
+        validReps = 0;
+        invalidReps = 0;
+        updateCounters();
+        startRecBtn.style.display = 'inline-block';
+        stopRecBtn.style.display = 'none';
+        uploadBtn.style.display = 'none';
+        timerDisplay.style.display = 'none';
     }
 
     function updateTimer() {
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
         timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        if (isRecording) {
+            timerDisplay.classList.add('timer-active');
+        } else {
+            timerDisplay.classList.remove('timer-active');
+        }
     }
 
     function startRecording() {
@@ -541,22 +1254,41 @@
             alert('Start the camera first.');
             return;
         }
-        resetRepState();
+        armSession();
+        if (currentMode === 'pushup') {
+            setWarning('Get into push-up position. Your first full rep starts the 1-minute timer.');
+        } else {
+            setWarning('Lie back with knees bent. Your first full sit-up starts the 1-minute timer.');
+        }
+    }
+
+    function beginSessionRecording() {
+        if (!stream || sessionStarted || isRecording) return;
+        sessionStarted = true;
+        sessionStartedAt = new Date().toISOString();
+        initCvMetrics();
         recordedChunks = [];
         const canvasStream = poseCanvas.captureStream(30);
-        mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+        const mimeType = ['video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+        mediaRecorder = mimeType
+            ? new MediaRecorder(canvasStream, { mimeType })
+            : new MediaRecorder(canvasStream);
         mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) recordedChunks.push(e.data);
         };
         mediaRecorder.onstop = () => {
             videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+            lastSessionMetrics = finalizeSessionMetrics();
             playbackVideo.src = URL.createObjectURL(videoBlob);
-            playbackVideo.style.display = 'block';
-            poseCanvas.style.display = 'none';
+            playbackVideo.muted = true;
+            playbackVideo.style.display = 'none';
+            poseCanvas.style.display = 'block';
             stopRecBtn.style.display = 'none';
-            uploadBtn.style.display = 'inline-block';
+            startRecBtn.style.display = 'none';
             timerDisplay.style.display = 'none';
             isRecording = false;
+            sessionArmed = false;
+            startPlaybackReplay();
         };
 
         isRecording = true;
@@ -566,18 +1298,55 @@
         timerDisplay.style.display = 'block';
         timeLeft = 60;
         updateTimer();
+        clearInterval(timerInterval);
         timerInterval = setInterval(() => {
             timeLeft--;
             updateTimer();
             if (timeLeft <= 0) stopRecording();
         }, 1000);
-        mediaRecorder.start();
+        mediaRecorder.start(250);
+        setWarning('Recording started — 1 minute on the clock!');
+    }
+
+    function startPlaybackReplay() {
+        isReplayMode = true;
+        detectLoopRunning = true;
+        playbackVideo.style.display = 'none';
+        poseCanvas.style.display = 'block';
+        playbackVideo.currentTime = 0;
+        const playReplay = () => playbackVideo.play().catch(() => {});
+        if (playbackVideo.readyState >= 2) {
+            playReplay();
+        } else {
+            playbackVideo.onloadeddata = playReplay;
+        }
+        setWarning('Playback with skeleton overlay — review your form, then upload to save.');
+
+        playbackVideo.onended = () => {
+            isReplayMode = false;
+            detectLoopRunning = true;
+            playbackVideo.style.display = 'none';
+            poseCanvas.style.display = 'block';
+            uploadBtn.style.display = 'inline-block';
+            startRecBtn.style.display = 'inline-block';
+            armSession();
+            setWarning('Review complete. Save session, or switch exercise mode.');
+            if (lastSessionMetrics) {
+                fetchAiRecommendation(lastSessionMetrics);
+            }
+        };
+        runPoseLoop();
     }
 
     function stopRecording() {
         clearInterval(timerInterval);
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
+        } else if (sessionStarted && !videoBlob) {
+            uploadBtn.style.display = 'inline-block';
+            stopRecBtn.style.display = 'none';
+            timerDisplay.style.display = 'none';
+            isRecording = false;
         }
     }
 
@@ -591,6 +1360,11 @@
         formData.append('exercise', currentMode);
         formData.append('valid_reps', validReps);
         formData.append('invalid_reps', invalidReps);
+        formData.append('duration_seconds', 60 - timeLeft);
+        if (sessionStartedAt) {
+            formData.append('started_at', sessionStartedAt);
+            formData.append('ended_at', new Date().toISOString());
+        }
 
         try {
             const response = await fetch('/api/upload-video', {
@@ -601,31 +1375,39 @@
             if (result.success) {
                 if (currentMode === 'pushup') {
                     pushupUploaded = true;
-                    const status = document.getElementById('statusPushup');
-                    status.innerText = `✓ Push-Up Logged (${result.valid_reps} reps)`;
-                    status.style.color = 'var(--primary)';
                 } else {
                     situpUploaded = true;
-                    const status = document.getElementById('statusSitup');
-                    status.innerText = `✓ Sit-Up Logged (${result.valid_reps} reps)`;
-                    status.style.color = 'var(--primary)';
                 }
+                if (result.session_id) {
+                    lastSessionId = result.session_id;
+                }
+                if (lastSessionMetrics) {
+                    lastSessionMetrics.valid_reps = result.valid_reps;
+                    lastSessionMetrics.invalid_reps = result.invalid_reps;
+                    fetchAiRecommendation(lastSessionMetrics, true);
+                }
+                const label = currentMode === 'pushup' ? 'Push-up' : 'Sit-up';
+                setWarning(`${label} saved — ${result.valid_reps} reps logged. Record another exercise or tap Done.`);
+                resetRepState();
+                armSession();
+                detectLoopRunning = true;
+                runPoseLoop();
                 checkCompletion();
-                uploadBtn.innerText = 'Uploaded ✓';
+                uploadBtn.innerText = 'Saved ✓';
             } else {
                 alert('Upload failed: ' + result.error);
-                uploadBtn.innerText = 'Upload Video';
+                uploadBtn.innerText = 'Save Session';
                 uploadBtn.style.pointerEvents = 'auto';
             }
         } catch (err) {
             alert('Upload error: ' + err.message);
-            uploadBtn.innerText = 'Upload Video';
+            uploadBtn.innerText = 'Save Session';
             uploadBtn.style.pointerEvents = 'auto';
         }
     }
 
     function checkCompletion() {
-        if (pushupUploaded && situpUploaded) {
+        if (pushupUploaded || situpUploaded) {
             completeBtn.style.opacity = '1';
             completeBtn.style.pointerEvents = 'auto';
             completeBtn.style.backgroundColor = 'var(--primary)';
@@ -633,8 +1415,8 @@
     }
 
     function saveAndReturn() {
-        if (!pushupUploaded || !situpUploaded) {
-            alert('Please record and upload both Push-Up and Sit-Up sessions first.');
+        if (!pushupUploaded && !situpUploaded) {
+            alert('Please complete and upload at least one exercise session first.');
             return;
         }
         if (stream) stream.getTracks().forEach(t => t.stop());
@@ -642,6 +1424,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+        resetAiRecoPanel();
         setExerciseMode('pushup');
     });
 </script>

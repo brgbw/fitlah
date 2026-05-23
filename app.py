@@ -1,12 +1,16 @@
 from functools import wraps
 
+from dotenv import load_dotenv
 from flask import Flask, render_template, g, request, jsonify, redirect, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 import json
 import os
 from datetime import datetime
 
+from ai_coach import generate_exercise_recommendation
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 SERVERDATA_DIR = os.path.join(BASE_DIR, "serverdata")
 DATABASE = os.path.join(SERVERDATA_DIR, "database.json")
 LEGACY_DATABASE = os.path.join(BASE_DIR, "mock.json")
@@ -317,6 +321,7 @@ def ensure_personal_best_data(db):
 def ensure_performance_log_schema(db):
     """Scope performance logs by NRIC and normalize fields used by the UI."""
     db.setdefault("performance_log", [])
+    db.setdefault("workout_sessions", [])
     default_nric = "S3456789C"
 
     for log in db["performance_log"]:
@@ -328,6 +333,52 @@ def ensure_performance_log_schema(db):
             log["name"] = log.get("event", "Performance Entry")
         if "event" not in log:
             log["event"] = log.get("name", "Performance Entry")
+
+
+def save_ai_recommendation(db, session_id, nric, recommendation):
+    """Persist AI coach output on workout_sessions and linked performance_log."""
+    if not recommendation.get("success") or not session_id:
+        return False
+
+    ai_data = {
+        "summary": recommendation.get("summary", ""),
+        "dos": recommendation.get("dos", []),
+        "donts": recommendation.get("donts", []),
+        "focus_areas": recommendation.get("focus_areas", []),
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    updated = False
+    for session in db.get("workout_sessions", []):
+        if session.get("id") == session_id and session.get("nric") == nric:
+            session["ai_recommendation"] = ai_data
+            updated = True
+            break
+
+    for log in db.get("performance_log", []):
+        if log.get("session_id") == session_id and log.get("nric") == nric:
+            log["ai_recommendation"] = ai_data
+            updated = True
+
+    return updated
+
+
+def attach_ai_to_performance_logs(db, logs, nric):
+    """Join performance logs with AI data from workout_sessions when needed."""
+    sessions_by_id = {
+        s.get("id"): s
+        for s in db.get("workout_sessions", [])
+        if s.get("nric") == nric
+    }
+    enriched = []
+    for log in logs:
+        row = dict(log)
+        if not row.get("ai_recommendation"):
+            session = sessions_by_id.get(row.get("session_id"))
+            if session and session.get("ai_recommendation"):
+                row["ai_recommendation"] = session["ai_recommendation"]
+        enriched.append(row)
+    return enriched
 
 
 def update_personal_best(nric, exercise_type, reps):
@@ -727,10 +778,13 @@ def performance():
 @login_required
 def api_performance_logs():
     user = current_user()
+    nric = user.get("nric")
+    db = get_db()
     logs = sorted(
-        query_db("performance_log", lambda x: x.get("nric") == user.get("nric")),
+        query_db("performance_log", lambda x: x.get("nric") == nric),
         key=lambda x: (x.get("date", ""), x.get("id", 0))
     )
+    logs = attach_ai_to_performance_logs(db, logs, nric)
     return jsonify({"success": True, "logs": logs})
 
 
@@ -805,8 +859,14 @@ def upload_video():
     
     file = request.files['video']
     exercise_type = request.form.get('exercise', 'pushup')
-    valid_reps = int(request.form.get('valid_reps', 0) or 0)
-    invalid_reps = int(request.form.get('invalid_reps', 0) or 0)
+    if exercise_type not in {"pushup", "situp"}:
+        return jsonify({"success": False, "error": "Invalid exercise type"}), 400
+
+    valid_reps = min(int(request.form.get('valid_reps', 0) or 0), 120)
+    invalid_reps = min(int(request.form.get('invalid_reps', 0) or 0), 120)
+    duration_seconds = min(int(request.form.get('duration_seconds', 60) or 60), 120)
+    started_at = request.form.get('started_at', '')
+    ended_at = request.form.get('ended_at', datetime.now().isoformat())
     
     if file.filename == '':
         return jsonify({"success": False, "error": "No selected file"}), 400
@@ -816,32 +876,104 @@ def upload_video():
         filename = f"{exercise_type}_{timestamp}.webm"
         
         folder = "pushup_videos" if exercise_type == 'pushup' else "situp_videos"
-        save_path = os.path.join(BASE_DIR, 'userdata', folder, filename)
+        relative_video_path = os.path.join('userdata', folder, filename)
+        save_path = os.path.join(BASE_DIR, relative_video_path)
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         
         file.save(save_path)
         db = get_db()
         user = current_user()
-        update_personal_best(user.get("nric"), exercise_type, valid_reps)
+        nric = user.get("nric")
+        update_personal_best(nric, exercise_type, valid_reps)
+        best = get_personal_best(nric)
+        pb_field = "pushups" if exercise_type == "pushup" else "situps"
         label = "Push Ups" if exercise_type == "pushup" else "Sit Ups"
+        session_date = datetime.now().strftime("%Y-%m-%d")
+        session_time = datetime.now().strftime("%H:%M:%S")
+
+        session_id = max([s.get("id", 0) for s in db.get("workout_sessions", [])], default=0) + 1
+        session_record = {
+            "id": session_id,
+            "nric": nric,
+            "exercise": exercise_type,
+            "exercise_label": label,
+            "valid_reps": valid_reps,
+            "invalid_reps": invalid_reps,
+            "duration_seconds": duration_seconds,
+            "started_at": started_at or None,
+            "ended_at": ended_at,
+            "video_file": filename,
+            "video_path": relative_video_path.replace("\\", "/"),
+            "personal_best": int(best.get(pb_field) or 0),
+            "date": session_date,
+            "time": session_time,
+            "source": "webcam_cv",
+            "ai_recommendation": None
+        }
+        db.setdefault("workout_sessions", []).append(session_record)
+
+        log_id = max([log.get("id", 0) for log in db.get("performance_log", [])], default=0) + 1
         db.setdefault("performance_log", []).append({
-            "id": max([log.get("id", 0) for log in db.get("performance_log", [])], default=0) + 1,
-            "nric": user.get("nric"),
+            "id": log_id,
+            "nric": nric,
             "event": f"Webcam {label}",
             "name": f"Webcam {label}",
             "type": "ippt",
             "score": f"{valid_reps} reps",
-            "time": "1:00 min",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "notes": f"Computer vision session. Invalid reps flagged: {invalid_reps}."
+            "time": f"{duration_seconds // 60}:{duration_seconds % 60:02d} min",
+            "date": session_date,
+            "notes": (
+                f"Computer vision session. Valid: {valid_reps}, invalid: {invalid_reps}, "
+                f"duration: {duration_seconds}s. Video: {filename}."
+            ),
+            "exercise": exercise_type,
+            "valid_reps": valid_reps,
+            "invalid_reps": invalid_reps,
+            "duration_seconds": duration_seconds,
+            "video_path": session_record["video_path"],
+            "session_id": session_id,
+            "ai_recommendation": None
         })
         return jsonify({
             "success": True,
             "filename": filename,
             "path": save_path,
             "valid_reps": valid_reps,
-            "invalid_reps": invalid_reps
+            "invalid_reps": invalid_reps,
+            "session_id": session_id,
+            "personal_best": int(best.get(pb_field) or 0)
         })
+
+
+@app.route("/api/ai-recommendation", methods=["POST"])
+@login_required
+def api_ai_recommendation():
+    metrics = request.get_json(silent=True)
+    if not metrics:
+        return jsonify({"success": False, "error": "No session metrics provided."}), 400
+
+    user = current_user()
+    nric = user.get("nric")
+    metrics = dict(metrics)
+    session_id = metrics.pop("session_id", None)
+    if session_id is not None:
+        try:
+            session_id = int(session_id)
+        except (TypeError, ValueError):
+            session_id = None
+
+    metrics["athlete_name"] = user.get("name") or "Athlete"
+    metrics["rank"] = user.get("rank") or ""
+
+    result = generate_exercise_recommendation(metrics)
+    if result.get("success") and session_id:
+        db = get_db()
+        saved = save_ai_recommendation(db, session_id, nric, result)
+        result["session_id"] = session_id
+        result["saved_to_database"] = saved
+
+    status = 200 if result.get("success") else 503
+    return jsonify(result), status
 
 
 if __name__ == "__main__":
