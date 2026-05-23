@@ -330,6 +330,21 @@ def ensure_performance_log_schema(db):
             log["event"] = log.get("name", "Performance Entry")
 
 
+def update_personal_best(nric, exercise_type, reps):
+    if exercise_type not in {"pushup", "situp"}:
+        return
+
+    db = get_db()
+    best = get_personal_best(nric)
+    if not any(pb.get("nric") == nric for pb in db.get("personal_best", [])):
+        db.setdefault("personal_best", []).append(best)
+
+    field = "pushups" if exercise_type == "pushup" else "situps"
+    if reps > int(best.get(field) or 0):
+        best[field] = reps
+        best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
+
+
 def current_user():
     nric = session.get("user_nric")
     if not nric:
@@ -790,6 +805,8 @@ def upload_video():
     
     file = request.files['video']
     exercise_type = request.form.get('exercise', 'pushup')
+    valid_reps = int(request.form.get('valid_reps', 0) or 0)
+    invalid_reps = int(request.form.get('invalid_reps', 0) or 0)
     
     if file.filename == '':
         return jsonify({"success": False, "error": "No selected file"}), 400
@@ -800,9 +817,31 @@ def upload_video():
         
         folder = "pushup_videos" if exercise_type == 'pushup' else "situp_videos"
         save_path = os.path.join(BASE_DIR, 'userdata', folder, filename)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         
         file.save(save_path)
-        return jsonify({"success": True, "filename": filename, "path": save_path})
+        db = get_db()
+        user = current_user()
+        update_personal_best(user.get("nric"), exercise_type, valid_reps)
+        label = "Push Ups" if exercise_type == "pushup" else "Sit Ups"
+        db.setdefault("performance_log", []).append({
+            "id": max([log.get("id", 0) for log in db.get("performance_log", [])], default=0) + 1,
+            "nric": user.get("nric"),
+            "event": f"Webcam {label}",
+            "name": f"Webcam {label}",
+            "type": "ippt",
+            "score": f"{valid_reps} reps",
+            "time": "1:00 min",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "notes": f"Computer vision session. Invalid reps flagged: {invalid_reps}."
+        })
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "path": save_path,
+            "valid_reps": valid_reps,
+            "invalid_reps": invalid_reps
+        })
 
 
 if __name__ == "__main__":

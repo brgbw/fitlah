@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 <style>
     /* Active Vision Layout Splitter */
     .vision-workspace {
@@ -23,6 +25,31 @@
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
         border: 1px solid #334155;
         height: 500px; /* Force fixed height so starting camera doesn't cause scrolling */
+    }
+
+    #poseCanvas,
+    #playbackVideo,
+    #sourceVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #poseCanvas {
+        display: none;
+        z-index: 2;
+    }
+
+    #sourceVideo {
+        display: none;
+    }
+
+    .camera-placeholder {
+        color: #94A3B8;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     /* Live Overlay Indicators Removed */
@@ -103,6 +130,15 @@
         line-height: 1.4;
     }
 
+    .stage-pill {
+        margin-top: 10px;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
     /* Control Interface Strip */
     .control-strip {
         background-color: var(--bg-card);
@@ -163,7 +199,9 @@
     <div class="video-feed-card">
 
         <!-- Dynamic Video Elements for Live Feed and Playback -->
-        <video id="liveVideo" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none;"></video>
+        <div class="camera-placeholder" id="cameraPlaceholder">Camera and pose model idle</div>
+        <video id="sourceVideo" autoplay muted playsinline></video>
+        <canvas id="poseCanvas" width="960" height="540"></canvas>
         <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
     </div>
 
@@ -171,11 +209,12 @@
     <div class="diagnostics-sidebar">
         <div class="metric-v-card counter-focus-valid">
             <div class="hud-lbl">Valid Repetitions</div>
-            <div class="giant-counter" id="repCounter">14 <span>/ 60</span></div>
+            <div class="giant-counter" id="repCounter">0 <span>/ 60</span></div>
+            <div class="stage-pill" id="stageDisplay">Stage: Ready</div>
         </div>
         <div class="metric-v-card counter-focus-invalid">
             <div class="hud-lbl">Invalid Reps</div>
-            <div class="giant-counter" id="invalidRepCounter">2 <span>/ Warn</span></div>
+            <div class="giant-counter" id="invalidRepCounter">0 <span>/ Warn</span></div>
         </div>
         <div class="metric-v-card form-status-alert">
             <div class="hud-lbl" style="color: #92400E;">AI Recommendation</div>
@@ -204,17 +243,25 @@
     let currentMode = 'pushup';
     let pushupUploaded = false;
     let situpUploaded = false;
-    
     let stream = null;
+    let pose = null;
+    let detectLoopRunning = false;
     let mediaRecorder = null;
     let recordedChunks = [];
     let videoBlob = null;
-    
     let timerInterval = null;
     let timeLeft = 60;
-    
-    const liveVideo = document.getElementById('liveVideo');
+    let isRecording = false;
+    let validReps = 0;
+    let invalidReps = 0;
+    let stage = null;
+    let lastInvalidAt = 0;
+
+    const sourceVideo = document.getElementById('sourceVideo');
+    const poseCanvas = document.getElementById('poseCanvas');
+    const ctx = poseCanvas.getContext('2d');
     const playbackVideo = document.getElementById('playbackVideo');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
     const startCamBtn = document.getElementById('startCamBtn');
     const startRecBtn = document.getElementById('startRecBtn');
     const stopRecBtn = document.getElementById('stopRecBtn');
@@ -223,43 +270,264 @@
     const timerDisplay = document.getElementById('timerDisplay');
     const modePushupBtn = document.getElementById('modePushupBtn');
     const modeSitupBtn = document.getElementById('modeSitupBtn');
-    
+
+    const BODY_CONNECTIONS = [
+        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+        [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
+        [24, 26], [26, 28], [27, 29], [29, 31], [28, 30],
+        [30, 32], [15, 17], [15, 19], [16, 18], [16, 20]
+    ];
+    const BODY_LANDMARK_INDICES = new Set(BODY_CONNECTIONS.flat());
+
     function setExerciseMode(mode) {
+        if (isRecording) return;
         currentMode = mode;
+        resetRepState();
+
         if (mode === 'pushup') {
             modePushupBtn.style.backgroundColor = 'var(--primary)';
             modeSitupBtn.style.backgroundColor = 'var(--text-muted)';
-            document.getElementById('stationHeader').innerText = "Push-up Recording Mode";
+            document.getElementById('stationHeader').innerText = 'Push-up Recording Mode';
+            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Keep hands below shoulders and move through a full down-up cycle.';
         } else {
             modeSitupBtn.style.backgroundColor = 'var(--primary)';
             modePushupBtn.style.backgroundColor = 'var(--text-muted)';
-            document.getElementById('stationHeader').innerText = "Sit-up Recording Mode";
+            document.getElementById('stationHeader').innerText = 'Sit-up Recording Mode';
+            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Lie down fully, then sit up until your torso closes toward your knees.';
         }
-        
+
         if (stream) {
             startRecBtn.style.display = 'inline-block';
-            stopRecBtn.style.display = 'none';
             uploadBtn.style.display = 'none';
-            liveVideo.style.display = 'block';
             playbackVideo.style.display = 'none';
-            playbackVideo.src = '';
-            videoBlob = null;
-            recordedChunks = [];
+            poseCanvas.style.display = 'block';
         }
     }
 
     async function startCamera() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            liveVideo.srcObject = stream;
-            liveVideo.style.display = 'block';
+            if (!window.Pose) {
+                alert('Pose model is still loading. Please try again in a moment.');
+                return;
+            }
+
+            await initPose();
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 960, height: 540 },
+                audio: false
+            });
+            sourceVideo.srcObject = stream;
+            await sourceVideo.play();
+
+            cameraPlaceholder.style.display = 'none';
+            poseCanvas.style.display = 'block';
             playbackVideo.style.display = 'none';
-            
             startCamBtn.style.display = 'none';
             startRecBtn.style.display = 'inline-block';
+            detectLoopRunning = true;
+            runPoseLoop();
         } catch (err) {
-            alert('Could not access camera: ' + err.message);
+            alert('Could not access camera or pose model: ' + err.message);
         }
+    }
+
+    async function initPose() {
+        if (pose) return;
+        pose = new Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        });
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            minDetectionConfidence: 0.55,
+            minTrackingConfidence: 0.55
+        });
+        pose.onResults(handlePoseResults);
+    }
+
+    async function runPoseLoop() {
+        if (!detectLoopRunning || !pose || sourceVideo.readyState < 2) return;
+        await pose.send({ image: sourceVideo });
+        requestAnimationFrame(runPoseLoop);
+    }
+
+    function handlePoseResults(results) {
+        ctx.save();
+        ctx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
+        ctx.drawImage(results.image, 0, 0, poseCanvas.width, poseCanvas.height);
+
+        if (!results.poseLandmarks) {
+            setWarning('No body detected. Keep your full side profile inside the frame.');
+            ctx.restore();
+            return;
+        }
+
+        const landmarks = results.poseLandmarks;
+        drawBodySkeleton(landmarks);
+
+        if (currentMode === 'pushup') {
+            analyzePushup(landmarks);
+        } else {
+            analyzeSitup(landmarks);
+        }
+
+        drawHudOverlay();
+        ctx.restore();
+    }
+
+    function drawBodySkeleton(landmarks) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#00A86B';
+        for (const [aIdx, bIdx] of BODY_CONNECTIONS) {
+            const a = landmarks[aIdx];
+            const b = landmarks[bIdx];
+            if ((a.visibility || 0) > 0.4 && (b.visibility || 0) > 0.4) {
+                ctx.beginPath();
+                ctx.moveTo(a.x * poseCanvas.width, a.y * poseCanvas.height);
+                ctx.lineTo(b.x * poseCanvas.width, b.y * poseCanvas.height);
+                ctx.stroke();
+            }
+        }
+        for (const idx of BODY_LANDMARK_INDICES) {
+            const lm = landmarks[idx];
+            if ((lm.visibility || 0) > 0.4) {
+                ctx.beginPath();
+                ctx.arc(lm.x * poseCanvas.width, lm.y * poseCanvas.height, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#F43F5E';
+                ctx.fill();
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+    }
+
+    function bestSide(landmarks) {
+        const left = [11, 13, 15, 23, 25, 27].reduce((sum, idx) => sum + (landmarks[idx].visibility || 0), 0);
+        const right = [12, 14, 16, 24, 26, 28].reduce((sum, idx) => sum + (landmarks[idx].visibility || 0), 0);
+        return left >= right
+            ? { shoulder: landmarks[11], elbow: landmarks[13], wrist: landmarks[15], hip: landmarks[23], knee: landmarks[25], ankle: landmarks[27] }
+            : { shoulder: landmarks[12], elbow: landmarks[14], wrist: landmarks[16], hip: landmarks[24], knee: landmarks[26], ankle: landmarks[28] };
+    }
+
+    function analyzePushup(landmarks) {
+        const side = bestSide(landmarks);
+        const trunkLength = distance(side.shoulder, side.hip);
+        if (!visible(side.shoulder, side.wrist, side.hip) || trunkLength < 0.05) {
+            setWarning('Show shoulder, wrist, and hip clearly for push-up counting.');
+            return;
+        }
+
+        const depth = (side.wrist.y - side.shoulder.y) / trunkLength;
+        const inPosition = side.wrist.y >= side.shoulder.y - 0.05 && Math.abs(side.shoulder.y - side.hip.y) < 0.32;
+
+        if (!inPosition) {
+            markInvalid('Get into push-up position: hands below shoulders, body roughly horizontal.');
+            return;
+        }
+
+        setWarning('Position locked. Complete a full down-up cycle.');
+        if (depth < 0.35) {
+            stage = 'down';
+        } else if (depth > 0.65 && stage === 'down') {
+            countValidRep('up');
+        }
+    }
+
+    function analyzeSitup(landmarks) {
+        const side = bestSide(landmarks);
+        if (!visible(side.shoulder, side.hip, side.knee)) {
+            setWarning('Show shoulder, hip, and knee clearly for sit-up counting.');
+            return;
+        }
+
+        const hipAngle = angle(side.shoulder, side.hip, side.knee);
+        const kneeBent = angle(side.hip, side.knee, side.ankle) < 150 || (side.ankle.visibility || 0) < 0.4;
+
+        if (!kneeBent) {
+            markInvalid('Bend your knees and keep your side profile visible.');
+            return;
+        }
+
+        setWarning('Position locked. Lie back, then sit up toward your knees.');
+        if (hipAngle > 135) {
+            stage = 'down';
+        } else if (hipAngle < 95 && stage === 'down') {
+            countValidRep('up');
+        }
+    }
+
+    function countValidRep(nextStage) {
+        if (!isRecording) {
+            stage = nextStage;
+            updateCounters();
+            return;
+        }
+        validReps++;
+        print(validReps);
+        stage = nextStage;
+        updateCounters();
+    }
+
+    function markInvalid(message) {
+        setWarning(message);
+        if (isRecording && Date.now() - lastInvalidAt > 1400) {
+            invalidReps++;
+            lastInvalidAt = Date.now();
+            updateCounters();
+        }
+    }
+
+    function visible(...points) {
+        return points.every(point => point && (point.visibility || 0) > 0.4);
+    }
+
+    function distance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function angle(a, b, c) {
+        const ab = { x: a.x - b.x, y: a.y - b.y };
+        const cb = { x: c.x - b.x, y: c.y - b.y };
+        const dot = ab.x * cb.x + ab.y * cb.y;
+        const mag = Math.hypot(ab.x, ab.y) * Math.hypot(cb.x, cb.y);
+        if (!mag) return 180;
+        return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
+    }
+
+    function drawHudOverlay() {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+        ctx.fillRect(16, 16, 250, 92);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '700 10px Segoe UI, Arial';
+        ctx.fillText(`${currentMode === 'pushup' ? 'Push-Ups' : 'Sit-Ups'}: ${validReps}`, 32, 48);
+        ctx.fillStyle = '#FCA5A5';
+        ctx.fillText(`Invalid: ${invalidReps}`, 32, 76);
+        ctx.fillStyle = '#BBF7D0';
+        ctx.fillText(`Stage: ${stage || 'ready'}`, 142, 76);
+    }
+
+    function setWarning(text) {
+        document.getElementById('warningMessage').innerText = text;
+    }
+
+    function updateCounters() {
+        document.getElementById('repCounter').innerHTML = `${validReps} <span>/ 60</span>`;
+        document.getElementById('invalidRepCounter').innerHTML = `${invalidReps} <span>/ Warn</span>`;
+        document.getElementById('stageDisplay').innerText = `Stage: ${stage || 'Ready'}`;
+    }
+
+    function resetRepState() {
+        validReps = 0;
+        invalidReps = 0;
+        stage = null;
+        lastInvalidAt = 0;
+        videoBlob = null;
+        recordedChunks = [];
+        uploadBtn.innerText = 'Upload Video';
+        uploadBtn.style.pointerEvents = 'auto';
+        updateCounters();
     }
 
     function updateTimer() {
@@ -269,84 +537,80 @@
     }
 
     function startRecording() {
+        if (!stream) {
+            alert('Start the camera first.');
+            return;
+        }
+        resetRepState();
         recordedChunks = [];
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-        
-        mediaRecorder.ondataavailable = function(e) {
-            if (e.data.size > 0) {
-                recordedChunks.push(e.data);
-            }
+        const canvasStream = poseCanvas.captureStream(30);
+        mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
         };
-        
-        mediaRecorder.onstop = function() {
+        mediaRecorder.onstop = () => {
             videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-            const videoURL = URL.createObjectURL(videoBlob);
-            liveVideo.style.display = 'none';
+            playbackVideo.src = URL.createObjectURL(videoBlob);
             playbackVideo.style.display = 'block';
-            playbackVideo.src = videoURL;
-            
+            poseCanvas.style.display = 'none';
             stopRecBtn.style.display = 'none';
             uploadBtn.style.display = 'inline-block';
             timerDisplay.style.display = 'none';
+            isRecording = false;
         };
-        
+
+        isRecording = true;
         startRecBtn.style.display = 'none';
         stopRecBtn.style.display = 'inline-block';
+        uploadBtn.style.display = 'none';
         timerDisplay.style.display = 'block';
-        
         timeLeft = 60;
         updateTimer();
         timerInterval = setInterval(() => {
             timeLeft--;
             updateTimer();
-            if (timeLeft <= 0) {
-                stopRecording();
-            }
+            if (timeLeft <= 0) stopRecording();
         }, 1000);
-        
         mediaRecorder.start();
     }
 
     function stopRecording() {
+        clearInterval(timerInterval);
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
-            clearInterval(timerInterval);
         }
     }
 
     async function uploadVideo() {
         if (!videoBlob) return;
-        
         uploadBtn.innerText = 'Uploading...';
         uploadBtn.style.pointerEvents = 'none';
-        
+
         const formData = new FormData();
         formData.append('video', videoBlob, 'recording.webm');
         formData.append('exercise', currentMode);
-        
+        formData.append('valid_reps', validReps);
+        formData.append('invalid_reps', invalidReps);
+
         try {
             const response = await fetch('/api/upload-video', {
                 method: 'POST',
                 body: formData
             });
             const result = await response.json();
-            
             if (result.success) {
-                alert(`${currentMode.toUpperCase()} video uploaded successfully!`);
                 if (currentMode === 'pushup') {
                     pushupUploaded = true;
                     const status = document.getElementById('statusPushup');
-                    status.innerText = '✓ Push-Up Logged';
+                    status.innerText = `✓ Push-Up Logged (${result.valid_reps} reps)`;
                     status.style.color = 'var(--primary)';
                 } else {
                     situpUploaded = true;
                     const status = document.getElementById('statusSitup');
-                    status.innerText = '✓ Sit-Up Logged';
+                    status.innerText = `✓ Sit-Up Logged (${result.valid_reps} reps)`;
                     status.style.color = 'var(--primary)';
                 }
-                
                 checkCompletion();
-                
                 uploadBtn.innerText = 'Uploaded ✓';
             } else {
                 alert('Upload failed: ' + result.error);
@@ -365,24 +629,21 @@
             completeBtn.style.opacity = '1';
             completeBtn.style.pointerEvents = 'auto';
             completeBtn.style.backgroundColor = 'var(--primary)';
-            
-            if (stream) {
-                stream.getTracks().forEach(t => t.stop());
-            }
         }
     }
 
     function saveAndReturn() {
         if (!pushupUploaded || !situpUploaded) {
-            alert("Please record and upload both Push-Up and Sit-Up sessions first.");
+            alert('Please record and upload both Push-Up and Sit-Up sessions first.');
             return;
         }
-        alert("Session fully completed and saved! Returning to dashboard.");
-        window.location.href = "{{ url_for('dashboard') }}"; 
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        window.location.href = "{{ url_for('dashboard') }}";
     }
-    
+
     window.addEventListener('DOMContentLoaded', () => {
         setExerciseMode('pushup');
     });
 </script>
 {% endblock %}
+
