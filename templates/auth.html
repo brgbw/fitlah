@@ -29,65 +29,82 @@
         }
         body {
             min-height: 100vh;
-            background-color: var(--bg-body);
+            background-color: #0a0a0a;
             color: var(--text-main);
             display: grid;
             place-items: center;
             padding: 28px;
         }
+
+        /* Background image layers */
+        #bg-layers {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        .bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background-size: cover;
+            background-repeat: repeat-y;
+            background-position: center top;
+            opacity: 0;
+        }
+        .bg-layer:nth-child(1) { background-image: url('/static/bgimages/bg1.jpg'); }
+        .bg-layer:nth-child(2) { background-image: url('/static/bgimages/bg2.png'); }
+        .bg-layer:nth-child(3) { background-image: url('/static/bgimages/bg3.jpg'); }
+
+        /* Dark overlay over photos */
+        #bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1;
+        }
+
+        /* Dots canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
         .auth-shell {
-            width: min(960px, 100%);
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border);
+            position: relative;
+            z-index: 3;
+            width: min(480px, 100%);
+            background-color: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: var(--card-shadow);
-            min-height: 560px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+     
         }
-        .brand-panel {
-            background-color: #F8FAFC;
-            border-right: 1px solid var(--border);
-            padding: 36px 28px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
+       
         .logo {
             font-size: 24px;
             font-weight: 800;
             letter-spacing: -0.5px;
         }
         .logo span { color: var(--primary); }
-        .brief-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-        .brief-card {
-            background-color: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .brief-label {
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-        .brief-value {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
+
         .form-panel {
             padding: 44px;
-            display: flex;
-            align-items: center;
         }
         .auth-form-wrap {
             width: 100%;
@@ -208,30 +225,31 @@
         @media (max-width: 760px) {
             body { padding: 16px; }
             .auth-shell { grid-template-columns: 1fr; }
-            .brand-panel { gap: 28px; border-right: none; border-bottom: 1px solid var(--border); }
             .form-panel { padding: 30px 22px; }
             .form-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+
+    <!-- Background image layers -->
+    <div id="bg-layers">
+        <div class="bg-layer"></div>
+        <div class="bg-layer"></div>
+        <div class="bg-layer"></div>
+    </div>
+
+    <!-- Dark overlay -->
+    <div id="bg-overlay"></div>
+
+    <!-- Dots canvas -->
+    <canvas id="bg-canvas"></canvas>
+
     <main class="auth-shell">
-        <aside class="brand-panel">
-            <div class="logo">Fit<span>Lah</span></div>
-            <div class="brief-stack">
-                <div class="brief-card">
-                    <div class="brief-label">Identity</div>
-                    <div class="brief-value">NRIC Login</div>
-                </div>
-                <div class="brief-card">
-                    <div class="brief-label">Portal</div>
-                    <div class="brief-value">IPPT Tracking Center</div>
-                </div>
-            </div>
-        </aside>
 
         <section class="form-panel">
             <div class="auth-form-wrap">
+                <div class="logo">Fit<span>Lah</span></div>
                 <div class="mode-badge">{% if mode == 'signup' %}Create Account{% else %}Secure Access{% endif %}</div>
                 <h1>{% if mode == 'signup' %}Set up your FitLah account{% else %}Welcome back{% endif %}</h1>
                 <p class="subcopy">
@@ -296,5 +314,102 @@
             </div>
         </section>
     </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/motion@11/dist/motion.js"></script>
+    <script>
+        const { animate } = Motion;
+
+        // ── Background image scroll + crossfade ──────────────────────
+        const layers = document.querySelectorAll('.bg-layer');
+        const SCROLL_DURATION = 25;   // seconds per scroll cycle
+        const FADE_DURATION   = 1.5;  // seconds to crossfade
+        const HOLD_DURATION   = 6000; // ms each image is shown
+        let current = 0;
+
+        // Start all layers scrolling (staggered so they don't snap on switch)
+        layers.forEach((layer, i) => {
+            animate(
+                layer,
+                { transform: ['translateY(0%)', 'translateY(-50%)'] },
+                { duration: SCROLL_DURATION, repeat: Infinity, easing: 'linear' }
+            );
+        });
+
+        // Show first image immediately
+        animate(layers[0], { opacity: 1 }, { duration: FADE_DURATION });
+
+        // Crossfade cycle
+        function nextImage() {
+            const prev = current;
+            current = (current + 1) % layers.length;
+
+            animate(layers[current], { opacity: 1 }, { duration: FADE_DURATION });
+            animate(layers[prev],    { opacity: 0 }, { duration: FADE_DURATION });
+        }
+
+        setInterval(nextImage, HOLD_DURATION);
+
+
+        // ── Particle dots ────────────────────────────────────────────
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let W, H, dots;
+
+        function resize() {
+            W = canvas.width  = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+
+        function initDots() {
+            dots = Array.from({ length: 60 }, () => ({
+                x:  Math.random() * W,
+                y:  Math.random() * H,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                r:  Math.random() * 2.5 + 1
+            }));
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+
+            // Connecting lines
+            for (let i = 0; i < dots.length; i++) {
+                for (let j = i + 1; j < dots.length; j++) {
+                    const dx   = dots[i].x - dots[j].x;
+                    const dy   = dots[i].y - dots[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(dots[i].x, dots[i].y);
+                        ctx.lineTo(dots[j].x, dots[j].y);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.70 * (1 - dist / 150)})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Dots
+            dots.forEach(d => {
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                ctx.fill();
+
+                d.x += d.vx;
+                d.y += d.vy;
+                if (d.x < 0 || d.x > W) d.vx *= -1;
+                if (d.y < 0 || d.y > H) d.vy *= -1;
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        resize();
+        initDots();
+        draw();
+        window.addEventListener('resize', () => { resize(); initDots(); });
+    </script>
 </body>
 </html>
