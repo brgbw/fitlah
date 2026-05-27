@@ -164,14 +164,19 @@ let currentMode = 'pushup';
         lastLandmarks = landmarks;
         drawBodySkeleton(landmarks);
         if (currentMode === 'situp') {
-            drawHandsOnEarsGuide(landmarks);
+            FitLahSitupExercise.drawHandsOnEarsGuide(landmarks, {
+                ctx,
+                width: poseCanvas.width,
+                height: poseCanvas.height,
+                helpers: exerciseHelpers()
+            });
         }
 
         if (!isReplayMode) {
             if (currentMode === 'pushup') {
-                analyzePushup(landmarks);
+                FitLahPushupExercise.analyze(landmarks, exerciseHelpers());
             } else {
-                analyzeSitup(landmarks);
+                FitLahSitupExercise.analyze(landmarks, exerciseHelpers());
             }
         }
 
@@ -219,42 +224,6 @@ let currentMode = 'pushup';
         return point && (point.visibility || 0) > minVis;
     }
 
-    /** Loose plank / push-up zone — does not require arms extended (so down-phase still counts). */
-    function isInPushupStartZone(side) {
-        if (!visibleLoose(side.shoulder) || !visibleLoose(side.hip)) return false;
-        const notStandingUpright = Math.abs(side.shoulder.y - side.hip.y) < 0.45;
-        const armsForward = visibleLoose(side.elbow) || visibleLoose(side.wrist);
-        return notStandingUpright && armsForward;
-    }
-
-    function wristNearEar(wrist, ear, refLen) {
-        if (!visibleLoose(wrist, 0.22) || !visibleLoose(ear, 0.22)) return null;
-        const maxDist = Math.max(0.1, refLen * 0.8);
-        return distance(wrist, ear) <= maxDist;
-    }
-
-    function handsOnEars(landmarks) {
-        const lw = landmarks[15];
-        const rw = landmarks[16];
-        const le = landmarks[7];
-        const re = landmarks[8];
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        const leftRef = visibleLoose(ls) ? distance(ls, le) : 0.14;
-        const rightRef = visibleLoose(rs) ? distance(rs, re) : 0.14;
-        const left = wristNearEar(lw, le, leftRef);
-        const right = wristNearEar(rw, re, rightRef);
-        const leftKnown = left !== null;
-        const rightKnown = right !== null;
-
-        if (leftKnown && rightKnown) return left && right;
-        if (leftKnown && visibleLoose(rw, 0.28)) return left && right === true;
-        if (rightKnown && visibleLoose(lw, 0.28)) return right && left === true;
-        if (leftKnown) return left;
-        if (rightKnown) return right;
-        return false;
-    }
-
     function updateHandsBadge(onEars) {
         if (currentMode !== 'situp') return;
         handsBadge.style.display = 'inline-block';
@@ -267,33 +236,6 @@ let currentMode = 'pushup';
         }
     }
 
-    function drawHandsOnEarsGuide(landmarks) {
-        const pairs = [[15, 7], [16, 8]];
-        const onEars = handsOnEars(landmarks);
-        for (const [wIdx, eIdx] of pairs) {
-            const w = landmarks[wIdx];
-            const e = landmarks[eIdx];
-            if ((w.visibility || 0) > 0.25 && (e.visibility || 0) > 0.25) {
-                ctx.beginPath();
-                ctx.moveTo(w.x * poseCanvas.width, w.y * poseCanvas.height);
-                ctx.lineTo(e.x * poseCanvas.width, e.y * poseCanvas.height);
-                ctx.strokeStyle = onEars ? '#22C55E' : '#F43F5E';
-                ctx.lineWidth = 4;
-                ctx.stroke();
-            }
-        }
-    }
-
-    function isInSitupStartZone(side) {
-        if (!visibleLoose(side.shoulder) || !visibleLoose(side.hip)) return false;
-        const hipAngle = visibleLoose(side.knee)
-            ? angle(side.shoulder, side.hip, side.knee)
-            : 110;
-        const kneeBent = !visibleLoose(side.knee) || !visibleLoose(side.ankle) ||
-            angle(side.hip, side.knee, side.ankle) < 170;
-        return kneeBent && hipAngle > 100;
-    }
-
     function updatePositionLock(inPosition) {
         if (inPosition) {
             positionLockFrames++;
@@ -303,116 +245,37 @@ let currentMode = 'pushup';
         positionReady = positionLockFrames >= 5;
     }
 
-    function analyzePushup(landmarks) {
-        const side = bestSide(landmarks);
-        const hasCoreLandmarks = visibleLoose(side.shoulder) && visibleLoose(side.hip) &&
-            (visibleLoose(side.elbow) || visibleLoose(side.wrist));
-
-        if (!hasCoreLandmarks) {
-            if (!sessionStarted) {
+    function exerciseHelpers() {
+        return {
+            angle,
+            bestSide,
+            countValidRep,
+            distance,
+            isRecording,
+            markInvalid,
+            metrics: cvMetrics,
+            noteFormFlag,
+            sessionStarted,
+            setWarning,
+            stage,
+            updateHandsBadge,
+            updatePositionLock,
+            visibleLoose,
+            handsOnEarsStreak,
+            resetPositionLock() {
                 positionLockFrames = 0;
                 positionReady = false;
+            },
+            setHandsOnEarsStreak(value) {
+                handsOnEarsStreak = value;
+            },
+            setPositionReady(value) {
+                positionReady = value;
+            },
+            setStage(value) {
+                stage = value;
             }
-            setWarning('Show your side profile — shoulder, hip, and arm in frame.');
-            return;
-        }
-
-        const inStartZone = isInPushupStartZone(side);
-        if (!sessionStarted) {
-            updatePositionLock(inStartZone);
-        }
-
-        const trunkLen = Math.max(distance(side.shoulder, side.hip), 0.08);
-        let elbowAngle = 180;
-        if (visibleLoose(side.elbow)) {
-            const wrist = visibleLoose(side.wrist) ? side.wrist : side.elbow;
-            elbowAngle = angle(side.shoulder, side.elbow, wrist);
-        }
-
-        const shoulderDrop = (side.shoulder.y - side.hip.y) / trunkLen;
-        if (!sessionStarted && !inStartZone) {
-            setWarning('Get into a push-up / plank position (side-on). First rep starts the timer.');
-            return;
-        }
-
-        if (!sessionStarted) {
-            if (inStartZone) positionReady = true;
-            setWarning('Go down, then push back up — first full rep starts recording.');
-        } else {
-            setWarning('Recording — bend arms down, then push up.');
-        }
-
-        const isDown = elbowAngle < 115 || shoulderDrop > 0.08;
-        const isUp = elbowAngle > 132 || shoulderDrop < 0.06;
-
-        if (isDown) {
-            stage = 'down';
-        } else if (isUp && stage === 'down') {
-            countValidRep('up');
-        }
-        samplePushupMetrics(elbowAngle, shoulderDrop, inStartZone);
-    }
-
-    function analyzeSitup(landmarks) {
-        const side = bestSide(landmarks);
-        const hasCore = visibleLoose(side.shoulder) && visibleLoose(side.hip);
-
-        if (!hasCore) {
-            if (!sessionStarted) {
-                positionLockFrames = 0;
-                positionReady = false;
-            }
-            updateHandsBadge(false);
-            setWarning('Show your side profile — shoulders, hips, and head in frame.');
-            return;
-        }
-
-        const hipAngle = visibleLoose(side.knee)
-            ? angle(side.shoulder, side.hip, side.knee)
-            : 110;
-        const earsOk = handsOnEars(landmarks);
-        updateHandsBadge(earsOk);
-
-        if (!earsOk) {
-            handsOnEarsStreak = 0;
-            if (isRecording) {
-                sampleSitupMetrics(hipAngle, false);
-            }
-            if (sessionStarted || isRecording) {
-                markInvalid('Keep both hands touching your ears — reps will not count otherwise.');
-            } else {
-                setWarning('Place hands behind your head with wrists touching your ears before starting.');
-            }
-            return;
-        }
-        handsOnEarsStreak++;
-
-        const inStartZone = isInSitupStartZone(side);
-
-        if (!sessionStarted && !inStartZone) {
-            setWarning('Lie back with knees bent, hands on ears. First sit-up starts the timer.');
-            return;
-        }
-
-        if (!sessionStarted) {
-            if (inStartZone) positionReady = true;
-            setWarning('Lie back, then sit up — keep hands on ears. First rep starts recording.');
-        } else {
-            setWarning('Recording — lie back, sit up, hands stay on ears.');
-        }
-
-        const isDown = hipAngle > 118;
-        const isUp = hipAngle < 108;
-
-        if (isDown && earsOk) {
-            stage = 'down';
-        } else if (isUp && stage === 'down' && earsOk && handsOnEarsStreak >= 2) {
-            countValidRep('up');
-        } else if (isUp && stage === 'down' && !earsOk) {
-            markInvalid('Hands left your ears — rep not counted.');
-            stage = null;
-        }
-        sampleSitupMetrics(hipAngle, earsOk);
+        };
     }
 
     function countValidRep(nextStage) {
@@ -427,7 +290,7 @@ let currentMode = 'pushup';
             return;
         }
 
-        if (currentMode === 'situp' && lastLandmarks && !handsOnEars(lastLandmarks)) {
+        if (currentMode === 'situp' && lastLandmarks && !FitLahSitupExercise.handsOnEars(lastLandmarks, exerciseHelpers())) {
             markInvalid('Hands must touch ears at the top of each rep.');
             stage = nextStage;
             return;
@@ -517,30 +380,6 @@ let currentMode = 'pushup';
         return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
     }
 
-    function samplePushupMetrics(elbowAngle, shoulderDrop, inStartZone) {
-        if (!isRecording || !cvMetrics) return;
-        cvMetrics.frames_sampled++;
-        if (cvMetrics.frames_sampled % 5 !== 0) return;
-        if (elbowAngle < 115) cvMetrics.elbow_down_angles.push(Math.round(elbowAngle));
-        if (elbowAngle > 130) cvMetrics.elbow_up_angles.push(Math.round(elbowAngle));
-        if (!inStartZone) noteFormFlag('torso alignment drifted from plank');
-        if (elbowAngle > 95 && elbowAngle < 128) cvMetrics.shallow_rep_signals++;
-    }
-
-    function sampleSitupMetrics(hipAngle, earsOk) {
-        if (!isRecording || !cvMetrics) return;
-        cvMetrics.frames_sampled++;
-        if (cvMetrics.frames_sampled % 5 !== 0) return;
-        if (hipAngle > 115) cvMetrics.hip_down_angles.push(Math.round(hipAngle));
-        if (hipAngle < 112) cvMetrics.hip_up_angles.push(Math.round(hipAngle));
-        if (earsOk) cvMetrics.hands_on_ears_samples++;
-        else {
-            cvMetrics.hands_off_ears_samples++;
-            noteFormFlag('hands left ears during session');
-        }
-        if (hipAngle > 105 && hipAngle < 118) noteFormFlag('partial sit-up depth detected');
-    }
-
     function finalizeSessionMetrics() {
         const duration = Math.max(1, 60 - timeLeft);
         const total = validReps + invalidReps;
@@ -556,22 +395,9 @@ let currentMode = 'pushup';
             form_flags: m.form_flags ? m.form_flags.slice() : []
         };
         if (currentMode === 'pushup') {
-            payload.avg_elbow_angle_down = avgAngle(m.elbow_down_angles);
-            payload.avg_elbow_angle_up = avgAngle(m.elbow_up_angles);
-            payload.shallow_rep_signals = m.shallow_rep_signals || 0;
-            if (payload.avg_elbow_angle_down && payload.avg_elbow_angle_down > 105) {
-                payload.form_flags.push('limited push-up depth on several reps');
-            }
+            FitLahPushupExercise.enrichMetrics(payload, m, avgAngle);
         } else {
-            payload.avg_hip_angle_lying = avgAngle(m.hip_down_angles);
-            payload.avg_hip_angle_sitting = avgAngle(m.hip_up_angles);
-            const handsTotal = (m.hands_on_ears_samples || 0) + (m.hands_off_ears_samples || 0);
-            payload.hands_on_ears_compliance_pct = handsTotal
-                ? Math.round(((m.hands_on_ears_samples || 0) / handsTotal) * 100)
-                : null;
-            if (payload.hands_on_ears_compliance_pct !== null && payload.hands_on_ears_compliance_pct < 85) {
-                payload.form_flags.push('hands frequently off ears');
-            }
+            FitLahSitupExercise.enrichMetrics(payload, m, avgAngle);
         }
         return payload;
     }
