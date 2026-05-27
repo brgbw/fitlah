@@ -115,25 +115,25 @@
     .secondary-link {
         color: #64748B;
         font-size: 15px;
-        font-weight: 700;
+        font-weight: 500;
         text-decoration: none;
     }
 
     .primary-action {
         border: none;
         border-radius: 6px;
-        background: #00A86B;
+        background: #006039;
         color: #FFFFFF;
         padding: 15px 22px;
         font-size: 14px;
-        font-weight: 800;
+        font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         cursor: pointer;
     }
 
     .primary-action:hover {
-        background: #008F5B;
+        background: #015936;
     }
 
     @media (max-width: 940px) {
@@ -202,9 +202,9 @@
         </div>
 
         <div class="prep-actions">
-            <a class="secondary-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
-            <button class="primary-action" type="button" onclick="window.location.href='{{ url_for('webcam') }}'">I am set up, start camera</button>
-        </div>
+            <a class="secondary-link" href="{{ url_for('dashboard') }}">Back</a>
+            <button class="primary-action" type="button" onclick="window.location.href='{{ url_for('webcam') }}'">Ready</button>
+        </div>''
     </section>
 </div>
 {% endblock %}

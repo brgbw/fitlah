@@ -82,15 +82,15 @@
     transition: all 0.15s;
     gap: 2px;
   }
-  .calendar-day:hover { border-color: #00A86B; background: #E8F8F2; }
-  .calendar-day.today { border-color: #00A86B; color: #00A86B; }
-  .calendar-day.active-selected { background: #00A86B; color: #FFF; border-color: #00A86B; }
+  .calendar-day:hover { border-color: #015936; background: #E8F8F2; }
+  .calendar-day.today { border-color: #015936; color: #015936; }
+  .calendar-day.active-selected { background: #015936; color: #FFF; border-color: #015936; }
   .calendar-day.empty { background: transparent; border: none; cursor: default; }
   .calendar-day.empty:hover { background: transparent; border: none; }
 
   .day-dots { display: flex; gap: 3px; }
   .dot { width: 5px; height: 5px; border-radius: 50%; }
-  .dot.logged { background: #00A86B; }
+  .dot.logged { background: #015936; }
   .dot.ippt { background: #E11D48; }
   .dot.ict { background: #2563EB; }
   .calendar-day.active-selected .dot.logged { background: rgba(255,255,255,0.9); }
@@ -107,7 +107,7 @@
   .agenda-item { display: flex; gap: 16px; }
 
   .agenda-color-bar { width: 4px; border-radius: 2px; flex-shrink: 0; }
-  .agenda-color-bar.logged { background: #00A86B; }
+  .agenda-color-bar.logged { background: #015936; }
   .agenda-color-bar.ict { background: #2563EB; }
   .agenda-color-bar.ippt { background: #E11D48; }
 
@@ -175,7 +175,7 @@
     outline: none;
     transition: border-color 0.15s;
   }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #00A86B; background: #fff; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #015936; background: #fff; }
   .form-group textarea { resize: vertical; min-height: 72px; }
 
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -191,8 +191,8 @@
     border: none;
     transition: all 0.15s;
   }
-  .btn-primary { background: #00A86B; color: #fff; }
-  .btn-primary:hover { background: #008F5A; }
+  .btn-primary { background: #015936; color: #fff; }
+  .btn-primary:hover { background: #014e2f; }
   .btn-secondary { background: #F1F5F9; color: #334155; }
   .btn-secondary:hover { background: #E2E8F0; }
 
@@ -200,7 +200,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #00A86B;
+    background: #015936;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -210,7 +210,7 @@
     cursor: pointer;
     transition: background 0.15s;
   }
-  .add-entry-btn:hover { background: #008F5A; }
+  .add-entry-btn:hover { background: #014e2f; }
 
   .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
 
@@ -254,7 +254,7 @@
   .ai-coach-block h5 {
     font-size: 12px;
     font-weight: 800;
-    color: #00A86B;
+    color: #015936;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 10px;
@@ -271,7 +271,7 @@
     padding: 12px 14px;
     background: #F8FAFC;
     border-radius: 8px;
-    border-left: 3px solid #00A86B;
+    border-left: 3px solid #015936;
   }
 
   .ai-coach-grid {
@@ -292,7 +292,7 @@
     margin-bottom: 6px;
   }
 
-  .ai-coach-list.dos h6 { color: #15803D; }
+  .ai-coach-list.dos h6 { color: #015936; }
   .ai-coach-list.donts h6 { color: #BE123C; }
 
   .ai-coach-list ul {
@@ -340,7 +340,7 @@
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#00A86B"></div>Workout</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#015936"></div>Workout</div>
       <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>ICT</div>
       <div class="legend-item"><div class="legend-dot" style="background:#E11D48"></div>IPPT</div>
     </div>

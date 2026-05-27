@@ -9,7 +9,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 SERVERDATA_DIR = os.path.join(BASE_DIR, "serverdata")
 
 TABLE_NAMES = [
-    "user", "workout", "group_invite", "fitness_group",
+    "user", "group_invite", "fitness_group",
     "group_member", "performance_log", "auth_user",
     "personal_best", "workout_sessions",
 ]

@@ -8,7 +8,7 @@
     "rank": "COL",
     "unit": "ATI",
     "created_at": "2026-05-23 16:09:25",
-    "last_login": "2026-05-27 13:36:01"
+    "last_login": "2026-05-27 16:09:59"
   },
   {
     "id": 2,
@@ -30,6 +30,17 @@
     "rank": "adadadad",
     "unit": "adadadada",
     "created_at": "2026-05-24 17:58:41",
+    "last_login": null
+  },
+  {
+    "id": 4,
+    "nric": "T9876543A",
+    "password_hash": "scrypt:32768:8:1$JZ8KTTurI2HZ8ql2$c2ae9a4c598b5a48f6766134ad37bb7880ac85108a1a1223d5792771262949625100d57d9fb844709deee34b3ab721ffd4403b4104200867946c00924fb6b8a9",
+    "password_is_default": false,
+    "name": "CHRIS YEO",
+    "rank": "LTA",
+    "unit": "3GDS",
+    "created_at": "2026-05-27 14:13:28",
     "last_login": null
   }
 ]

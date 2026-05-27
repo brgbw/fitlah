@@ -22,5 +22,13 @@
     "rank": "adadadad",
     "unit": "adadadada",
     "last_login": null
+  },
+  {
+    "id": 4,
+    "nric": "T9876543A",
+    "name": "CHRIS YEO",
+    "rank": "LTA",
+    "unit": "3GDS",
+    "last_login": null
   }
 ]

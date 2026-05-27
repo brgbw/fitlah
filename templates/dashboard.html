@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+
 <style>
     .dashboard-page {
         width: 100%;
@@ -9,45 +10,24 @@
     .dashboard-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
         gap: 24px;
-        margin-bottom: 24px;
+        margin-bottom: 28px;
     }
 
     .dashboard-header h1 {
-        font-size: 28px;
-        font-weight: 800;
-        letter-spacing: 0;
-        margin-bottom: 6px;
+        font-size: 30px;
+        font-weight: 650;
+        letter-spacing: -0.4px;
+        margin-bottom: 8px;
     }
 
     .dashboard-header p {
-        max-width: 680px;
+        max-width: 700px;
         color: #64748B;
         font-size: 14px;
-        line-height: 1.5;
-    }
-
-    .status-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: #E8F8F2;
-        color: #008F5B;
-        font-size: 12px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .status-chip::before {
-        content: "";
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #00A86B;
-        box-shadow: 0 0 0 4px rgba(0, 168, 107, 0.15);
+        line-height: 1.6;
+        font-weight: 400;
     }
 
     .dashboard-grid {
@@ -60,85 +40,96 @@
     .panel {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        box-shadow: var(--card-shadow);
+        border-radius: 14px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
 
     .training-panel {
-        padding: 28px;
+        padding: 30px;
     }
 
     .panel-kicker {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        color: #008F5B;
+        color: #0F172A;
         font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.8px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
+        opacity: 0.75;
     }
 
     .panel-kicker svg {
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
         stroke: currentColor;
         fill: none;
-        stroke-width: 2.5;
+        stroke-width: 2;
     }
 
     .training-panel h2 {
-        font-size: 26px;
-        font-weight: 800;
-        letter-spacing: 0;
-        margin-bottom: 8px;
+        font-size: 28px;
+        font-weight: 620;
+        letter-spacing: -0.5px;
+        margin-bottom: 12px;
+        line-height: 1.25;
     }
 
     .training-panel p {
         color: #475569;
-        font-size: 15px;
-        line-height: 1.55;
+        font-size: 14px;
+        line-height: 1.7;
         max-width: 760px;
+        font-weight: 400;
     }
 
     .action-stack {
         display: grid;
         grid-template-columns: repeat(2, minmax(220px, 1fr));
-        gap: 14px;
-        margin-top: 24px;
+        gap: 16px;
+        margin-top: 28px;
     }
 
     .action-card {
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: #F8FAFC;
-        padding: 18px;
+        border-radius: 12px;
+        background: #FCFCFD;
+        padding: 22px;
         display: flex;
         flex-direction: column;
         gap: 14px;
-        min-height: 176px;
+        min-height: 185px;
+        transition: 0.2s ease;
+    }
+
+    .action-card:hover {
+        border-color: #CBD5E1;
+        transform: translateY(-1px);
     }
 
     .action-card h3 {
-        font-size: 16px;
-        font-weight: 800;
-        margin-bottom: 4px;
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #0F172A;
     }
 
     .action-card p {
         color: #64748B;
-        font-size: 13px;
-        line-height: 1.45;
+        font-size: 15px;
+        line-height: 1.6;
+        font-weight: 400;
     }
 
     .action-meta {
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #475569;
+        color: #64748B;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         margin-top: auto;
     }
 
@@ -146,7 +137,7 @@
         width: 7px;
         height: 7px;
         border-radius: 50%;
-        background: #00A86B;
+        background: #22C55E;
     }
 
     .action-dot.strava {
@@ -155,28 +146,24 @@
 
     .primary-btn {
         border: none;
-        border-radius: 6px;
-        background: #00A86B;
+        border-radius: 8px;
+        background: linear-gradient(135deg,  #006039, #006039);
         color: #FFFFFF;
         padding: 11px 16px;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-size: 15px;
+        font-weight: 550;
         cursor: pointer;
         width: fit-content;
+        transition: 0.2s ease;
     }
 
     .primary-btn:hover {
-        background: #008F5B;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
     }
 
     .primary-btn.strava {
-        background: #FC4C02;
-    }
-
-    .primary-btn.strava:hover {
-        background: #D83F00;
+        background: linear-gradient(135deg, #FC4C02, #F97316);
     }
 
     .side-stack {
@@ -187,95 +174,153 @@
 
     .summary-panel,
     .recent-panel {
-        padding: 20px;
+        padding: 22px;
+    }
+
+    .summary-panel {
+        background: linear-gradient(to bottom right, #FFFFFF, #F8FAFC);
+    }
+
+    .recent-panel {
+        background: linear-gradient(to bottom right, #FFFFFF, #FFFDFC);
     }
 
     .panel-title {
-        font-size: 13px;
-        font-weight: 900;
-        color: #64748B;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        font-size: 12px;
+        font-weight: 650;
+        color: #334155;
+
         text-transform: uppercase;
-        letter-spacing: 0.7px;
-        margin-bottom: 14px;
+        letter-spacing: 0.08em;
+
+        margin-bottom: 16px;
+    }
+
+    .panel-title::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+    }
+
+    .quick-access-title::before {
+        background: linear-gradient(135deg, #0A64BC, #0EA5E9);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+    }
+
+    .recent-activity-title::before {
+        background: linear-gradient(135deg, #0A64BC, #0EA5E9);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
     }
 
     .summary-list {
         display: grid;
-        gap: 10px;
+        gap: 12px;
     }
 
     .summary-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px;
+        padding: 14px;
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: #F8FAFC;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.85);
+        backdrop-filter: blur(6px);
+        transition: 0.2s ease;
+    }
+
+    .summary-row:hover {
+        border-color: #CBD5E1;
+        background: #FFFFFF;
+        transform: translateY(-1px);
     }
 
     .summary-row span {
-        color: #64748B;
-        font-size: 12px;
-        font-weight: 800;
+        color: #475569;
+        font-size: 13px;
+        font-weight: 500;
     }
 
     .summary-row strong {
-        font-size: 18px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .summary-row a {
+        color: #0F172A !important;
+        text-decoration: none;
+    }
+
+    .summary-row a:hover {
+        opacity: 0.7;
     }
 
     .recent-list {
         display: grid;
-        gap: 10px;
+        gap: 12px;
     }
 
     .recent-item {
-        padding: 12px;
+        padding: 14px;
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: #F8FAFC;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.88);
+        transition: 0.2s ease;
+    }
+
+    .recent-item:hover {
+        border-color: #FED7AA;
+        transform: translateY(-1px);
     }
 
     .recent-item strong {
         display: block;
         font-size: 13px;
-        margin-bottom: 4px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #0F172A;
     }
 
     .recent-item span {
         color: #64748B;
         font-size: 12px;
-        line-height: 1.4;
+        line-height: 1.5;
+        font-weight: 400;
     }
 
     .empty-recent {
         color: #64748B;
         font-size: 13px;
-        line-height: 1.45;
-        padding: 12px;
+        line-height: 1.6;
+        padding: 14px;
         border: 1px dashed #CBD5E1;
-        border-radius: 8px;
-        background: #F8FAFC;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.8);
     }
 
     .strava-modal-overlay {
         position: fixed;
         inset: 0;
-        background-color: rgba(15, 23, 42, 0.6);
+        background-color: rgba(15, 23, 42, 0.55);
         z-index: 2000;
         display: none;
         justify-content: center;
         align-items: center;
-        backdrop-filter: blur(2px);
+        backdrop-filter: blur(3px);
     }
 
     .strava-card {
         background-color: #FFFFFF;
         width: 420px;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-        border: 1px solid #CBD5E1;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+        border: 1px solid #E2E8F0;
         text-align: center;
     }
 
@@ -285,9 +330,9 @@
         align-items: center;
         gap: 8px;
         color: #FC4C02;
-        font-weight: 900;
+        font-weight: 650;
         font-size: 20px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
     }
 
     .strava-brand-header svg {
@@ -297,33 +342,35 @@
     }
 
     .strava-body h4 {
-        font-size: 16px;
+        font-size: 18px;
+        font-weight: 600;
         color: #0F172A;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
 
     .strava-body p {
         font-size: 13px;
         color: #64748B;
-        line-height: 1.45;
-        margin-bottom: 20px;
+        line-height: 1.6;
+        margin-bottom: 24px;
+        font-weight: 400;
     }
 
     .strava-sync-animation-box {
         background-color: #FFF7ED;
-        border: 1px dashed #FFEDD5;
-        border-radius: 8px;
-        padding: 16px;
+        border: 1px solid #FED7AA;
+        border-radius: 10px;
+        padding: 18px;
         margin-bottom: 20px;
         display: none;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
     }
 
     .spinner {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         border: 3px solid #FFEDD5;
         border-top: 3px solid #FC4C02;
         border-radius: 50%;
@@ -337,142 +384,249 @@
 
     .strava-actions {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         justify-content: flex-end;
     }
 
     .strava-btn {
-        padding: 9px 16px;
-        border-radius: 6px;
+        padding: 10px 16px;
+        border-radius: 8px;
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 550;
         cursor: pointer;
         border: 1px solid #CBD5E1;
         background: #FFFFFF;
         color: #0F172A;
+        transition: 0.2s ease;
+    }
+
+    .strava-btn:hover {
+        background: #F8FAFC;
     }
 
     .strava-btn.connect-btn {
-        background-color: #FC4C02;
+        background: linear-gradient(135deg, #FC4C02, #F97316);
         border-color: #FC4C02;
         color: #FFFFFF;
     }
 
     @media (max-width: 980px) {
-        .dashboard-header,
-        .dashboard-grid {
-            grid-template-columns: 1fr;
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
         }
 
         .dashboard-grid,
         .action-stack {
-            display: grid;
             grid-template-columns: 1fr;
         }
     }
 </style>
 
 <div class="dashboard-page">
+
     <div class="dashboard-header">
         <div>
             <h1>Dashboard</h1>
-            <p>Start a guided IPPT station, sync your run, or review your latest training activity from one clean workspace.</p>
+
+            <p>
+                Manage your IPPT training sessions, sync outdoor runs,
+                and review recent activity from a clean central workspace.
+            </p>
         </div>
-        <div class="status-chip">Ready for training</div>
+
     </div>
 
     <div class="dashboard-grid">
+
         <section class="panel training-panel">
+
             <div class="panel-kicker">
-                <svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 15l3-4 3 2 4-7"></path></svg>
-                IPPT Training Session
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 19V5"></path>
+                    <path d="M4 19h16"></path>
+                    <path d="M8 15l3-4 3 2 4-7"></path>
+                </svg>
+                TRAINING MODULE
             </div>
-            <h2>Train static stations with camera feedback</h2>
-            <p>Record push-ups and sit-ups through your webcam, review the captured session, and save valid reps into your performance log.</p>
+
+            <h2>Computer vision assisted training</h2>
 
             <div class="action-stack">
+
                 <div class="action-card">
                     <div>
                         <h3>Camera station</h3>
-                        <p>Set up your laptop, start the webcam, and let the first valid rep begin the timed session.</p>
+
+                        <p>
+                            Begin a live webcam session for push-up and sit-up
+                            detection with automated rep validation.
+                        </p>
                     </div>
-                    <div class="action-meta"><span class="action-dot"></span>Push-up and sit-up tracking</div>
-                    <button class="primary-btn" onclick="triggerWebcamStation()">Start Camera</button>
+
+                    <div class="action-meta">
+                        <span class="action-dot"></span>
+                        Live motion tracking enabled
+                    </div>
+
+                    <button class="primary-btn" onclick="triggerWebcamStation()">
+                        Launch Session
+                    </button>
                 </div>
 
                 <div class="action-card">
                     <div>
-                        <h3>2.4km run sync</h3>
-                        <p>Link a recent outdoor run and keep your static station records beside your running benchmark.</p>
+                        <h3>2.4km run integration</h3>
+
+                        <p>
+                            Connect recent outdoor run data to maintain a unified
+                            overview of your IPPT performance metrics.
+                        </p>
                     </div>
-                    <div class="action-meta"><span class="action-dot strava"></span>Pending Strava activity link</div>
-                    <button class="primary-btn strava" onclick="triggerStravaModal()">Sync Strava Run</button>
+
+                    <div class="action-meta">
+                        <span class="action-dot strava"></span>
+                        Strava synchronization available
+                    </div>
+
+                    <button class="primary-btn strava" onclick="triggerStravaModal()">
+                        Sync Strava
+                    </button>
                 </div>
+
             </div>
+
         </section>
 
         <aside class="side-stack">
+
             <section class="panel summary-panel">
-                <div class="panel-title">Quick Links</div>
-                <div class="summary-list">
-                    <div class="summary-row">
-                        <span>Performance history</span>
-                        <strong><a href="{{ url_for('performance') }}" style="color:#00A86B;text-decoration:none;">Open</a></strong>
-                    </div>
-                    <div class="summary-row">
-                        <span>Training graphs</span>
-                        <strong><a href="{{ url_for('dashboard_graph') }}" style="color:#00A86B;text-decoration:none;">View</a></strong>
-                    </div>
-                    <div class="summary-row">
-                        <span>Group leaderboard</span>
-                        <strong><a href="{{ url_for('group') }}" style="color:#00A86B;text-decoration:none;">Join</a></strong>
-                    </div>
+
+                <div class="panel-title quick-access-title">
+                    Quick Access
                 </div>
+
+                <div class="summary-list">
+
+                    <a class="summary-row" href="{{ url_for('performance') }}">
+                        <span>Calendar</span>
+                   </a>
+
+                    <a class="summary-row" href="{{ url_for('dashboard_graph') }}">
+                        <span>Training Analytics</span>
+                    </a>
+
+                    <a class="summary-row" href="{{ url_for('group') }}"?>
+                        <span>Groups</span>
+                    </a>
+
+                </div>
+
             </section>
 
             <section class="panel recent-panel">
-                <div class="panel-title">Recent Activity</div>
+
+                <div class="panel-title recent-activity-title">
+                    Recent Activity
+                </div>
+
                 <div class="recent-list">
+
                     {% if recent_logs %}
                         {% for log in recent_logs %}
+
                         <div class="recent-item">
-                            <strong>{{ log.name or log.event }}</strong>
-                            <span>{{ log.date }}{% if log.score %} · {{ log.score }}{% endif %}{% if log.time %} · {{ log.time }}{% endif %}</span>
+                            <strong>
+                                {{ log.name or log.event }}
+                            </strong>
+
+                            <span>
+                                {{ log.date }}
+
+                                {% if log.score %}
+                                    · {{ log.score }}
+                                {% endif %}
+
+                                {% if log.time %}
+                                    · {{ log.time }}
+                                {% endif %}
+                            </span>
                         </div>
+
                         {% endfor %}
                     {% else %}
-                        <div class="empty-recent">No saved activity yet. Complete a webcam station or add an entry in Performance.</div>
+
+                        <div class="empty-recent">
+                            No activity records available yet.
+                            Complete a training session or add a performance entry.
+                        </div>
+
                     {% endif %}
+
                 </div>
+
             </section>
+
         </aside>
+
     </div>
+
 </div>
 
 <div class="strava-modal-overlay" id="stravaModal">
+
     <div class="strava-card">
+
         <div class="strava-brand-header">
-            <svg viewBox="0 0 24 24"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.456l2.82 5.57H14.35l-3.066-6.053L5.131 14h3.066l3.07-5.512z"/></svg>
+
+            <svg viewBox="0 0 24 24">
+                <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.456l2.82 5.57H14.35l-3.066-6.053L5.131 14h3.066l3.07-5.512z"/>
+            </svg>
+
             STRAVA
+
         </div>
+
         <div class="strava-body" id="modalStaticBody">
-            <h4>Authorize FitLah Tracking API</h4>
-            <p>Link your account securely to parse and verify your recent outdoor 2.4km running performance.</p>
+
+            <h4>Authorize FitLah Integration</h4>
+
+            <p>
+                Securely connect your Strava account to retrieve
+                recent running sessions and update your dashboard metrics.
+            </p>
+
             <div class="strava-actions">
-                <button class="strava-btn" onclick="closeStravaModal()">Cancel</button>
-                <button class="strava-btn connect-btn" onclick="startSimulatedStravaSync()">Authorize & Sync</button>
+
+                <button class="strava-btn" onclick="closeStravaModal()">
+                    Cancel
+                </button>
+
+                <button class="strava-btn connect-btn" onclick="startSimulatedStravaSync()">
+                    Authorize
+                </button>
+
             </div>
+
         </div>
+
         <div class="strava-sync-animation-box" id="modalSyncAnimation">
+
             <div class="spinner"></div>
-            <p style="font-size: 12px; font-weight: 700; color: #FC4C02; margin: 0;">Querying active running logs...</p>
+
+            <p style="font-size: 12px; font-weight: 500; color: #FC4C02; margin: 0;">
+                Retrieving latest running activity...
+            </p>
+
         </div>
+
     </div>
+
 </div>
 
 <script>
     function triggerWebcamStation() {
-       window.location.href = "{{ url_for('webcam_prep') }}";
+        window.location.href = "{{ url_for('webcam_prep') }}";
     }
 
     function triggerStravaModal() {
@@ -488,9 +642,11 @@
     function startSimulatedStravaSync() {
         document.getElementById('modalStaticBody').style.display = 'none';
         document.getElementById('modalSyncAnimation').style.display = 'flex';
+
         setTimeout(() => {
             closeStravaModal();
         }, 1500);
     }
 </script>
+
 {% endblock %}

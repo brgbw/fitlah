@@ -29,12 +29,6 @@
         tableBody.innerHTML = selected.members.map(member => {
             const best = member.personal_best || {};
             const pushups = Number(best.pushups || 0);
-            let status = '<span class="status-badge-pill incomplete">Pending Sync</span>';
-            if (pushups >= 50) {
-                status = '<span class="status-badge-pill gold">Gold</span>';
-            } else if (pushups >= 35) {
-                status = '<span class="status-badge-pill silver">Silver</span>';
-            }
 
             return `
                 <tr>
@@ -54,7 +48,6 @@
                         <div class="pb-value">${escapeHtml(best.run_time || '--:--')}</div>
                         <span class="pb-unit">Minutes</span>
                     </td>
-                    <td>${status}</td>
                 </tr>`;
         }).join('');
     }
@@ -195,6 +188,7 @@
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
+                
                 modal.classList.remove('active');
             }
         });
