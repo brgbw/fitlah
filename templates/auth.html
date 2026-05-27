@@ -32,8 +32,9 @@
             background-color: #0a0a0a;
             color: var(--text-main);
             display: grid;
-            place-items: center;
-            padding: 28px;
+            grid-template-columns: 1fr 480px;
+            align-items: center;
+            padding: 0 80px;
         }
 
         /* Background image layers */
@@ -59,6 +60,7 @@
         .bg-layer:nth-child(1) { background-image: url('/static/bgimages/bg1.jpg'); }
         .bg-layer:nth-child(2) { background-image: url('/static/bgimages/bg2.png'); }
         .bg-layer:nth-child(3) { background-image: url('/static/bgimages/bg3.jpg'); }
+        .bg-layer:nth-child(4) { background-image: url('/static/bgimages/bg4.jpg'); }
 
         /* Dark overlay over photos */
         #bg-overlay {
@@ -67,8 +69,43 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.45);
+            background: linear-gradient(90deg, rgba(10,10,10,0.6) 0%, rgba(10,10,10,0.3) 100%);
             z-index: 1;
+        }
+
+        /* Editorial Captions Panel */
+        #bg-captions {
+            position: relative;
+            z-index: 2;
+            height: 140px; /* Constraints area to prevent layout shifting */
+            align-self: center;
+            padding-right: 40px;
+            pointer-events: none;
+        }
+        .caption-group {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .caption-meta {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .caption-text {
+            color: #FFFFFF;
+            font-size: 36px;
+            font-weight: 500;
+            line-height: 1.25;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            max-width: 540px;
         }
 
         /* Dots canvas */
@@ -85,17 +122,16 @@
         .auth-shell {
             position: relative;
             z-index: 3;
-            width: min(480px, 100%);
-            background-color: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            border-radius: 12px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
-     
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
         }
-       
+        
         .logo {
             font-size: 24px;
             font-weight: 800;
@@ -212,41 +248,56 @@
             font-weight: 800;
             text-decoration: none;
         }
-        .demo-note {
-            margin-top: 18px;
-            padding: 10px 12px;
-            border: 1px dashed var(--border);
-            border-radius: 6px;
-            color: var(--text-muted);
-            font-size: 12px;
-            line-height: 1.45;
-            background-color: #F8FAFC;
+        
+        @media (max-width: 1024px) {
+            body {
+                grid-template-columns: 1fr;
+                padding: 40px;
+            }
+            #bg-captions {
+                display: none; /* Safely hides editorial text on mobile/tablet frames to keep layout clean */
+            }
         }
         @media (max-width: 760px) {
             body { padding: 16px; }
-            .auth-shell { grid-template-columns: 1fr; }
-            .form-panel { padding: 30px 22px; }
+            .form-panel { padding: 35px 24px; }
             .form-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Background image layers -->
     <div id="bg-layers">
+        <div class="bg-layer"></div>
         <div class="bg-layer"></div>
         <div class="bg-layer"></div>
         <div class="bg-layer"></div>
     </div>
 
-    <!-- Dark overlay -->
     <div id="bg-overlay"></div>
 
-    <!-- Dots canvas -->
+    <div id="bg-captions">
+        <div class="caption-group">
+            <span class="caption-meta">01 / Operational Readiness</span>
+            <h2 class="caption-text">Maintaining peak conditioning beyond your active service cycle.</h2>
+        </div>
+        <div class="caption-group">
+            <span class="caption-meta">02 / IPPT Performance</span>
+            <h2 class="caption-text">Data-driven insights engineered to optimise your training.</h2>
+        </div>
+        <div class="caption-group">
+            <span class="caption-meta">03 / Tactical Metrics</span>
+            <h2 class="caption-text">Precision tracking built for National Servicemen.</h2>
+        </div>
+        <div class="caption-group">
+            <span class="caption-meta">04 / Purpose-Built</span>
+            <h2 class="caption-text">Streamlining fitness management for personal use.</h2>
+        </div>
+    </div>
+
     <canvas id="bg-canvas"></canvas>
 
     <main class="auth-shell">
-
         <section class="form-panel">
             <div class="auth-form-wrap">
                 <div class="logo">Fit<span>Lah</span></div>
@@ -256,7 +307,7 @@
                     {% if mode == 'signup' %}
                     Use your NRIC as your username and set your own password.
                     {% else %}
-                    Sign in with your NRIC and password to continue to your dashboard.
+                    Sign in with your NRIC and password.
                     {% endif %}
                 </p>
 
@@ -305,12 +356,6 @@
                     New to FitLah? <a href="{{ url_for('signup') }}">Sign up</a>
                     {% endif %}
                 </div>
-
-                {% if mode == 'login' %}
-                <div class="demo-note">
-                    Seeded demo NRICs from the group roster can log in with password <strong>password123</strong>, or use sign up to set a new password for that NRIC.
-                </div>
-                {% endif %}
             </div>
         </section>
     </main>
@@ -319,15 +364,16 @@
     <script>
         const { animate } = Motion;
 
-        // ── Background image scroll + crossfade ──────────────────────
+        // ── Background image & Caption synchronization ──────────────────────
         const layers = document.querySelectorAll('.bg-layer');
-        const SCROLL_DURATION = 25;   // seconds per scroll cycle
-        const FADE_DURATION   = 1.5;  // seconds to crossfade
-        const HOLD_DURATION   = 6000; // ms each image is shown
+        const captions = document.querySelectorAll('.caption-group');
+        
+        const SCROLL_DURATION = 30;   // seconds per scroll cycle
+        const FADE_DURATION   = 1.2;  // slightly sharper crossfade
+        const HOLD_DURATION   = 8000; // ms each image is shown
         let current = 0;
 
-        // Start all layers scrolling (staggered so they don't snap on switch)
-        layers.forEach((layer, i) => {
+        layers.forEach((layer) => {
             animate(
                 layer,
                 { transform: ['translateY(0%)', 'translateY(-50%)'] },
@@ -335,20 +381,24 @@
             );
         });
 
-        // Show first image immediately
+        // Initialize display state
         animate(layers[0], { opacity: 1 }, { duration: FADE_DURATION });
+        animate(captions[0], { opacity: 1, transform: ['translateY(4px)', 'translateY(0px)'] }, { duration: FADE_DURATION });
 
-        // Crossfade cycle
         function nextImage() {
             const prev = current;
             current = (current + 1) % layers.length;
 
+            // Fade/Slide In New Frame
             animate(layers[current], { opacity: 1 }, { duration: FADE_DURATION });
+            animate(captions[current], { opacity: 1, transform: ['translateY(4px)', 'translateY(0px)'] }, { duration: FADE_DURATION });
+            
+            // Fade/Slide Out Previous Frame
             animate(layers[prev],    { opacity: 0 }, { duration: FADE_DURATION });
+            animate(captions[prev],  { opacity: 0, transform: ['translateY(0px)', 'translateY(-4px)'] }, { duration: FADE_DURATION });
         }
 
         setInterval(nextImage, HOLD_DURATION);
-
 
         // ── Particle dots ────────────────────────────────────────────
         const canvas = document.getElementById('bg-canvas');
@@ -361,40 +411,38 @@
         }
 
         function initDots() {
-            dots = Array.from({ length: 60 }, () => ({
+            dots = Array.from({ length: 45 }, () => ({ /* reduced count slightly for cleaner view */
                 x:  Math.random() * W,
                 y:  Math.random() * H,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
-                r:  Math.random() * 2.5 + 1
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                r:  Math.random() * 1.5 + 1
             }));
         }
 
         function draw() {
             ctx.clearRect(0, 0, W, H);
 
-            // Connecting lines
             for (let i = 0; i < dots.length; i++) {
                 for (let j = i + 1; j < dots.length; j++) {
                     const dx   = dots[i].x - dots[j].x;
                     const dy   = dots[i].y - dots[j].y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 150) {
+                    if (dist < 160) {
                         ctx.beginPath();
                         ctx.moveTo(dots[i].x, dots[i].y);
                         ctx.lineTo(dots[j].x, dots[j].y);
-                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.70 * (1 - dist / 150)})`;
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.70 * (1 - dist / 160)})`;
+                        ctx.lineWidth = 0.75;
                         ctx.stroke();
                     }
                 }
             }
 
-            // Dots
             dots.forEach(d => {
                 ctx.beginPath();
                 ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                 ctx.fill();
 
                 d.x += d.vx;
