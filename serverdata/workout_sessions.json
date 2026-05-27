@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "nric": "T0725746A",
+    "exercise": "pushup",
+    "exercise_label": "Push Ups",
+    "valid_reps": 1,
+    "invalid_reps": 0,
+    "duration_seconds": 11,
+    "started_at": "2026-05-24T09:11:20.612Z",
+    "ended_at": "2026-05-24T09:11:56.616Z",
+    "video_file": "pushup_20260524_171156.webm",
+    "video_path": "userdata/pushup_videos/pushup_20260524_171156.webm",
+    "personal_best": 62,
+    "date": "2026-05-24",
+    "time": "17:11:56",
+    "source": "webcam_cv",
+    "ai_recommendation": null
+  },
+  {
+    "id": 2,
+    "nric": "T0725746A",
+    "exercise": "pushup",
+    "exercise_label": "Push Ups",
+    "valid_reps": 5,
+    "invalid_reps": 0,
+    "duration_seconds": 21,
+    "started_at": "2026-05-27T02:57:47.939Z",
+    "ended_at": "2026-05-27T02:58:35.189Z",
+    "video_file": "pushup_20260527_105835.webm",
+    "video_path": "userdata/pushup_videos/pushup_20260527_105835.webm",
+    "personal_best": 62,
+    "date": "2026-05-27",
+    "time": "10:58:35",
+    "source": "webcam_cv",
+    "ai_recommendation": null
+  }
+]

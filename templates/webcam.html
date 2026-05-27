@@ -194,14 +194,13 @@
 
     .header-section h1 {
         font-size: 26px;
-        font-weight: 800;
-        color: var(--text-main);
+        color: black;
         letter-spacing: -0.6px;
     }
 
     .header-section p {
         font-size: 14px;
-        color: var(--text-muted);
+        color: black;
         margin-top: 6px;
         max-width: 520px;
         line-height: 1.5;
@@ -223,7 +222,7 @@
         padding: 10px 20px;
         border-radius: 8px;
         font-size: 13px;
-        font-weight: 600;
+
         background: transparent;
         color: var(--text-muted);
     }
@@ -364,7 +363,7 @@
 
     .ai-reco-status {
         font-size: 13px;
-        color: var(--text-muted);
+        color: rgb(0, 0, 0);
         line-height: 1.5;
         margin-bottom: 12px;
     }
@@ -523,7 +522,7 @@
             <div class="giant-counter" id="invalidRepCounter">0 <span>/ Warn</span></div>
         </div>
         <div class="metric-v-card form-status-alert">
-            <div class="hud-lbl" style="color: #92400E;">Coach</div>
+            <div class="hud-lbl" style="color: #92400E;">Warning</div>
             <p class="status-msg-text" id="warningMessage">Keep spine rigid. Core deflection detected during extension phase.</p>
             <span id="handsBadge" class="hands-ok-badge bad" style="display: none;">Hands on ears required</span>
         </div>
@@ -537,7 +536,7 @@
         <button type="button" class="stop-btn" id="startRecBtn" onclick="startRecording()" style="background-color: var(--text-muted); display: none;">Arm Session</button>
         <button type="button" class="stop-btn" id="stopRecBtn" onclick="stopRecording()" style="background-color: #64748B; display: none;">Stop Early</button>
         <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
-        <button type="button" class="stop-btn" id="completeBtn" onclick="saveAndReturn()" style="background-color: var(--text-muted); opacity: 0.5; pointer-events: none;">Done — Back to Dashboard</button>
+        <button type="button" class="stop-btn" id="completeBtn" onclick="saveAndReturn()" style="background-color: var(--text-muted); opacity: 0.5; pointer-events: none;">Done</button>
     </div>
     <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
 </div>
@@ -612,14 +611,14 @@
             modePushupBtn.classList.add('mode-active');
             modeSitupBtn.classList.remove('mode-active');
             handsBadge.style.display = 'none';
-            document.getElementById('stationHeader').innerText = 'Push-up Recording Mode';
-            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Get into push-up position — your first full rep will start the 1-minute timer.';
+            document.getElementById('stationHeader').innerText = 'Push-up Recording';
+            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Get into push-up position. Your first full rep will start the 1-minute timer.';
         } else {
             modeSitupBtn.classList.add('mode-active');
             modePushupBtn.classList.remove('mode-active');
             handsBadge.style.display = 'inline-block';
-            document.getElementById('stationHeader').innerText = 'Sit-up Recording Mode';
-            document.getElementById('warningMessage').innerText = 'Hands on ears at all times. Lie back, then sit up — first valid rep starts the 1-minute timer.';
+            document.getElementById('stationHeader').innerText = 'Sit-up Recording';
+            document.getElementById('warningMessage').innerText = 'Hands on ears at all times. Lie back, then sit up. Your first valid rep starts the 1-minute timer.';
         }
 
         if (stream) {

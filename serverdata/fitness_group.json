@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "lol noob",
+    "created_by": "GOH BOON WAN, BRANDEN",
+    "created_date": "2026-05-23"
+  },
+  {
+    "id": 2,
+    "name": "Branden",
+    "created_by": "LOL",
+    "created_date": "2026-05-24"
+  },
+  {
+    "id": 3,
+    "name": "Test Group",
+    "created_by": "GOH BOON WAN, BRANDEN",
+    "created_date": "2026-05-27"
+  },
+  {
+    "id": 4,
+    "name": "Test Group",
+    "created_by": "GOH BOON WAN, BRANDEN",
+    "created_date": "2026-05-27"
+  },
+  {
+    "id": 5,
+    "name": "Test Group",
+    "created_by": "GOH BOON WAN, BRANDEN",
+    "created_date": "2026-05-27"
+  }
+]

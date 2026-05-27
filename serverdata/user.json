@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "nric": "T0725746A",
+    "name": "GOH BOON WAN, BRANDEN",
+    "rank": "REC",
+    "unit": "ATI",
+    "last_login": null
+  },
+  {
+    "id": 2,
+    "nric": "T1234567A",
+    "name": "Peter Pan",
+    "rank": "Major",
+    "unit": "5th soldiers",
+    "last_login": null
+  },
+  {
+    "id": 3,
+    "nric": "ADADADADA",
+    "name": "LOL",
+    "rank": "adadadad",
+    "unit": "adadadada",
+    "last_login": null
+  }
+]

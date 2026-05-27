@@ -449,7 +449,7 @@
 
 <div class="header-section">
     <h1>Custom Training Groups</h1>
-    <p>Create private training rooms, invite buddy clusters securely using identifiers, and review combined IPPT logs.</p>
+    <p>Create a private group to log workouts alongside your buddies, track combined leaderboards, and keep each other accountable.</p>
 </div>
 
 <!-- Modal -->
@@ -467,21 +467,21 @@
             <div class="form-element-block">
                 <label for="groupFocus">Training Focus Target</label>
                 <select id="groupFocus" class="form-input">
-                    <option value="all">Comprehensive Sync (All Exercises)</option>
-                    <option value="pushups">Push-Up Volume Focus</option>
-                    <option value="situps">Sit-Up Cadence Focus</option>
-                    <option value="pullups">Pull-Up Lockout Focus</option>
+                    <option value="all">All Exercises</option>
+                    <option value="pushups">Push-Up Focus</option>
+                    <option value="situps">Sit-Up Focus</option>
+                    <option value="pullups">2.4Km Run Focus</option>
                 </select>
             </div>
             <div class="form-element-block">
-                <label>Invite Buddies via Identifier</label>
+                <label>Invite Buddies via NRIC</label>
                 <div class="token-input-row">
-                    <input type="text" id="modalTokenInput" class="form-input" placeholder="Enter masked ID (e.g., SXXXX789A)">
+                    <input type="text" id="modalTokenInput" class="form-input" placeholder="Enter NRIC">
                     <button class="btn-add-token" onclick="addChipToken()">Invite</button>
                 </div>
             </div>
             <div class="form-element-block">
-                <label style="font-size: 10px;">Pending Invitations Stack</label>
+                <label style="font-size: 10px;">Pending Invitations</label>
                 <div class="token-tray-box" id="modalTokenTray">
                     <!-- Chips will be added here -->
                 </div>
@@ -514,7 +514,7 @@
             <button onclick="addMemberToGroup()">Send Invite</button>
         </div>
 
-        <div class="section-title" id="tableTitleContext">Group Roster Records - Personal Bests</div>
+        <div class="section-title" id="tableTitleContext">Leaderboard</div>
         
         <!-- Leaderboard Table -->
         <div class="sync-table-container">
@@ -525,7 +525,7 @@
                         <th>PB Push-Ups</th>
                         <th>PB Sit-Ups</th>
                         <th>PB 2.4km Run</th>
-                        <th>IPPT Status</th>
+                
                     </tr>
                 </thead>
                 <tbody id="groupTableBody">
@@ -548,15 +548,7 @@
                                 <div class="pb-value">{{ member.personal_best.run_time or '--:--' }}</div>
                                 <span class="pb-unit">Minutes</span>
                             </td>
-                            <td>
-                                {% if member.pushups and member.pushups >= 50 %}
-                                    <span class="status-badge-pill gold">Gold</span>
-                                {% elif member.pushups and member.pushups >= 35 %}
-                                    <span class="status-badge-pill silver">Silver</span>
-                                {% else %}
-                                    <span class="status-badge-pill incomplete">Pending Sync</span>
-                                {% endif %}
-                            </td>
+                        
                         </tr>
                         {% endfor %}
                     {% else %}
@@ -590,12 +582,14 @@
                     {% endif %}
                     {% endfor %}
                 {% endif %}
-                <div style="font-size:12px; color:#64748B; text-align:center; padding:10px 0;" id="emptyState" {% if invites %}style="display:none;"{% endif %}>No pending invitations found.</div>
+                <div id="emptyState" style="font-size:12px; color:#64748B; text-align:center; padding:10px 0; {% if invites|selectattr('status', 'equalto', 'Pending')|list %}display:none;{% endif %}">No pending invitations found.</div>
             </div>
         </div>
     </div>
 
 </div>
+
+
 
 <script>
     function openModal(modalId) {

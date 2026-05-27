@@ -12,7 +12,7 @@
     }
     .header-section p {
         font-size: 13px;
-        color: #64748B;
+        color: #000000;
         margin-top: 2px;
     }
     .section-title {
@@ -20,7 +20,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #64748B;
+        color: #000000;
         margin-bottom: 8px;
         margin-top: 4px;
     }
@@ -52,34 +52,10 @@
     }
     .launcher-meta p {
         font-size: 13px;
-        color: #64748B;
+        color: #000000;
         line-height: 1.4;
     }
-    .exercise-selectors {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-    }
-    .selector-btn {
-        background-color: #F8FAFC;
-        border: 1px solid #CBD5E1;
-        color: #64748B;
-        padding: 8px 14px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .selector-btn:hover {
-        border-color: #64748B;
-    }
-    .selector-btn.active {
-        background-color: #E8F8F2;
-        border-color: #00A86B;
-        color: #00A86B;
-    }
+
     .action-row {
         display: flex;
         align-items: center;
@@ -93,7 +69,7 @@
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        color: #64748B;
+        color: #000000;
     }
     .status-dot {
         width: 6px;
@@ -123,221 +99,7 @@
         gap: 16px;
         align-items: stretch;
     }
-    .calendar-card {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-    }
-    .calendar-header {
-        margin-bottom: 10px;
-    }
-    .calendar-month-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #0F172A;
-    }
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
-        text-align: center;
-    }
-    .weekday-label {
-        font-size: 10px;
-        font-weight: 700;
-        color: #64748B;
-        text-transform: uppercase;
-        padding-bottom: 2px;
-    }
-    .calendar-day {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-        background-color: #F8FAFC;
-        border: 1px solid #CBD5E1;
-        border-radius: 6px;
-        padding: 4px 2px;
-        font-size: 11px;
-        font-weight: 600;
-        color: #0F172A;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        aspect-ratio: 1;
-    }
-    .calendar-day:hover:not(.empty) {
-        border-color: #0F172A;
-        background-color: #F1F5F9;
-    }
-    .calendar-day.active-selected {
-        background-color: #0F172A !important;
-        color: #FFFFFF !important;
-        border-color: #0F172A !important;
-    }
-    .calendar-day.active-selected .dot {
-        background-color: #FFFFFF !important;
-    }
-    .calendar-day.empty {
-        background-color: transparent;
-        border: none;
-        cursor: default;
-    }
-    .day-dots {
-        display: flex;
-        gap: 2px;
-        margin-top: 1px;
-    }
-    .dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-    }
-    .dot.logged {
-        background-color: #00A86B;
-    }
-    .dot.ippt {
-        background-color: #E11D48;
-    }
-    .dot.ict {
-        background-color: #2563EB;
-    }
-    .calendar-day.has-ict {
-        background-color: #EFF6FF;
-        border-color: #BFDBFE;
-        color: #2563EB;
-    }
-    .calendar-day.has-ippt {
-        background-color: #FFE4E6;
-        border-color: #FECDD3;
-        color: #E11D48;
-    }
-    .agenda-card {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-    }
-    .agenda-item {
-        display: flex;
-        gap: 10px;
-    }
-    .agenda-color-bar {
-        width: 3px;
-        border-radius: 1.5px;
-        flex-shrink: 0;
-    }
-    .agenda-color-bar.logged {
-        background-color: #00A86B;
-    }
-    .agenda-color-bar.ict {
-        background-color: #2563EB;
-    }
-    .agenda-color-bar.ippt {
-        background-color: #E11D48;
-    }
-    .agenda-color-bar.empty {
-        background-color: #64748B;
-    }
-    .agenda-details {
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-        width: 100%;
-    }
-    .agenda-date {
-        font-size: 9px;
-        font-weight: 700;
-        color: #64748B;
-        text-transform: uppercase;
-    }
-    .agenda-name {
-        font-size: 13px;
-        font-weight: 700;
-        color: #0F172A;
-        line-height: 1.3;
-        margin-top: 2px;
-    }
-    .agenda-sets-matrix {
-        margin-top: auto;
-        font-size: 11px;
-        color: #64748B;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding-top: 12px;
-    }
-    .matrix-row {
-        display: flex;
-        justify-content: space-between;
-        font-weight: 600;
-        border-bottom: 1px dashed #CBD5E1;
-        padding-bottom: 4px;
-    }
-    .matrix-row span {
-        color: #0F172A;
-        font-weight: 700;
-    }
-    .ai-feedback-panel {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-    }
-    .ai-panel-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-    }
-    .ai-sparkle-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        background-color: #E8F8F2;
-        color: #00A86B;
-        border-radius: 6px;
-    }
-    .ai-panel-title {
-        font-size: 13px;
-        font-weight: 700;
-        color: #0F172A;
-    }
-    .ai-feedback-vertical-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .ai-report-card {
-        background-color: #F8FAFC;
-        border: 1px solid #CBD5E1;
-        border-radius: 8px;
-        padding: 10px;
-    }
-    .report-card-title {
-        font-size: 12px;
-        font-weight: 700;
-        color: #0F172A;
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .report-card-title .status-dot {
-        width: 5px;
-        height: 5px;
-    }
-    .report-card-text {
-        font-size: 11.5px;
-        color: #64748B;
-        line-height: 1.4;
-        font-weight: 500;
-    }
+
     .strava-modal-overlay {
         position: fixed;
         top: 0;
@@ -427,22 +189,20 @@
 </style>
 
 <div class="header-section">
-    <h1>Anywhere IPPT Tracking Center</h1>
-    <p>Complete your IPPT on your own terms. Log static stations via webcam and sync your run via Strava.</p>
+    <h1>Dashboard</h1>
 </div>
 
 <div class="vision-launcher-card">
     <div class="launcher-meta">
-        <div class="badge">IPPT Smart Session</div>
-        <h2>Anywhere IPPT Launcher</h2>
-        <p>Record your push-ups and sit-ups using your webcam. You can take a <strong>maximum break of 15 minutes</strong> between both static stations to qualify for a synchronized score output.</p>
-    </div>
+        <div class="badge">IPPT Training Session</div>
+        <h2>IPPT Training</h2>
+<p>Record your push-ups and sit-ups via your webcam for real-time skeletal analysis. Our AI provides form corrections, alongside custom pacing recommendations to improve your 2.4km running runtime velocity.</p>    </div>
     <div class="action-row">
         <div class="system-status">
             <div class="status-dot"></div>
-            <span>Webcam Array: Ready for Static Stations</span>
+            <span>Ready for Static Stations</span>
         </div>
-        <button class="cta-btn" onclick="triggerWebcamStation()">Start Webcam Station</button>
+        <button class="cta-btn" onclick="triggerWebcamStation()">Start Camera</button>
     </div>
     <div class="action-row" style="margin-top: 8px; border-top: 1px dashed #CBD5E1;">
         <div class="system-status">
@@ -475,91 +235,6 @@
 </div>
 
 <script>
-    let pushupTimestamp = null;
-    let situpTimestamp = null;
-
-    const logData = {
-        4: {
-            date: "4 MAY 2026",
-            name: "Baseline Tracking Session",
-            type: "logged",
-            metrics: [
-                { label: "Push-ups Output", value: "52 Reps" },
-                { label: "Sit-ups Output", value: "50 Reps" },
-                { label: "Form Fidelity Score", value: "89%" }
-            ]
-        },
-        11: {
-            date: "11 MAY 2026",
-            name: "Max Peak Performance Log",
-            type: "logged",
-            metrics: [
-                { label: "Push-ups Output", value: "60 Reps (Peak)" },
-                { label: "Sit-ups Output", value: "58 Reps (Peak)" },
-                { label: "Form Fidelity Score", value: "94%" }
-            ]
-        },
-        17: {
-            date: "17 MAY 2026",
-            name: "In-Camp Training (ICT) Phase",
-            type: "ict",
-            metrics: [
-                { label: "Reporting Status", value: "Mobilized & Present" },
-                { label: "Reporting Location", value: "Maju Camp" },
-                { label: "Duration", value: "Routine Operational Cycle" }
-            ]
-        },
-        30: {
-            date: "30 MAY 2026",
-            name: "Official IPPT Assessment",
-            type: "ippt",
-            metrics: [
-                { label: "Target Tier", value: "Gold Standard Tier" },
-                { label: "Points Target", value: "85+ Points Required" },
-                { label: "Location", value: "FCC Bedok" }
-            ]
-        }
-    };
-
-    function selectDay(day) {
-        const days = document.querySelectorAll('.calendar-day:not(.empty)');
-        days.forEach(d => d.classList.remove('active-selected'));
-        event.target.closest('.calendar-day').classList.add('active-selected');
-        updateAgendaCard(day);
-    }
-
-    function updateAgendaCard(dayNumber) {
-        const agendaCard = document.getElementById('dynamicAgendaCard');
-        if (!agendaCard) return;
-        const data = logData[dayNumber];
-        if (!data) {
-            agendaCard.innerHTML = `
-                <div class="agenda-item">
-                    <div class="agenda-color-bar empty"></div>
-                    <div class="agenda-details">
-                        <div class="agenda-date">May ${dayNumber}, 2026</div>
-                        <div class="agenda-name">Rest Day / No Activities Logged</div>
-                        <div class="agenda-sets-matrix">
-                            <p style="font-weight: 500; font-size: 11px; line-height: 1.4;">Select any highlighted day to examine metrics from training tracking loops.</p>
-                        </div>
-                    </div>
-                </div>`;
-            return;
-        }
-        let matrixHTML = '';
-        data.metrics.forEach(m => {
-            matrixHTML += `<div class="matrix-row">${m.label} <span>${m.value}</span></div>`;
-        });
-        agendaCard.innerHTML = `
-            <div class="agenda-item">
-                <div class="agenda-color-bar ${data.type}"></div>
-                <div class="agenda-details">
-                    <div class="agenda-date">${data.date}</div>
-                    <div class="agenda-name">${data.name}</div>
-                    <div class="agenda-sets-matrix">${matrixHTML}</div>
-                </div>
-            </div>`;
-    }
 
     function triggerWebcamStation() {
        window.location.href = "{{ url_for('webcam') }}";

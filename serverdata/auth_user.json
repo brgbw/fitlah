@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "nric": "T0725746A",
+    "password_hash": "scrypt:32768:8:1$wpM1nFJEDUH6tVtU$7e5c1ed2a317a83ee2ddf0ece1cd4ac69ba7b7327fff6c996910f983a941aa93325426dd204775b8494eb895a8567e48730ff81cd990fe3f50fb3f1a53b133b1",
+    "password_is_default": false,
+    "name": "GOH BOON WAN, BRANDEN",
+    "rank": "COL",
+    "unit": "ATI",
+    "created_at": "2026-05-23 16:09:25",
+    "last_login": "2026-05-27 10:57:20"
+  },
+  {
+    "id": 2,
+    "nric": "T1234567A",
+    "password_hash": "scrypt:32768:8:1$qh445llJhqe5hI72$98d0905d80a8d3f72cdfbaae04083591ab821bd2af07b1add7f23d6791250c53b035539d1a6d30c0ba50c152d0d6a91436ea2cd0be01283684dd3474213a846d",
+    "password_is_default": false,
+    "name": "Peter Pan",
+    "rank": "Major",
+    "unit": "5th soldiers",
+    "created_at": "2026-05-23 16:29:14",
+    "last_login": "2026-05-23 17:49:53"
+  },
+  {
+    "id": 3,
+    "nric": "ADADADADA",
+    "password_hash": "scrypt:32768:8:1$DrOA8v49cIL62Gse$901b223746e08b33def3e51276fe2c63305b0c69efe3725ed829c9d046a5b893fb1488a9b34b66b28b67e9798375d030f180f58014d3e1ded0dfbb5f92db706a",
+    "password_is_default": false,
+    "name": "LOL",
+    "rank": "adadadad",
+    "unit": "adadadada",
+    "created_at": "2026-05-24 17:58:41",
+    "last_login": null
+  }
+]
