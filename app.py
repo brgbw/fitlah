@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from ai_coach import generate_exercise_recommendation
 
 from db import get_db, close_db, query_db, load_db, save_db, SERVERDATA_DIR
-from seed import SEED_DB
+
 from schema import ensure_auth_tables, ensure_group_invite_schema, ensure_personal_best_data, ensure_performance_log_schema
 from auth import current_user, login_required
 from helpers import update_personal_best, save_ai_recommendation, attach_ai_to_performance_logs, find_auth_user, find_group, user_is_group_member, get_personal_best, member_with_personal_best, create_invites_for_group
@@ -32,16 +32,9 @@ def init_db():
     os.makedirs(SERVERDATA_DIR, exist_ok=True)
 
     db = load_db()
-    if db is not None:
-        ensure_auth_tables(db)
-        ensure_group_invite_schema(db)
-        ensure_personal_best_data(db)
-        ensure_performance_log_schema(db)
-        save_db(db)
-        return
+    if db is None:
+        db = {}
 
-    db = SEED_DB
-    
     ensure_auth_tables(db)
     ensure_group_invite_schema(db)
     ensure_personal_best_data(db)
@@ -157,6 +150,12 @@ def dashboard():
         reverse=True
     )[:3]
     return render_template("dashboard.html", user=user, workouts=workouts, recent_logs=recent_logs)
+
+
+@app.route("/dashboard-graph")
+@login_required
+def dashboard_graph():
+    return render_template("dashboardgraph.html")
 
 
 @app.route("/group")
@@ -358,6 +357,103 @@ def api_delete_performance_log(log_id):
 def webcam():
     logs = sorted(query_db("webcam"), key=lambda x: x['id'], reverse=True)
     return render_template("webcam.html")
+
+
+@app.route("/webcam-prep")
+@login_required
+def webcam_prep():
+    return render_template("webcam_prep.html")
+
+
+def recalculate_exercise_best(db, nric, exercise_type):
+    field = "pushups" if exercise_type == "pushup" else "situps"
+    best_reps = max(
+        [
+            int(session.get("valid_reps") or 0)
+            for session in db.get("workout_sessions", [])
+            if session.get("nric") == nric and session.get("exercise") == exercise_type
+        ],
+        default=0
+    )
+
+    personal_best = next((pb for pb in db.get("personal_best", []) if pb.get("nric") == nric), None)
+    if not personal_best:
+        personal_best = {
+            "nric": nric,
+            "pushups": 0,
+            "situps": 0,
+            "run_time": "--:--",
+            "updated_at": None
+        }
+        db.setdefault("personal_best", []).append(personal_best)
+
+    personal_best[field] = best_reps
+    personal_best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
+
+    for member in db.get("group_member", []):
+        if member.get("nric") == nric:
+            member[field] = best_reps
+
+    return best_reps
+
+
+def delete_session_video(video_path):
+    if not video_path:
+        return False
+
+    normalized_path = video_path.replace("\\", "/").lstrip("/")
+    absolute_path = os.path.abspath(os.path.join(BASE_DIR, normalized_path))
+    userdata_root = os.path.abspath(os.path.join(BASE_DIR, "userdata"))
+
+    if not absolute_path.startswith(userdata_root + os.sep):
+        return False
+
+    if os.path.exists(absolute_path):
+        os.remove(absolute_path)
+        return True
+
+    return False
+
+
+@app.route("/api/workout-session/<int:session_id>", methods=["DELETE"])
+@login_required
+def delete_workout_session(session_id):
+    db = get_db()
+    user = current_user()
+    nric = user.get("nric")
+    session_record = next(
+        (
+            item for item in db.get("workout_sessions", [])
+            if item.get("id") == session_id and item.get("nric") == nric
+        ),
+        None
+    )
+
+    if not session_record:
+        return jsonify({"success": False, "error": "Session not found"}), 404
+
+    exercise_type = session_record.get("exercise")
+    video_deleted = delete_session_video(session_record.get("video_path"))
+
+    db["workout_sessions"] = [
+        item for item in db.get("workout_sessions", [])
+        if not (item.get("id") == session_id and item.get("nric") == nric)
+    ]
+    db["performance_log"] = [
+        log for log in db.get("performance_log", [])
+        if not (log.get("session_id") == session_id and log.get("nric") == nric)
+    ]
+
+    personal_best = None
+    if exercise_type in {"pushup", "situp"}:
+        personal_best = recalculate_exercise_best(db, nric, exercise_type)
+
+    return jsonify({
+        "success": True,
+        "session_id": session_id,
+        "video_deleted": video_deleted,
+        "personal_best": personal_best
+    })
 
 
 

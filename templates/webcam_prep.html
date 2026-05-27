@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}Camera Setup | FitLah NSmen Portal{% endblock %}
+{% block content %}
+<style>
+    .prep-shell {
+        width: min(100%, 1180px);
+        min-height: calc(100vh - 88px);
+        display: flex;
+        align-items: stretch;
+    }
+
+    .prep-card {
+        background: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        padding: 40px;
+        box-shadow: var(--card-shadow);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 30px;
+        width: 100%;
+    }
+
+    .prep-card h2 {
+        font-size: 32px;
+        color: #0F172A;
+        margin-bottom: 10px;
+        letter-spacing: 0;
+    }
+
+    .prep-card-intro {
+        color: #475569;
+        font-size: 18px;
+        line-height: 1.55;
+        max-width: 840px;
+    }
+
+    .instruction-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .instruction-item {
+        display: grid;
+        grid-template-columns: 48px 1fr;
+        gap: 16px;
+        align-items: start;
+        padding: 20px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        background: #F8FAFC;
+    }
+
+    .instruction-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #E8F8F2;
+        color: #008F5B;
+    }
+
+    .instruction-icon svg {
+        width: 24px;
+        height: 24px;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+    }
+
+    .instruction-item h3 {
+        font-size: 18px;
+        color: #0F172A;
+        margin-bottom: 6px;
+    }
+
+    .instruction-item p {
+        font-size: 15px;
+        color: #475569;
+        line-height: 1.5;
+    }
+
+    .safety-strip {
+        border-left: 4px solid #F59E0B;
+        background: #FFFBEB;
+        padding: 18px 20px;
+        border-radius: 6px;
+    }
+
+    .safety-strip h3 {
+        font-size: 17px;
+        color: #92400E;
+        margin-bottom: 6px;
+    }
+
+    .safety-strip p {
+        font-size: 15px;
+        color: #78350F;
+        line-height: 1.5;
+    }
+
+    .prep-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid #E2E8F0;
+        padding-top: 24px;
+    }
+
+    .secondary-link {
+        color: #64748B;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .primary-action {
+        border: none;
+        border-radius: 6px;
+        background: #00A86B;
+        color: #FFFFFF;
+        padding: 15px 22px;
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+    }
+
+    .primary-action:hover {
+        background: #008F5B;
+    }
+
+    @media (max-width: 940px) {
+        .prep-card {
+            padding: 28px;
+        }
+
+        .instruction-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="prep-shell">
+    <section class="prep-card">
+        <div>
+            <h2>Quick setup check</h2>
+            <p class="prep-card-intro">Before the camera opens, set up your laptop and workout space so FitLah can clearly track your push-up or sit-up session.</p>
+        </div>
+
+        <div class="instruction-list">
+            <div class="instruction-item">
+                <div class="instruction-icon">
+                    <svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16h10l-2-8H9l-2 8z"></path><path d="M9 8V5h6v3"></path></svg>
+                </div>
+                <div>
+                    <h3>Laptop on the floor</h3>
+                    <p>Keep it stable, screen open near 90 degrees, with the camera facing your full side profile.</p>
+                </div>
+            </div>
+
+            <div class="instruction-item">
+                <div class="instruction-icon">
+                    <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+                </div>
+                <div>
+                    <h3>Full body inside the frame</h3>
+                    <p>Leave space around your head, shoulders, hips, knees, and ankles so body tracking stays stable.</p>
+                </div>
+            </div>
+
+            <div class="instruction-item">
+                <div class="instruction-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.5-2.9 7.4-7 9-4.1-1.6-7-4.5-7-9V7l7-4z"></path><path d="M9 12l2 2 4-5"></path></svg>
+                </div>
+                <div>
+                    <h3>Clear the workout area</h3>
+                    <p>Use a flat surface, move loose items away, and stop if you feel pain, dizziness, or sharp discomfort.</p>
+                </div>
+            </div>
+
+            <div class="instruction-item">
+                <div class="instruction-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
+                </div>
+                <div>
+                    <h3>Flow on the next screen</h3>
+                    <p>Start camera, choose push-up or sit-up, get into position, then your first valid rep starts the timer.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="safety-strip">
+            <h3>Safety note</h3>
+            <p>Warm up first. For sit-ups, keep hands touching your ears. For push-ups, keep your body aligned and avoid placing the laptop where it can be kicked or stepped on.</p>
+        </div>
+
+        <div class="prep-actions">
+            <a class="secondary-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+            <button class="primary-action" type="button" onclick="window.location.href='{{ url_for('webcam') }}'">I am set up, start camera</button>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,211 @@
+(function () {
+    const groupDataElement = document.getElementById('groupRosterData');
+    const groupRosterData = groupDataElement ? JSON.parse(groupDataElement.textContent || '[]') : [];
+
+    const api = {
+        createGroup: '/api/create-group',
+        addMember: '/api/add-member',
+        acceptInvite: (inviteId) => `/api/accept-invite/${inviteId}`,
+        declineInvite: (inviteId) => `/api/decline-invite/${inviteId}`
+    };
+
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    function renderRoster(groupId) {
+        const tableBody = document.getElementById('groupTableBody');
+        const selected = groupRosterData.find(item => item.group.id === Number(groupId));
+
+        if (!selected || selected.members.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No roster records available for this group yet.</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = selected.members.map(member => {
+            const best = member.personal_best || {};
+            const pushups = Number(best.pushups || 0);
+            let status = '<span class="status-badge-pill incomplete">Pending Sync</span>';
+            if (pushups >= 50) {
+                status = '<span class="status-badge-pill gold">Gold</span>';
+            } else if (pushups >= 35) {
+                status = '<span class="status-badge-pill silver">Silver</span>';
+            }
+
+            return `
+                <tr>
+                    <td>
+                        <strong>${escapeHtml(member.name || 'NSman')}</strong>
+                        <span class="user-id-tag">${escapeHtml(member.nric || '')}</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${best.pushups || '--'}</div>
+                        <span class="pb-unit">Reps</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${best.situps || '--'}</div>
+                        <span class="pb-unit">Reps</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${escapeHtml(best.run_time || '--:--')}</div>
+                        <span class="pb-unit">Minutes</span>
+                    </td>
+                    <td>${status}</td>
+                </tr>`;
+        }).join('');
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[char]));
+    }
+
+    function selectTab(tabElement) {
+        if (tabElement.classList.contains('create-group-pill')) return;
+        const pills = document.querySelectorAll('.filter-pill:not(.create-group-pill)');
+        pills.forEach(p => p.classList.remove('active'));
+        tabElement.classList.add('active');
+        document.getElementById('tableTitleContext').innerText = `${tabElement.innerText} Roster Records - Personal Bests`;
+        renderRoster(tabElement.dataset.groupId);
+    }
+
+    function addChipToken() {
+        const input = document.getElementById('modalTokenInput');
+        const val = input.value.trim().toUpperCase();
+        if (!val) return;
+
+        const tray = document.getElementById('modalTokenTray');
+        const chip = document.createElement('div');
+        const removeButton = document.createElement('span');
+
+        chip.className = 'identity-chip';
+        chip.dataset.nric = val;
+        chip.append(document.createTextNode(`${val} `));
+
+        removeButton.innerHTML = '&times;';
+        removeButton.addEventListener('click', () => chip.remove());
+        chip.appendChild(removeButton);
+
+        tray.appendChild(chip);
+        input.value = '';
+    }
+
+    function submitCreateGroup() {
+        const groupName = document.getElementById('newGroupName').value.trim();
+        const invitedNrics = Array.from(document.querySelectorAll('#modalTokenTray .identity-chip'))
+            .map(chip => chip.dataset.nric)
+            .filter(Boolean);
+        if (!groupName) {
+            alert('Please enter a group name.');
+            return;
+        }
+
+        fetch(api.createGroup, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ group_name: groupName, invited_nrics: invitedNrics })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to create group'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Failed to create group');
+        });
+    }
+
+    function addMemberToGroup() {
+        const input = document.getElementById('memberIdInput');
+        const val = input.value.trim().toUpperCase();
+        const activeTab = document.querySelector('.filter-pill.active:not(.create-group-pill)');
+        if (!val) {
+            alert('Please enter a member identifier.');
+            return;
+        }
+        if (!activeTab) {
+            alert('Create or select a group first.');
+            return;
+        }
+
+        fetch(api.addMember, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                group_id: Number(activeTab.dataset.groupId),
+                nric: val
+            })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                alert(`Invitation sent to ${val}.`);
+                input.value = '';
+            } else {
+                alert(data.error || 'Could not send invite.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Could not send invite.');
+        });
+    }
+
+    function acceptInvite(inviteId) {
+        fetch(api.acceptInvite(inviteId), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(err => console.error('Error:', err));
+    }
+
+    function declineInvite(inviteId) {
+        fetch(api.declineInvite(inviteId), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(err => console.error('Error:', err));
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.selectTab = selectTab;
+    window.addChipToken = addChipToken;
+    window.submitCreateGroup = submitCreateGroup;
+    window.addMemberToGroup = addMemberToGroup;
+    window.acceptInvite = acceptInvite;
+    window.declineInvite = declineInvite;
+})();

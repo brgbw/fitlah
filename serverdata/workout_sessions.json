@@ -33,6 +33,24 @@
     "date": "2026-05-27",
     "time": "10:58:35",
     "source": "webcam_cv",
+    "ai_recommendation": "Hello, here's your AI recommendation!"
+  },
+  {
+    "id": 3,
+    "nric": "T0725746A",
+    "exercise": "situp",
+    "exercise_label": "Sit Ups",
+    "valid_reps": 2,
+    "invalid_reps": 8,
+    "duration_seconds": 60,
+    "started_at": "2026-05-27T03:55:32.205Z",
+    "ended_at": "2026-05-27T03:57:34.629Z",
+    "video_file": "situp_20260527_115734.webm",
+    "video_path": "userdata/situp_videos/situp_20260527_115734.webm",
+    "personal_best": 59,
+    "date": "2026-05-27",
+    "time": "11:57:34",
+    "source": "webcam_cv",
     "ai_recommendation": null
   }
 ]

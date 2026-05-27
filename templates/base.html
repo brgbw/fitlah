@@ -184,6 +184,10 @@
                     <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 17"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                     Performance
                 </a>
+                <a href="{{ url_for('dashboard_graph') }}" class="nav-item {% if request.path == '/dashboard-graph' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 15l3-4 3 2 4-7"></path></svg>
+                    Graphs
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="avatar-placeholder">{{ (current_user.name if current_user else 'FL')[:2].upper() }}</div>

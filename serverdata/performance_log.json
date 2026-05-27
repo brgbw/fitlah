@@ -50,6 +50,24 @@
     "duration_seconds": 21,
     "video_path": "userdata/pushup_videos/pushup_20260527_105835.webm",
     "session_id": 2,
+    "ai_recommendation": "Hello, here is your AI rec"
+  },
+  {
+    "id": 4,
+    "nric": "T0725746A",
+    "event": "Webcam Sit Ups",
+    "name": "Webcam Sit Ups",
+    "type": "ippt",
+    "score": "2 reps",
+    "time": "1:00 min",
+    "date": "2026-05-27",
+    "notes": "Computer vision session. Valid: 2, invalid: 8, duration: 60s. Video: situp_20260527_115734.webm.",
+    "exercise": "situp",
+    "valid_reps": 2,
+    "invalid_reps": 8,
+    "duration_seconds": 60,
+    "video_path": "userdata/situp_videos/situp_20260527_115734.webm",
+    "session_id": 3,
     "ai_recommendation": null
   }
 ]
