@@ -170,5 +170,41 @@
     "time": "",
     "date": "2026-05-27",
     "notes": ""
+  },
+  {
+    "id": 13,
+    "nric": "T0725746A",
+    "event": "Webcam Sit Ups",
+    "name": "Webcam Sit Ups",
+    "type": "ippt",
+    "score": "7 reps",
+    "time": "1:00 min",
+    "date": "2026-05-28",
+    "notes": "Computer vision session. Valid: 7, invalid: 5, duration: 60s. Video: situp_20260528_202839.webm.",
+    "exercise": "situp",
+    "valid_reps": 7,
+    "invalid_reps": 5,
+    "duration_seconds": 60,
+    "video_path": "userdata/situp_videos/situp_20260528_202839.webm",
+    "session_id": 10,
+    "ai_recommendation": null
+  },
+  {
+    "id": 14,
+    "nric": "T0725746A",
+    "event": "Webcam Push Ups",
+    "name": "Webcam Push Ups",
+    "type": "ippt",
+    "score": "1 reps",
+    "time": "1:00 min",
+    "date": "2026-05-28",
+    "notes": "Computer vision session. Valid: 1, invalid: 17, duration: 60s. Video: pushup_20260528_203857.webm.",
+    "exercise": "pushup",
+    "valid_reps": 1,
+    "invalid_reps": 17,
+    "duration_seconds": 60,
+    "video_path": "userdata/pushup_videos/pushup_20260528_203857.webm",
+    "session_id": 11,
+    "ai_recommendation": null
   }
 ]

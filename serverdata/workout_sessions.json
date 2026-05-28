@@ -160,5 +160,41 @@
     "time": "17:22:11",
     "source": "webcam_cv",
     "ai_recommendation": null
+  },
+  {
+    "id": 10,
+    "nric": "T0725746A",
+    "exercise": "situp",
+    "exercise_label": "Sit Ups",
+    "valid_reps": 7,
+    "invalid_reps": 5,
+    "duration_seconds": 60,
+    "started_at": "2026-05-28T12:26:36.696Z",
+    "ended_at": "2026-05-28T12:28:39.143Z",
+    "video_file": "situp_20260528_202839.webm",
+    "video_path": "userdata/situp_videos/situp_20260528_202839.webm",
+    "personal_best": 59,
+    "date": "2026-05-28",
+    "time": "20:28:39",
+    "source": "webcam_cv",
+    "ai_recommendation": null
+  },
+  {
+    "id": 11,
+    "nric": "T0725746A",
+    "exercise": "pushup",
+    "exercise_label": "Push Ups",
+    "valid_reps": 1,
+    "invalid_reps": 17,
+    "duration_seconds": 60,
+    "started_at": "2026-05-28T12:36:53.193Z",
+    "ended_at": "2026-05-28T12:38:57.291Z",
+    "video_file": "pushup_20260528_203857.webm",
+    "video_path": "userdata/pushup_videos/pushup_20260528_203857.webm",
+    "personal_best": 62,
+    "date": "2026-05-28",
+    "time": "20:38:57",
+    "source": "webcam_cv",
+    "ai_recommendation": null
   }
 ]

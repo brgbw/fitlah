@@ -1,7 +1,8 @@
 (function () {
     function wristNearEar(wrist, ear, refLen, helpers) {
-        if (!helpers.visibleLoose(wrist, 0.22) || !helpers.visibleLoose(ear, 0.22)) return null;
-        const maxDist = Math.max(0.1, refLen * 0.8);
+        if (!helpers.visibleLoose(wrist, 0.2) || !helpers.visibleLoose(ear, 0.2)) return null;
+        // More lenient distance check - increased from 0.8 to 1.0 for side view
+        const maxDist = Math.max(0.12, refLen * 1.0);
         return helpers.distance(wrist, ear) <= maxDist;
     }
 
@@ -19,11 +20,16 @@
         const leftKnown = left !== null;
         const rightKnown = right !== null;
 
-        if (leftKnown && rightKnown) return left && right;
-        if (leftKnown && helpers.visibleLoose(rw, 0.28)) return left && right === true;
-        if (rightKnown && helpers.visibleLoose(lw, 0.28)) return right && left === true;
-        if (leftKnown) return left;
-        if (rightKnown) return right;
+        // Accept if at least one hand is confirmed on ear or both are likely on ear
+        if (leftKnown && rightKnown) {
+            // Both visible - require at least one on ear
+            return left || right;
+        }
+        // Only left visible - use left
+        if (leftKnown && !rightKnown) return left;
+        // Only right visible - use right
+        if (rightKnown && !leftKnown) return right;
+        // Neither clearly visible
         return false;
     }
 
@@ -87,18 +93,22 @@
         const earsOk = handsOnEars(landmarks, helpers);
         helpers.updateHandsBadge(earsOk);
 
+        // Only enforce hands on ears when actively recording
+        if (!earsOk && helpers.isRecording) {
+            helpers.setHandsOnEarsStreak(0);
+            sampleMetrics(helpers.metrics, helpers, hipAngle, false);
+            helpers.markInvalid('Keep both hands touching your ears - reps will not count otherwise.');
+            return;
+        }
+
         if (!earsOk) {
             helpers.setHandsOnEarsStreak(0);
-            if (helpers.isRecording) {
-                sampleMetrics(helpers.metrics, helpers, hipAngle, false);
-            }
-            if (helpers.sessionStarted || helpers.isRecording) {
-                helpers.markInvalid('Keep both hands touching your ears - reps will not count otherwise.');
-            } else {
+            if (helpers.sessionStarted) {
                 helpers.setWarning('Place hands behind your head with wrists touching your ears before starting.');
             }
             return;
         }
+
         const nextHandsOnEarsStreak = helpers.handsOnEarsStreak + 1;
         helpers.setHandsOnEarsStreak(nextHandsOnEarsStreak);
 
@@ -123,10 +133,8 @@
             helpers.setStage('down');
         } else if (isUp && helpers.stage === 'down' && earsOk && nextHandsOnEarsStreak >= 2) {
             helpers.countValidRep('up');
-        } else if (isUp && helpers.stage === 'down' && !earsOk) {
-            helpers.markInvalid('Hands left your ears - rep not counted.');
-            helpers.setStage(null);
         }
+        
         sampleMetrics(helpers.metrics, helpers, hipAngle, earsOk);
     }
 

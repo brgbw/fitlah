@@ -6,6 +6,13 @@
         return notStandingUpright && armsForward;
     }
 
+    function isKneeOnGround(side, helpers) {
+        // Check if knee is lower than or at hip level (indicates ground contact)
+        if (!helpers.visibleLoose(side.knee) || !helpers.visibleLoose(side.hip)) return false;
+        // If knee Y is >= hip Y (lower on screen), knee is likely on ground
+        return side.knee.y >= side.hip.y - 0.05;
+    }
+
     function sampleMetrics(metrics, helpers, elbowAngle, inStartZone) {
         if (!helpers.isRecording || !metrics) return;
         metrics.frames_sampled++;
@@ -42,6 +49,8 @@
         }
 
         const shoulderDrop = (side.shoulder.y - side.hip.y) / trunkLen;
+        const kneeOnGround = isKneeOnGround(side, helpers);
+
         if (!helpers.sessionStarted && !inStartZone) {
             helpers.setWarning('Get into a push-up / plank position (side-on). First rep starts the timer.');
             return;
@@ -54,11 +63,16 @@
             helpers.setWarning('Recording - bend arms down, then push up.');
         }
 
-        const isDown = elbowAngle < 115 || shoulderDrop > 0.08;
-        const isUp = elbowAngle > 132 || shoulderDrop < 0.06;
+        const isDown = elbowAngle < 125 || shoulderDrop > 0.10;
+        const isUp = elbowAngle > 120 || shoulderDrop < 0.08;
 
         if (isDown) {
             helpers.setStage('down');
+            // Check for knee ground contact during rep
+            if (kneeOnGround && helpers.isRecording) {
+                helpers.markInvalid('Knees touched the ground - maintain proper plank form.');
+                helpers.setStage('invalid'); // Prevent this rep from being counted
+            }
         } else if (isUp && helpers.stage === 'down') {
             helpers.countValidRep('up');
         }

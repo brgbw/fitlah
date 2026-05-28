@@ -304,6 +304,12 @@ let currentMode = 'pushup';
 
         validReps++;
         stage = nextStage;
+        
+        // Play rep counting sound
+        if (window.SoundManager) {
+            SoundManager.playRepSound();
+        }
+        
         updateCounters();
     }
 
@@ -312,6 +318,12 @@ let currentMode = 'pushup';
         if (isRecording && Date.now() - lastInvalidAt > 1400) {
             invalidReps++;
             lastInvalidAt = Date.now();
+            
+            // Play error sound
+            if (window.SoundManager) {
+                SoundManager.playErrorSound();
+            }
+            
             updateCounters();
         }
     }
@@ -561,6 +573,12 @@ let currentMode = 'pushup';
         discardRecordingOnStop = false;
         initCvMetrics();
         recordedChunks = [];
+        
+        // Play session start sound
+        if (window.SoundManager) {
+            SoundManager.playSessionStartSound();
+        }
+        
         const canvasStream = poseCanvas.captureStream(30);
         const mimeType = ['video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
         mediaRecorder = mimeType
@@ -593,6 +611,12 @@ let currentMode = 'pushup';
             timerDisplay.style.display = 'none';
             isRecording = false;
             sessionArmed = false;
+            
+            // Play session end sound
+            if (window.SoundManager) {
+                SoundManager.playSessionEndSound();
+            }
+            
             startPlaybackReplay();
         };
 
