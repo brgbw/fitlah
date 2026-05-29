@@ -89,9 +89,9 @@ def signup():
         nric = request.form.get("nric", "").strip().upper()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
-        name = request.form.get("name", "").strip()
-        rank = request.form.get("rank", "").strip() or "Soldier"
-        unit = request.form.get("unit", "").strip() or "Unassigned"
+        name = request.form.get("name", "").strip().upper()
+        rank = request.form.get("rank", "").strip().upper() or "SOLDIER"
+        unit = request.form.get("unit", "").strip().upper() or "UNASSIGNED"
 
         if not nric_check(nric):
             error = "Enter a valid NRIC."

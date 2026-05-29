@@ -54,5 +54,13 @@
     "rank": "Test",
     "unit": "Tes",
     "last_login": null
+  },
+  {
+    "id": 8,
+    "nric": "F0000000X",
+    "name": "TESTING TESTS",
+    "rank": "MASTER~",
+    "unit": "DEGENERATES",
+    "last_login": null
   }
 ]

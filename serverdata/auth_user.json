@@ -75,5 +75,16 @@
     "unit": "Tes",
     "created_at": "2026-05-29 19:39:34",
     "last_login": null
+  },
+  {
+    "id": 8,
+    "nric": "F0000000X",
+    "password_hash": "scrypt:32768:8:1$N90k8fIn3p42Ptql$5df38dca61f75f502110fae39cece2c4e35d673c71c8913ecdf0be72c2463c7ecca30003ad4f27ae549c66b00c094e9c6ad89ee4600b81b16d4af61c1132d3ca",
+    "password_is_default": false,
+    "name": "TESTING TESTS",
+    "rank": "MASTER~",
+    "unit": "DEGENERATES",
+    "created_at": "2026-05-29 19:56:04",
+    "last_login": null
   }
 ]
