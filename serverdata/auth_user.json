@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1,
+    "nric": "T0725746A",
+    "password_hash": "scrypt:32768:8:1$9PGcTzmfra54RdCy$25c4df5741a7f8b7d0c537d65ad9c8b2aa7db9a198b50fc9acaab896d77cb853e8272dedc4835b9df1432c388fa29f73ca34731995ac7ca96a137af59e6eb73c",
+    "password_is_default": false,
+    "name": "GOH BOON WAN, BRANDEN",
+    "rank": "CFC",
+    "unit": "ATI",
+    "created_at": "2026-05-29 21:18:37",
+    "last_login": "2026-05-29 21:40:12"
+  }
+]
