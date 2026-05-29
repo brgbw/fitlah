@@ -42,5 +42,16 @@
     "unit": "3GDS",
     "created_at": "2026-05-27 14:13:28",
     "last_login": null
+  },
+  {
+    "id": 5,
+    "nric": "S9999999Z",
+    "password_hash": "scrypt:32768:8:1$jpww9XR17DYSduAl$13d7ba6128c898e090e05d8e25b67fa3c582802643d7f83c995ac1f02deb51e53be29d7af96c4d53ca070c16ffe2a6e72c477cfe43dd08d75a04899d8eed3837",
+    "password_is_default": false,
+    "name": "\u5c0f\u660e",
+    "rank": "General",
+    "unit": "21 Causeway Demolition Squad",
+    "created_at": "2026-05-29 14:54:12",
+    "last_login": null
   }
 ]

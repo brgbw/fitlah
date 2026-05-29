@@ -1,96 +1,483 @@
 (function () {
-    function isInStartZone(side, helpers) {
-        if (!helpers.visibleLoose(side.shoulder) || !helpers.visibleLoose(side.hip)) return false;
-        const notStandingUpright = Math.abs(side.shoulder.y - side.hip.y) < 0.45;
-        const armsForward = helpers.visibleLoose(side.elbow) || helpers.visibleLoose(side.wrist);
-        return notStandingUpright && armsForward;
+    const STATE = {
+        NOT_READY: 'not_ready',
+        READY: 'ready',
+        UP: 'up',
+        DOWN: 'down',
+        REP_COUNTED: 'rep_counted'
+    };
+
+    const LANDMARK = {
+        NOSE: 0,
+        LEFT_SHOULDER: 11,
+        RIGHT_SHOULDER: 12,
+        LEFT_ELBOW: 13,
+        RIGHT_ELBOW: 14,
+        LEFT_WRIST: 15,
+        RIGHT_WRIST: 16,
+        LEFT_HIP: 23,
+        RIGHT_HIP: 24,
+        LEFT_KNEE: 25,
+        RIGHT_KNEE: 26,
+        LEFT_ANKLE: 27,
+        RIGHT_ANKLE: 28
+    };
+
+    const CONFIG = {
+        // The first rep is only armed after the user holds a valid straight-arm plank for 1 second.
+        READY_HOLD_MS: 1000,
+        // MediaPipe visibility is noisy in side view; this keeps low-confidence frames from moving states.
+        POSE_CONFIDENCE_MIN: 0.45,
+        // EMA smoothing absorbs small landmark jitter without adding visible lag to rep transitions.
+        SMOOTHING_ALPHA: 0.45,
+        // Straight arms define a valid push-up top position.
+        UP_ELBOW_MIN_ANGLE: 150,
+        // A rep must pass this elbow depth, or an equivalent shoulder drop, before it can count.
+        DOWN_ELBOW_MAX_ANGLE: 112,
+        MIN_SHOULDER_DROP: 0.055,
+        // Prevent quick oscillations or single-frame flicker from becoming duplicate reps.
+        MIN_REP_DURATION_MS: 650,
+        REP_COOLDOWN_MS: 650,
+        STABLE_FRAMES_REQUIRED: 2,
+        // Full-body validation thresholds are normalized by body length so they scale with camera distance.
+        BODY_STRAIGHTNESS_TOLERANCE: 0.13,
+        HEAD_ALIGNMENT_TOLERANCE: 0.22,
+        SHOULDER_SYMMETRY_TOLERANCE: 0.12,
+        HIP_SYMMETRY_TOLERANCE: 0.10,
+        MIN_HIP_ANGLE: 155,
+        MIN_KNEE_ANGLE: 162,
+        WRIST_SHOULDER_MAX_OFFSET: 0.95,
+        WRIST_BELOW_SHOULDER_MIN: 0.04,
+        CAMERA_WIDTH_MAX_RATIO: 0.42,
+        MIN_BODY_LENGTH: 0.25
+    };
+
+    const tracker = {
+        state: STATE.NOT_READY,
+        readyStartedAt: null,
+        readyConfirmed: false,
+        smoothedLandmarks: null,
+        upShoulderY: null,
+        downFrames: 0,
+        upFrames: 0,
+        repStartedAt: 0,
+        lastCountedAt: 0,
+        repInvalid: false
+    };
+
+    function reset() {
+        tracker.state = STATE.NOT_READY;
+        tracker.readyStartedAt = null;
+        tracker.readyConfirmed = false;
+        tracker.smoothedLandmarks = null;
+        tracker.upShoulderY = null;
+        tracker.downFrames = 0;
+        tracker.upFrames = 0;
+        tracker.repStartedAt = 0;
+        tracker.lastCountedAt = 0;
+        tracker.repInvalid = false;
     }
 
-    function isKneeOnGround(side, helpers) {
-        // Check if knee is lower than or at hip level (indicates ground contact)
-        if (!helpers.visibleLoose(side.knee) || !helpers.visibleLoose(side.hip)) return false;
-        // If knee Y is >= hip Y (lower on screen), knee is likely on ground
-        return side.knee.y >= side.hip.y - 0.05;
+    function visible(point, minVisibility) {
+        return point && (point.visibility || 0) >= minVisibility;
     }
 
-    function sampleMetrics(metrics, helpers, elbowAngle, inStartZone) {
-        if (!helpers.isRecording || !metrics) return;
+    function midpoint(a, b) {
+        return {
+            x: (a.x + b.x) / 2,
+            y: (a.y + b.y) / 2,
+            z: ((a.z || 0) + (b.z || 0)) / 2,
+            visibility: Math.min(a.visibility || 0, b.visibility || 0)
+        };
+    }
+
+    function pointLineOffset(point, lineStart, lineEnd) {
+        const vx = lineEnd.x - lineStart.x;
+        const vy = lineEnd.y - lineStart.y;
+        const lenSq = vx * vx + vy * vy;
+        if (!lenSq) return { distance: 0, yOffset: 0 };
+        const t = ((point.x - lineStart.x) * vx + (point.y - lineStart.y) * vy) / lenSq;
+        const closest = {
+            x: lineStart.x + t * vx,
+            y: lineStart.y + t * vy
+        };
+        return {
+            distance: Math.hypot(point.x - closest.x, point.y - closest.y),
+            yOffset: point.y - closest.y
+        };
+    }
+
+    function cloneLandmark(point) {
+        return {
+            x: point.x,
+            y: point.y,
+            z: point.z || 0,
+            visibility: point.visibility || 0
+        };
+    }
+
+    function poseConfidence(landmarks) {
+        const required = [
+            LANDMARK.NOSE,
+            LANDMARK.LEFT_SHOULDER,
+            LANDMARK.RIGHT_SHOULDER,
+            LANDMARK.LEFT_HIP,
+            LANDMARK.RIGHT_HIP,
+            LANDMARK.LEFT_KNEE,
+            LANDMARK.RIGHT_KNEE,
+            LANDMARK.LEFT_ANKLE,
+            LANDMARK.RIGHT_ANKLE
+        ];
+        const total = required.reduce((sum, idx) => sum + (landmarks[idx]?.visibility || 0), 0);
+        return total / required.length;
+    }
+
+    function smoothLandmarks(landmarks) {
+        if (!tracker.smoothedLandmarks) {
+            tracker.smoothedLandmarks = landmarks.map(cloneLandmark);
+            return tracker.smoothedLandmarks;
+        }
+
+        tracker.smoothedLandmarks = landmarks.map((point, idx) => {
+            const previous = tracker.smoothedLandmarks[idx] || cloneLandmark(point);
+            return {
+                x: previous.x * (1 - CONFIG.SMOOTHING_ALPHA) + point.x * CONFIG.SMOOTHING_ALPHA,
+                y: previous.y * (1 - CONFIG.SMOOTHING_ALPHA) + point.y * CONFIG.SMOOTHING_ALPHA,
+                z: previous.z * (1 - CONFIG.SMOOTHING_ALPHA) + (point.z || 0) * CONFIG.SMOOTHING_ALPHA,
+                visibility: previous.visibility * (1 - CONFIG.SMOOTHING_ALPHA) + (point.visibility || 0) * CONFIG.SMOOTHING_ALPHA
+            };
+        });
+        return tracker.smoothedLandmarks;
+    }
+
+    function visibleSide(landmarks, left) {
+        return left
+            ? {
+                shoulder: landmarks[LANDMARK.LEFT_SHOULDER],
+                elbow: landmarks[LANDMARK.LEFT_ELBOW],
+                wrist: landmarks[LANDMARK.LEFT_WRIST],
+                hip: landmarks[LANDMARK.LEFT_HIP],
+                knee: landmarks[LANDMARK.LEFT_KNEE],
+                ankle: landmarks[LANDMARK.LEFT_ANKLE]
+            }
+            : {
+                shoulder: landmarks[LANDMARK.RIGHT_SHOULDER],
+                elbow: landmarks[LANDMARK.RIGHT_ELBOW],
+                wrist: landmarks[LANDMARK.RIGHT_WRIST],
+                hip: landmarks[LANDMARK.RIGHT_HIP],
+                knee: landmarks[LANDMARK.RIGHT_KNEE],
+                ankle: landmarks[LANDMARK.RIGHT_ANKLE]
+            };
+    }
+
+    function bestTrackedSide(landmarks) {
+        const leftScore = [
+            LANDMARK.LEFT_SHOULDER,
+            LANDMARK.LEFT_ELBOW,
+            LANDMARK.LEFT_WRIST,
+            LANDMARK.LEFT_HIP,
+            LANDMARK.LEFT_KNEE,
+            LANDMARK.LEFT_ANKLE
+        ].reduce((sum, idx) => sum + (landmarks[idx]?.visibility || 0), 0);
+        const rightScore = [
+            LANDMARK.RIGHT_SHOULDER,
+            LANDMARK.RIGHT_ELBOW,
+            LANDMARK.RIGHT_WRIST,
+            LANDMARK.RIGHT_HIP,
+            LANDMARK.RIGHT_KNEE,
+            LANDMARK.RIGHT_ANKLE
+        ].reduce((sum, idx) => sum + (landmarks[idx]?.visibility || 0), 0);
+        return visibleSide(landmarks, leftScore >= rightScore);
+    }
+
+    function validatePushupPose(landmarks, helpers, phase) {
+        const side = bestTrackedSide(landmarks);
+        const leftShoulder = landmarks[LANDMARK.LEFT_SHOULDER];
+        const rightShoulder = landmarks[LANDMARK.RIGHT_SHOULDER];
+        const leftHip = landmarks[LANDMARK.LEFT_HIP];
+        const rightHip = landmarks[LANDMARK.RIGHT_HIP];
+        const head = landmarks[LANDMARK.NOSE];
+        const minVisibility = CONFIG.POSE_CONFIDENCE_MIN;
+
+        const requiredVisible = [
+            head,
+            leftShoulder,
+            rightShoulder,
+            leftHip,
+            rightHip,
+            side.shoulder,
+            side.elbow,
+            side.wrist,
+            side.hip,
+            side.knee,
+            side.ankle
+        ].every(point => visible(point, minVisibility));
+
+        if (!requiredVisible) {
+            return { ok: false, reason: 'Keep your full body in frame - head, shoulders, hips, knees, ankles, and wrists must be visible.' };
+        }
+
+        const shoulderMid = midpoint(leftShoulder, rightShoulder);
+        const hipMid = midpoint(leftHip, rightHip);
+        const bodyLength = helpers.distance(side.shoulder, side.ankle);
+        const trunkLength = Math.max(helpers.distance(side.shoulder, side.hip), 0.08);
+        if (bodyLength < CONFIG.MIN_BODY_LENGTH) {
+            return { ok: false, reason: 'Move closer or angle the camera so your full side profile is clear.' };
+        }
+
+        // Side-on push-ups should show overlapping shoulders/hips. A wide shoulder or hip span usually means
+        // the user is facing the camera, rotating sideways, or the camera angle is too distorted for stable counts.
+        const shoulderWidth = helpers.distance(leftShoulder, rightShoulder);
+        const hipWidth = helpers.distance(leftHip, rightHip);
+        if (Math.max(shoulderWidth, hipWidth) / bodyLength > CONFIG.CAMERA_WIDTH_MAX_RATIO) {
+            return { ok: false, reason: 'Turn side-on to the camera; front-facing or angled views are not counted.' };
+        }
+
+        if (Math.abs(leftShoulder.y - rightShoulder.y) / bodyLength > CONFIG.SHOULDER_SYMMETRY_TOLERANCE) {
+            return { ok: false, reason: 'Level your shoulders before starting the push-up.' };
+        }
+
+        if (Math.abs(leftHip.y - rightHip.y) / bodyLength > CONFIG.HIP_SYMMETRY_TOLERANCE) {
+            return { ok: false, reason: 'Level your hips before starting the push-up.' };
+        }
+
+        const headOffset = pointLineOffset(head, shoulderMid, hipMid);
+        if (headOffset.distance / bodyLength > CONFIG.HEAD_ALIGNMENT_TOLERANCE) {
+            return { ok: false, reason: 'Keep your head neutral and aligned with your torso.' };
+        }
+
+        const hipOffset = pointLineOffset(side.hip, side.shoulder, side.ankle);
+        const kneeOffset = pointLineOffset(side.knee, side.shoulder, side.ankle);
+        const maxBodyOffset = Math.max(Math.abs(hipOffset.yOffset), kneeOffset.distance) / bodyLength;
+        if (maxBodyOffset > CONFIG.BODY_STRAIGHTNESS_TOLERANCE) {
+            if (hipOffset.yOffset < 0) {
+                return { ok: false, reason: 'Lower your hips into a straight plank before counting reps.' };
+            }
+            return { ok: false, reason: 'Lift your hips and keep your body straight from shoulder to ankle.' };
+        }
+
+        const hipAngle = helpers.angle(side.shoulder, side.hip, side.knee);
+        if (hipAngle < CONFIG.MIN_HIP_ANGLE) {
+            return { ok: false, reason: 'Straighten your hips; bent hips are not counted.' };
+        }
+
+        const kneeAngle = helpers.angle(side.hip, side.knee, side.ankle);
+        if (kneeAngle < CONFIG.MIN_KNEE_ANGLE) {
+            return { ok: false, reason: 'Extend your legs fully and keep knees off the floor.' };
+        }
+
+        const groundY = Math.max(side.wrist.y, side.ankle.y);
+        if (side.knee.y > groundY - 0.035) {
+            return { ok: false, reason: 'Keep your knees off the ground during push-ups.' };
+        }
+
+        const wristShoulderOffset = Math.abs(side.wrist.x - side.shoulder.x) / trunkLength;
+        if (wristShoulderOffset > CONFIG.WRIST_SHOULDER_MAX_OFFSET || side.wrist.y < side.shoulder.y + CONFIG.WRIST_BELOW_SHOULDER_MIN) {
+            return { ok: false, reason: 'Place wrists under your shoulders before starting.' };
+        }
+
+        const elbowAngle = helpers.angle(side.shoulder, side.elbow, side.wrist);
+        if (phase === 'up' && elbowAngle < CONFIG.UP_ELBOW_MIN_ANGLE) {
+            return { ok: false, reason: 'Start from the top position with arms straight.' };
+        }
+
+        return {
+            ok: true,
+            reason: '',
+            side,
+            metrics: {
+                elbowAngle,
+                hipAngle,
+                kneeAngle,
+                bodyLength,
+                shoulderY: side.shoulder.y,
+                shoulderDrop: tracker.upShoulderY === null ? 0 : side.shoulder.y - tracker.upShoulderY
+            }
+        };
+    }
+
+    function setReadiness(validUpPose, helpers, now, reason) {
+        if (!validUpPose.ok) {
+            tracker.readyStartedAt = null;
+            tracker.readyConfirmed = false;
+            tracker.state = STATE.NOT_READY;
+            tracker.downFrames = 0;
+            tracker.upFrames = 0;
+            helpers.setPositionReady(false);
+            helpers.setStage(STATE.NOT_READY);
+            helpers.setWarning(reason || validUpPose.reason);
+            return false;
+        }
+
+        if (tracker.readyStartedAt === null) {
+            tracker.readyStartedAt = now;
+        }
+
+        const heldMs = now - tracker.readyStartedAt;
+        if (heldMs < CONFIG.READY_HOLD_MS) {
+            const remaining = Math.max(0.1, (CONFIG.READY_HOLD_MS - heldMs) / 1000).toFixed(1);
+            tracker.state = STATE.NOT_READY;
+            helpers.setPositionReady(false);
+            helpers.setStage(STATE.NOT_READY);
+            helpers.setWarning(`Hold a straight push-up ready position for ${remaining}s.`);
+            return false;
+        }
+
+        tracker.readyConfirmed = true;
+        tracker.state = STATE.READY;
+        tracker.upShoulderY = validUpPose.metrics.shoulderY;
+        helpers.setPositionReady(true);
+        helpers.setStage(STATE.READY);
+        return true;
+    }
+
+    function updateStableFrames(isDown, isUp) {
+        tracker.downFrames = isDown ? tracker.downFrames + 1 : 0;
+        tracker.upFrames = isUp ? tracker.upFrames + 1 : 0;
+    }
+
+    function isDownPosition(validation) {
+        if (!validation.ok) return false;
+        const metrics = validation.metrics;
+        return metrics.elbowAngle <= CONFIG.DOWN_ELBOW_MAX_ANGLE ||
+            metrics.shoulderDrop >= CONFIG.MIN_SHOULDER_DROP;
+    }
+
+    function isUpPosition(validation) {
+        return validation.ok && validation.metrics.elbowAngle >= CONFIG.UP_ELBOW_MIN_ANGLE;
+    }
+
+    function startDownRep(helpers, now) {
+        tracker.state = STATE.DOWN;
+        tracker.repStartedAt = now;
+        tracker.repInvalid = false;
+        helpers.setStage(STATE.DOWN);
+    }
+
+    function rejectCurrentRep(helpers, message) {
+        tracker.repInvalid = true;
+        tracker.readyConfirmed = false;
+        tracker.readyStartedAt = null;
+        tracker.state = STATE.NOT_READY;
+        tracker.downFrames = 0;
+        tracker.upFrames = 0;
+        helpers.setPositionReady(false);
+        helpers.setStage(STATE.NOT_READY);
+        helpers.markInvalid(message);
+    }
+
+    function sampleMetrics(metrics, helpers, validation) {
+        if (!helpers.isRecording || !metrics || !validation.ok) return;
+        const elbowAngle = validation.metrics.elbowAngle;
         metrics.frames_sampled++;
         if (metrics.frames_sampled % 5 !== 0) return;
-        if (elbowAngle < 115) metrics.elbow_down_angles.push(Math.round(elbowAngle));
-        if (elbowAngle > 130) metrics.elbow_up_angles.push(Math.round(elbowAngle));
-        if (!inStartZone) helpers.noteFormFlag('torso alignment drifted from plank');
-        if (elbowAngle > 95 && elbowAngle < 128) metrics.shallow_rep_signals++;
+        if (elbowAngle <= CONFIG.DOWN_ELBOW_MAX_ANGLE) metrics.elbow_down_angles.push(Math.round(elbowAngle));
+        if (elbowAngle >= CONFIG.UP_ELBOW_MIN_ANGLE) metrics.elbow_up_angles.push(Math.round(elbowAngle));
+        if (validation.metrics.hipAngle < CONFIG.MIN_HIP_ANGLE + 5) helpers.noteFormFlag('hips drifted out of straight plank');
+        if (elbowAngle > CONFIG.DOWN_ELBOW_MAX_ANGLE && elbowAngle < 135) metrics.shallow_rep_signals++;
     }
 
     function analyze(landmarks, helpers) {
-        const side = helpers.bestSide(landmarks);
-        const hasCoreLandmarks = helpers.visibleLoose(side.shoulder) && helpers.visibleLoose(side.hip) &&
-            (helpers.visibleLoose(side.elbow) || helpers.visibleLoose(side.wrist));
+        const now = Date.now();
 
-        if (!hasCoreLandmarks) {
-            if (!helpers.sessionStarted) {
-                helpers.resetPositionLock();
+        if (poseConfidence(landmarks) < CONFIG.POSE_CONFIDENCE_MIN) {
+            if (!helpers.sessionStarted) reset();
+            helpers.setWarning('Pose confidence is low. Keep your full side profile clearly inside the frame.');
+            return;
+        }
+
+        const smoothed = smoothLandmarks(landmarks);
+        const movingPose = validatePushupPose(smoothed, helpers, 'moving');
+        const upPose = validatePushupPose(smoothed, helpers, 'up');
+
+        // Ready validation uses a full-body top-position plank. The 1-second hold prevents random arm bends,
+        // standing poses, or partially visible bodies from arming the first rep.
+        if (!tracker.readyConfirmed) {
+            setReadiness(upPose, helpers, now, upPose.reason);
+            sampleMetrics(helpers.metrics, helpers, movingPose);
+            return;
+        }
+
+        if (!movingPose.ok) {
+            if (helpers.isRecording || tracker.state === STATE.DOWN) {
+                rejectCurrentRep(helpers, movingPose.reason);
+            } else {
+                reset();
+                helpers.setStage(STATE.NOT_READY);
+                helpers.setWarning(movingPose.reason);
             }
-            helpers.setWarning('Show your side profile - shoulder, hip, and arm in frame.');
+            sampleMetrics(helpers.metrics, helpers, movingPose);
             return;
         }
 
-        const inStartZone = isInStartZone(side, helpers);
-        if (!helpers.sessionStarted) {
-            helpers.updatePositionLock(inStartZone);
+        const isDown = isDownPosition(movingPose);
+        const isUp = isUpPosition(upPose);
+        updateStableFrames(isDown, isUp);
+
+        if (isUp) {
+            tracker.upShoulderY = tracker.upShoulderY === null
+                ? upPose.metrics.shoulderY
+                : tracker.upShoulderY * 0.7 + upPose.metrics.shoulderY * 0.3;
         }
 
-        const trunkLen = Math.max(helpers.distance(side.shoulder, side.hip), 0.08);
-        let elbowAngle = 180;
-        if (helpers.visibleLoose(side.elbow)) {
-            const wrist = helpers.visibleLoose(side.wrist) ? side.wrist : side.elbow;
-            elbowAngle = helpers.angle(side.shoulder, side.elbow, wrist);
-        }
+        // State transitions are intentionally conservative:
+        // READY/UP can only enter DOWN after stable depth frames, and DOWN only counts after stable
+        // straight-arm UP frames plus a minimum rep duration. This filters landmark jitter and bounce reps.
+        if (tracker.state === STATE.READY || tracker.state === STATE.UP) {
+            helpers.setWarning(helpers.sessionStarted
+                ? 'Recording - lower under control, then return to a straight-arm plank.'
+                : 'Ready confirmed - lower under control, then push back up.');
+            helpers.setStage(tracker.state);
 
-        const shoulderDrop = (side.shoulder.y - side.hip.y) / trunkLen;
-        const kneeOnGround = isKneeOnGround(side, helpers);
+            if (tracker.downFrames >= CONFIG.STABLE_FRAMES_REQUIRED &&
+                now - tracker.lastCountedAt >= CONFIG.REP_COOLDOWN_MS) {
+                startDownRep(helpers, now);
+            }
+        } else if (tracker.state === STATE.DOWN) {
+            helpers.setWarning('Good depth - push back up to a straight-arm plank.');
+            helpers.setStage(STATE.DOWN);
 
-        if (!helpers.sessionStarted && !inStartZone) {
-            helpers.setWarning('Get into a push-up / plank position (side-on). First rep starts the timer.');
-            return;
-        }
-
-        if (!helpers.sessionStarted) {
-            if (inStartZone) helpers.setPositionReady(true);
-            helpers.setWarning('Go down, then push back up - first full rep starts recording.');
+            if (tracker.upFrames >= CONFIG.STABLE_FRAMES_REQUIRED) {
+                const repDuration = now - tracker.repStartedAt;
+                if (!tracker.repInvalid && repDuration >= CONFIG.MIN_REP_DURATION_MS) {
+                    tracker.lastCountedAt = now;
+                    tracker.state = STATE.REP_COUNTED;
+                    helpers.countValidRep(STATE.UP);
+                    helpers.setStage(STATE.REP_COUNTED);
+                } else {
+                    tracker.state = STATE.UP;
+                    helpers.setStage(STATE.UP);
+                    helpers.setWarning('Control the full down-up movement before the rep can count.');
+                }
+            }
+        } else if (tracker.state === STATE.REP_COUNTED) {
+            helpers.setStage(STATE.REP_COUNTED);
+            if (now - tracker.lastCountedAt >= CONFIG.REP_COOLDOWN_MS && isUp) {
+                tracker.state = STATE.UP;
+                helpers.setStage(STATE.UP);
+            }
         } else {
-            helpers.setWarning('Recording - bend arms down, then push up.');
+            tracker.state = STATE.UP;
+            helpers.setStage(STATE.UP);
         }
 
-        const isDown = elbowAngle < 125 || shoulderDrop > 0.10;
-        const isUp = elbowAngle > 120 || shoulderDrop < 0.08;
-
-        if (isDown) {
-            helpers.setStage('down');
-            // Check for knee ground contact during rep
-            if (kneeOnGround && helpers.isRecording) {
-                helpers.markInvalid('Knees touched the ground - maintain proper plank form.');
-                helpers.setStage('invalid'); // Prevent this rep from being counted
-            }
-        } else if (isUp && helpers.stage === 'down') {
-            helpers.countValidRep('up');
-        }
-
-        sampleMetrics(helpers.metrics, helpers, elbowAngle, inStartZone);
+        sampleMetrics(helpers.metrics, helpers, movingPose);
     }
 
     function enrichMetrics(payload, metrics, avgAngle) {
         payload.avg_elbow_angle_down = avgAngle(metrics.elbow_down_angles);
         payload.avg_elbow_angle_up = avgAngle(metrics.elbow_up_angles);
         payload.shallow_rep_signals = metrics.shallow_rep_signals || 0;
-        if (payload.avg_elbow_angle_down && payload.avg_elbow_angle_down > 105) {
+        if (payload.avg_elbow_angle_down && payload.avg_elbow_angle_down > CONFIG.DOWN_ELBOW_MAX_ANGLE + 3) {
             payload.form_flags.push('limited push-up depth on several reps');
         }
     }
 
     window.FitLahPushupExercise = {
         analyze,
-        enrichMetrics
+        enrichMetrics,
+        reset,
+        STATE,
+        CONFIG
     };
 })();
