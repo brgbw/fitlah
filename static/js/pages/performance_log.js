@@ -128,7 +128,7 @@
     if (dayEntries.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'no-entry';
-      empty.innerHTML = `<div class="icon">🏃</div><p>No entries for this day.<br><strong>Click "Add Entry"</strong> to log something.</p>`;
+      empty.innerHTML = `<div class="icon">🏃</div><p>No entries for this day.</p>`;
       panel.appendChild(empty);
       return;
     }
@@ -170,7 +170,10 @@
   }
 
   function typeName(t) {
-    return t === 'logged' ? 'Workout' : t.toUpperCase();
+    if (t === 'pushup') return 'Push-up';
+    if (t === 'situp') return 'Sit-up';
+    if (t === 'run') return '2.4km Run';
+    return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
   function escapeHtml(text) {
@@ -227,69 +230,11 @@
     renderCalendar();
   }
 
-  function openModal() {
-    document.getElementById('modalOverlay').classList.add('open');
-    document.getElementById('eventName').focus();
-  }
-
-  function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('open');
-    document.getElementById('eventName').value = '';
-    document.getElementById('eventScore').value = '';
-    document.getElementById('eventTime').value = '';
-    document.getElementById('eventNotes').value = '';
-    document.getElementById('eventType').value = 'logged';
-  }
-
-  function closeModalOnBg(e) {
-    if (e.target === document.getElementById('modalOverlay')) closeModal();
-  }
-
-  async function saveEntry() {
-    const name = document.getElementById('eventName').value.trim();
-    if (!name) {
-      alert('Please enter an event name.');
-      return;
-    }
-
-    const key = selectedDate || dateKey(today.getFullYear(), today.getMonth(), today.getDate());
-    const response = await fetch(api.logs, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        date: key,
-        name,
-        type: document.getElementById('eventType').value,
-        score: document.getElementById('eventScore').value.trim(),
-        time: document.getElementById('eventTime').value.trim(),
-        notes: document.getElementById('eventNotes').value.trim(),
-      })
-    });
-
-    const data = await response.json();
-    if (!data.success) {
-      alert(data.error || 'Could not save entry.');
-      return;
-    }
-
-    closeModal();
-
-    const [y, m] = key.split('-').map(Number);
-    currentYear = y;
-    currentMonth = m - 1;
-    selectedDate = key;
-    await loadEntries();
-  }
-
   selectedDate = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
   renderCalendar();
   renderDetails();
   loadEntries();
 
   window.changeMonth = changeMonth;
-  window.openModal = openModal;
-  window.closeModal = closeModal;
-  window.closeModalOnBg = closeModalOnBg;
-  window.saveEntry = saveEntry;
   window.deleteEntry = deleteEntry;
 })();

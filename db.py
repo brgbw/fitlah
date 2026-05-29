@@ -11,8 +11,9 @@ SERVERDATA_DIR = os.path.join(BASE_DIR, "serverdata")
 TABLE_NAMES = [
     "user", "group_invite", "fitness_group",
     "group_member", "performance_log", "auth_user",
-    "personal_best", "workout_sessions",
+    "personal_best",
 ]
+
 
 def _table_path(table_name):
     """Return the file path for a given table."""

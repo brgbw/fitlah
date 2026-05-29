@@ -90,10 +90,10 @@
 
   .day-dots { display: flex; gap: 3px; }
   .dot { width: 5px; height: 5px; border-radius: 50%; }
-  .dot.logged { background: #015936; }
-  .dot.ippt { background: #E11D48; }
-  .dot.ict { background: #2563EB; }
-  .calendar-day.active-selected .dot.logged { background: rgba(255,255,255,0.9); }
+  .dot.pushup { background: #015936; }
+  .dot.situp { background: #2563EB; }
+  .dot.run { background: #F97316; }
+  .calendar-day.active-selected .dot { background: rgba(255,255,255,0.9); }
 
   .details-display-stack { display: flex; flex-direction: column; gap: 20px; }
 
@@ -107,9 +107,9 @@
   .agenda-item { display: flex; gap: 16px; }
 
   .agenda-color-bar { width: 4px; border-radius: 2px; flex-shrink: 0; }
-  .agenda-color-bar.logged { background: #015936; }
-  .agenda-color-bar.ict { background: #2563EB; }
-  .agenda-color-bar.ippt { background: #E11D48; }
+  .agenda-color-bar.pushup { background: #015936; }
+  .agenda-color-bar.situp { background: #2563EB; }
+  .agenda-color-bar.run { background: #F97316; }
 
   .agenda-details { display: flex; flex-direction: column; width: 100%; }
   .agenda-date { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -139,78 +139,7 @@
   }
   .no-entry .icon { font-size: 32px; margin-bottom: 8px; }
 
-  /* Add Entry Modal */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(15,23,42,0.45);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: #FFFFFF;
-    border-radius: 16px;
-    padding: 28px;
-    width: 420px;
-    max-width: 95vw;
-  }
-
-  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
-
-  .form-group { margin-bottom: 16px; }
-  .form-group label { display: block; font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #E2E8F0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0F172A;
-    font-family: inherit;
-    background: #F8FAFC;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #015936; background: #fff; }
-  .form-group textarea { resize: vertical; min-height: 72px; }
-
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-  .btn {
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.15s;
-  }
-  .btn-primary { background: #015936; color: #fff; }
-  .btn-primary:hover { background: #014e2f; }
-  .btn-secondary { background: #F1F5F9; color: #334155; }
-  .btn-secondary:hover { background: #E2E8F0; }
-
-  .add-entry-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #015936;
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 18px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .add-entry-btn:hover { background: #014e2f; }
+  /* Modal and Button styles removed */
 
   .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
 
@@ -324,10 +253,6 @@
     <h1>Performance Log</h1>
     <p>Track your fitness entries and progress notes.</p>
   </div>
-  <button class="add-entry-btn" onclick="openModal()">
-    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-    Add Entry
-  </button>
 </div>
 
 <div class="log-workspace-grid">
@@ -340,9 +265,9 @@
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#015936"></div>Workout</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>ICT</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#E11D48"></div>IPPT</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#015936"></div>Push-up</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Sit-up</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F97316"></div>2.4km Run</div>
     </div>
   </div>
 
@@ -350,42 +275,7 @@
   <div class="details-display-stack" id="detailsPanel"></div>
 </div>
 
-<!-- Add Entry Modal -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
-  <div class="modal">
-    <h2>Add Performance Entry</h2>
-    <div class="form-group">
-      <label>Event Name</label>
-      <input type="text" id="eventName" placeholder="e.g. Push-ups Challenge" />
-    </div>
-    <div class="form-group">
-      <label>Type</label>
-      <select id="eventType">
-        <option value="logged">Workout</option>
-        <option value="ict">ICT</option>
-        <option value="ippt">IPPT</option>
-      </select>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Score / Reps</label>
-        <input type="text" id="eventScore" placeholder="e.g. 45 reps" />
-      </div>
-      <div class="form-group">
-        <label>Time</label>
-        <input type="text" id="eventTime" placeholder="e.g. 2:15 min" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Notes</label>
-      <textarea id="eventNotes" placeholder="Any notes about your performance..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveEntry()">Save Entry</button>
-    </div>
-  </div>
-</div>
+<!-- Modal markup removed -->
 
 <script src="{{ url_for('static', filename='js/pages/performance_log.js') }}"></script>
 </div>

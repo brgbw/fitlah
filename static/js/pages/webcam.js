@@ -288,7 +288,7 @@ let currentMode = 'pushup';
         
         // Play rep counting sound
         if (window.SoundManager) {
-            SoundManager.playRepSound();
+            SoundManager.playRepSound(validReps);
         }
         
         updateCounters();
@@ -621,6 +621,11 @@ let currentMode = 'pushup';
         timerInterval = setInterval(() => {
             timeLeft--;
             updateTimer();
+            if (timeLeft <= 3 && timeLeft > 0) {
+                if (window.SoundManager) {
+                    SoundManager.playCountdownWarning(timeLeft);
+                }
+            }
             if (timeLeft <= 0) stopRecording();
         }, 1000);
         mediaRecorder.start(250);
@@ -705,7 +710,7 @@ let currentMode = 'pushup';
     }
 
     async function deleteSavedSession(sessionId) {
-        const response = await fetch(`/api/workout-session/${sessionId}`, {
+        const response = await fetch(`/api/performance-log/${sessionId}`, {
             method: 'DELETE'
         });
         const result = await response.json();
