@@ -86,5 +86,27 @@
     "unit": "DEGENERATES",
     "created_at": "2026-05-29 19:56:04",
     "last_login": null
+  },
+  {
+    "id": 9,
+    "nric": "12345",
+    "password_hash": "scrypt:32768:8:1$wVBHc1IFLj5k3JN2$20e8df7397a1115d330ad962404123a4fe6bb90d996f3151b916af2ea075d748e6e9fd57acf85e395e2a7519aede34b12c274477c0efaa576f9604550b561c15",
+    "password_is_default": true,
+    "name": "lol ok",
+    "rank": "rec",
+    "unit": "5th Guards",
+    "created_at": "2026-05-29 20:47:30",
+    "last_login": null
+  },
+  {
+    "id": 10,
+    "nric": "G0000000X",
+    "password_hash": "scrypt:32768:8:1$utd17WTYjk01cLPt$8a192da16b7384100f7ee95b2e5290a9c6d327ea3f155cf817a791071bdb31e86f2d46d9edd07c3d44fa1058d0f6093e9e0fa4e603ea1a146978514c85b882b8",
+    "password_is_default": false,
+    "name": "OMD",
+    "rank": "SV4",
+    "unit": "RIAU FORCES",
+    "created_at": "2026-05-29 20:48:19",
+    "last_login": null
   }
 ]
