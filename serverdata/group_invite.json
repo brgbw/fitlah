@@ -1,24 +1,3 @@
 [
-  {
-    "id": 1,
-    "sender": "\u5c0f\u660e",
-    "sender_nric": "S9999999Z",
-    "recipient_nric": "T1234567A",
-    "recipient_name": "Peter Pan",
-    "group_id": 1,
-    "group_name": "Supreme Leaders",
-    "invited_on": "2026-05-29",
-    "status": "Pending"
-  },
-  {
-    "id": 2,
-    "sender": "lol ok",
-    "sender_nric": "12345",
-    "recipient_nric": "T0725746A",
-    "recipient_name": "GOH BOON WAN, BRANDEN",
-    "group_id": 3,
-    "group_name": "afajndjibadjoad",
-    "invited_on": "2026-05-29",
-    "status": "Accepted"
-  }
+
 ]
