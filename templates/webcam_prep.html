@@ -51,6 +51,8 @@
         border: 1px solid #E2E8F0;
         border-radius: 8px;
         background: #F8FAFC;
+        position: relative;
+        overflow: hidden;
     }
 
     .instruction-icon {
@@ -77,7 +79,36 @@
         color: #0F172A;
         margin-bottom: 6px;
     }
+    
+    /* Animated decorative line under each instruction title */
+    .instruction-content {
+        position: relative;
+    }
 
+    .animated-line {
+        height: 6px;
+        width: 100%;
+        border-radius: 6px;
+        margin-top: 6px;
+        background: linear-gradient(90deg, rgba(0,159,122,0.08) 0%, rgba(0,159,122,0.36) 50%, rgba(0,159,122,0.08) 100%);
+        background-size: 200% 100%;
+        animation: slide 3s linear infinite;
+        transition: transform 200ms ease, height 200ms ease;
+    }
+
+    .instruction-item:hover .animated-line {
+        height: 8px;
+        transform: scaleX(1.02);
+    }
+
+    @keyframes slide {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animated-line { animation: none; }
+    }
     .instruction-item p {
         font-size: 15px;
         color: #475569;
@@ -159,8 +190,9 @@
                 <div class="instruction-icon">
                     <svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16h10l-2-8H9l-2 8z"></path><path d="M9 8V5h6v3"></path></svg>
                 </div>
-                <div>
+                <div class="instruction-content">
                     <h3>Laptop on the floor</h3>
+                    <div class="animated-line" aria-hidden="true"></div>
                     <p>Keep it stable, screen open near 90 degrees, with the camera facing your full side profile.</p>
                 </div>
             </div>
@@ -169,8 +201,9 @@
                 <div class="instruction-icon">
                     <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
                 </div>
-                <div>
+                <div class="instruction-content">
                     <h3>Full body inside the frame</h3>
+                    <div class="animated-line" aria-hidden="true"></div>
                     <p>Leave space around your head, shoulders, hips, knees, and ankles so body tracking stays stable.</p>
                 </div>
             </div>
@@ -179,8 +212,9 @@
                 <div class="instruction-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.5-2.9 7.4-7 9-4.1-1.6-7-4.5-7-9V7l7-4z"></path><path d="M9 12l2 2 4-5"></path></svg>
                 </div>
-                <div>
+                <div class="instruction-content">
                     <h3>Clear the workout area</h3>
+                    <div class="animated-line" aria-hidden="true"></div>
                     <p>Use a flat surface, move loose items away, and stop if you feel pain, dizziness, or sharp discomfort.</p>
                 </div>
             </div>
@@ -189,8 +223,9 @@
                 <div class="instruction-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
                 </div>
-                <div>
+                <div class="instruction-content">
                     <h3>Flow on the next screen</h3>
+                    <div class="animated-line" aria-hidden="true"></div>
                     <p>Start camera, choose push-up or sit-up, get into position, then your first valid rep starts the timer.</p>
                 </div>
             </div>
@@ -204,7 +239,7 @@
         <div class="prep-actions">
             <a class="secondary-link" href="{{ url_for('dashboard') }}">Back</a>
             <button class="primary-action" type="button" onclick="window.location.href='{{ url_for('webcam') }}'">Ready</button>
-        </div>''
+        </div>
     </section>
 </div>
 {% endblock %}

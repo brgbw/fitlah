@@ -8,7 +8,7 @@
     "rank": "COL",
     "unit": "ATI",
     "created_at": "2026-05-23 16:09:25",
-    "last_login": "2026-05-29 15:57:33"
+    "last_login": "2026-05-29 20:06:22"
   },
   {
     "id": 2,
@@ -53,5 +53,16 @@
     "unit": "21 Causeway Demolition Squad",
     "created_at": "2026-05-29 14:54:12",
     "last_login": null
+  },
+  {
+    "id": 6,
+    "nric": "12345",
+    "password_hash": "scrypt:32768:8:1$sPZCSdQ9daXN7mky$180257caeea7e0075a684540bc6fb33cec22c000771bdfef74496faa39ad1d2246a897daa300cd42338de9d7434ae25211d51eb6865b1f41f136404b6b080bf4",
+    "password_is_default": false,
+    "name": "lol ok",
+    "rank": "rec",
+    "unit": ":P",
+    "created_at": "2026-05-29 16:54:06",
+    "last_login": "2026-05-29 16:55:11"
   }
 ]

@@ -8,5 +8,35 @@
     "pushups": 0,
     "situps": 0,
     "run_time": "--:--"
+  },
+  {
+    "id": 2,
+    "group_id": 2,
+    "nric": "12345",
+    "name": "lol ok",
+    "rank": "rec",
+    "pushups": 0,
+    "situps": 0,
+    "run_time": "--:--"
+  },
+  {
+    "id": 3,
+    "group_id": 3,
+    "nric": "12345",
+    "name": "lol ok",
+    "rank": "rec",
+    "pushups": 0,
+    "situps": 0,
+    "run_time": "--:--"
+  },
+  {
+    "id": 4,
+    "group_id": 3,
+    "nric": "T0725746A",
+    "name": "GOH BOON WAN, BRANDEN",
+    "rank": "COL",
+    "pushups": 62,
+    "situps": 59,
+    "run_time": "10:58"
   }
 ]

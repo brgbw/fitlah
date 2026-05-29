@@ -38,5 +38,13 @@
     "rank": "General",
     "unit": "21 Causeway Demolition Squad",
     "last_login": null
+  },
+  {
+    "id": 6,
+    "nric": "12345",
+    "name": "lol ok",
+    "rank": "rec",
+    "unit": ":P",
+    "last_login": null
   }
 ]
