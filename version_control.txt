@@ -1,0 +1,4 @@
+Version 0.1.1 Rank DropBox Update 潘
+
+Increase version number and edit breif description just before editing 
+so that people will know if it is the latest version

@@ -83,7 +83,7 @@ def nric_check(ic):
         if ic[0] == "F" or ic[0] == "G":
             return ic[8] == "XWUTRQPNMLK"[n%11]
         elif ic[0] == "S" or ic[0] == "T":
-            return ic[8] == "JZIHGFEDCBA"[n%11]
+            return ic[8] == "JZIHGFEDCBA"[(n+4)%11]
     return False
 
 
