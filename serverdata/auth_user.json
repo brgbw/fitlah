@@ -53,5 +53,27 @@
     "unit": "21 Causeway Demolition Squad",
     "created_at": "2026-05-29 14:54:12",
     "last_login": null
+  },
+  {
+    "id": 6,
+    "nric": "1234567",
+    "password_hash": "scrypt:32768:8:1$fwtMSIBVzX1eN9p0$01d43582a6f5b081569c35d31e72eca5893770c50b5c4b91d0de3df914d1695a4d05ebd0f19f013486b033328c0485effa8a679932e436f3963c3175867122fc",
+    "password_is_default": false,
+    "name": "Rush B",
+    "rank": "5SG",
+    "unit": "-1",
+    "created_at": "2026-05-29 17:30:51",
+    "last_login": null
+  },
+  {
+    "id": 7,
+    "nric": "S0000001I",
+    "password_hash": "scrypt:32768:8:1$EmC7IfI5Ub9KOgtO$5da97a2381a2f83968939cc08bde44807def1a243791f71f4c2f607b0edef336a6b5253759af0fcbb007b7131de1db27a6ad177161620aea2f2175d21353bcb6",
+    "password_is_default": false,
+    "name": "Test",
+    "rank": "Test",
+    "unit": "Tes",
+    "created_at": "2026-05-29 19:39:34",
+    "last_login": null
   }
 ]

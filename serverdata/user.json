@@ -38,5 +38,21 @@
     "rank": "General",
     "unit": "21 Causeway Demolition Squad",
     "last_login": null
+  },
+  {
+    "id": 6,
+    "nric": "1234567",
+    "name": "Rush B",
+    "rank": "5SG",
+    "unit": "-1",
+    "last_login": null
+  },
+  {
+    "id": 7,
+    "nric": "S0000001I",
+    "name": "Test",
+    "rank": "Test",
+    "unit": "Tes",
+    "last_login": null
   }
 ]

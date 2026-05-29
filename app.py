@@ -66,6 +66,18 @@ def login():
 
     return render_template("auth.html", mode="login", error=error)
 
+def nric_check(ic):
+    n = 0
+    if not ic[1:8].isnumeric():return False
+    if len(ic) == 9:
+        for i in range(1,8):
+            n += (int(ic[i])*int("02765432"[i]))
+        if ic[0] == "F" or ic[0] == "G":
+            return ic[8] == "XWUTRQPNMLK"[n%11]
+        elif ic[0] == "S" or ic[0] == "T":
+            return ic[8] == "JZIHGFEDCBA"[n%11]
+    return False
+
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -81,7 +93,7 @@ def signup():
         rank = request.form.get("rank", "").strip() or "Soldier"
         unit = request.form.get("unit", "").strip() or "Unassigned"
 
-        if not nric or len(nric) < 5:
+        if not nric_check(nric):
             error = "Enter a valid NRIC."
         elif not password or len(password) < 6:
             error = "Password must be at least 6 characters."
@@ -143,13 +155,13 @@ def logout():
 @login_required
 def dashboard():
     user = current_user()
+    workouts = query_db("workout")
     recent_logs = sorted(
         query_db("performance_log", lambda x: x.get("nric") == user.get("nric")),
         key=lambda x: x['id'],
         reverse=True
     )[:3]
-    return render_template("dashboard.html", user=user, recent_logs=recent_logs)
-
+    return render_template("dashboard.html", user=user, workouts=workouts, recent_logs=recent_logs)
 
 
 @app.route("/dashboard-graph")
@@ -309,43 +321,47 @@ def api_performance_logs():
     return jsonify({"success": True, "logs": logs})
 
 
+@app.route("/api/performance-log", methods=["POST"])
+@login_required
+def api_create_performance_log():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    date = (data.get("date") or "").strip()
+
+    if not name or not date:
+        return jsonify({"success": False, "error": "Event name and date are required"}), 400
+
+    db = get_db()
+    new_log = {
+        "id": max([log.get("id", 0) for log in db.get("performance_log", [])], default=0) + 1,
+        "nric": current_user().get("nric"),
+        "event": name,
+        "name": name,
+        "type": data.get("type") or "logged",
+        "score": (data.get("score") or "").strip(),
+        "time": (data.get("time") or "").strip(),
+        "date": date,
+        "notes": (data.get("notes") or "").strip()
+    }
+    db.setdefault("performance_log", []).append(new_log)
+    return jsonify({"success": True, "log": new_log}), 201
+
+
 @app.route("/api/performance-log/<int:log_id>", methods=["DELETE"])
-@app.route("/api/workout-session/<int:log_id>", methods=["DELETE"])
 @login_required
 def api_delete_performance_log(log_id):
     db = get_db()
     user = current_user()
-    nric = user.get("nric")
-    
-    log_record = next(
-        (
-            log for log in db.get("performance_log", [])
-            if log.get("id") == log_id and log.get("nric") == nric
-        ),
-        None
-    )
-
-    if not log_record:
-        return jsonify({"success": False, "error": "Log entry not found"}), 404
-
-    exercise_type = log_record.get("exercise")
-    video_deleted = delete_session_video(log_record.get("video_path"))
-
+    before = len(db.get("performance_log", []))
     db["performance_log"] = [
         log for log in db.get("performance_log", [])
-        if not (log.get("id") == log_id and log.get("nric") == nric)
+        if not (log.get("id") == log_id and log.get("nric") == user.get("nric"))
     ]
 
-    personal_best = None
-    if exercise_type in {"pushup", "situp"}:
-        personal_best = recalculate_exercise_best(db, nric, exercise_type)
+    if len(db["performance_log"]) == before:
+        return jsonify({"success": False, "error": "Log not found"}), 404
 
-    return jsonify({
-        "success": True,
-        "session_id": log_id,
-        "video_deleted": video_deleted,
-        "personal_best": personal_best
-    })
+    return jsonify({"success": True})
 
 
 @app.route("/webcam")
@@ -365,9 +381,9 @@ def recalculate_exercise_best(db, nric, exercise_type):
     field = "pushups" if exercise_type == "pushup" else "situps"
     best_reps = max(
         [
-            int(log.get("valid_reps") or 0)
-            for log in db.get("performance_log", [])
-            if log.get("nric") == nric and log.get("exercise") == exercise_type
+            int(session.get("valid_reps") or 0)
+            for session in db.get("workout_sessions", [])
+            if session.get("nric") == nric and session.get("exercise") == exercise_type
         ],
         default=0
     )
@@ -411,6 +427,46 @@ def delete_session_video(video_path):
     return False
 
 
+@app.route("/api/workout-session/<int:session_id>", methods=["DELETE"])
+@login_required
+def delete_workout_session(session_id):
+    db = get_db()
+    user = current_user()
+    nric = user.get("nric")
+    session_record = next(
+        (
+            item for item in db.get("workout_sessions", [])
+            if item.get("id") == session_id and item.get("nric") == nric
+        ),
+        None
+    )
+
+    if not session_record:
+        return jsonify({"success": False, "error": "Session not found"}), 404
+
+    exercise_type = session_record.get("exercise")
+    video_deleted = delete_session_video(session_record.get("video_path"))
+
+    db["workout_sessions"] = [
+        item for item in db.get("workout_sessions", [])
+        if not (item.get("id") == session_id and item.get("nric") == nric)
+    ]
+    db["performance_log"] = [
+        log for log in db.get("performance_log", [])
+        if not (log.get("session_id") == session_id and log.get("nric") == nric)
+    ]
+
+    personal_best = None
+    if exercise_type in {"pushup", "situp"}:
+        personal_best = recalculate_exercise_best(db, nric, exercise_type)
+
+    return jsonify({
+        "success": True,
+        "session_id": session_id,
+        "video_deleted": video_deleted,
+        "personal_best": personal_best
+    })
+
 
 
 @app.route("/api/upload-video", methods=['POST'])
@@ -453,13 +509,34 @@ def upload_video():
         session_date = datetime.now().strftime("%Y-%m-%d")
         session_time = datetime.now().strftime("%H:%M:%S")
 
+        session_id = max([s.get("id", 0) for s in db.get("workout_sessions", [])], default=0) + 1
+        session_record = {
+            "id": session_id,
+            "nric": nric,
+            "exercise": exercise_type,
+            "exercise_label": label,
+            "valid_reps": valid_reps,
+            "invalid_reps": invalid_reps,
+            "duration_seconds": duration_seconds,
+            "started_at": started_at or None,
+            "ended_at": ended_at,
+            "video_file": filename,
+            "video_path": relative_video_path.replace("\\", "/"),
+            "personal_best": int(best.get(pb_field) or 0),
+            "date": session_date,
+            "time": session_time,
+            "source": "webcam_cv",
+            "ai_recommendation": None
+        }
+        db.setdefault("workout_sessions", []).append(session_record)
+
         log_id = max([log.get("id", 0) for log in db.get("performance_log", [])], default=0) + 1
         db.setdefault("performance_log", []).append({
             "id": log_id,
             "nric": nric,
             "event": f"Webcam {label}",
             "name": f"Webcam {label}",
-            "type": exercise_type,
+            "type": "ippt",
             "score": f"{valid_reps} reps",
             "time": f"{duration_seconds // 60}:{duration_seconds % 60:02d} min",
             "date": session_date,
@@ -471,12 +548,8 @@ def upload_video():
             "valid_reps": valid_reps,
             "invalid_reps": invalid_reps,
             "duration_seconds": duration_seconds,
-            "video_file": filename,
-            "video_path": relative_video_path.replace("\\", "/"),
-            "personal_best": int(best.get(pb_field) or 0),
-            "time_of_day": session_time,
-            "source": "webcam_cv",
-            "session_id": log_id,
+            "video_path": session_record["video_path"],
+            "session_id": session_id,
             "ai_recommendation": None
         })
         return jsonify({
@@ -485,10 +558,9 @@ def upload_video():
             "path": save_path,
             "valid_reps": valid_reps,
             "invalid_reps": invalid_reps,
-            "session_id": log_id,
+            "session_id": session_id,
             "personal_best": int(best.get(pb_field) or 0)
         })
-
 
 
 @app.route("/api/ai-recommendation", methods=["POST"])
