@@ -156,6 +156,8 @@ let currentMode = 'pushup';
             if (!isReplayMode) {
                 if (currentMode === 'pushup' && window.FitLahPushupExercise) {
                     FitLahPushupExercise.reset();
+                } else if (currentMode === 'situp' && window.FitLahSitupExercise) {
+                    FitLahSitupExercise.reset();
                 }
                 setWarning('No body detected. Keep your full side profile inside the frame.');
             }
@@ -289,12 +291,6 @@ let currentMode = 'pushup';
         }
 
         if (Date.now() - lastRepAt < 500) {
-            stage = nextStage;
-            return;
-        }
-
-        if (currentMode === 'situp' && lastLandmarks && !FitLahSitupExercise.handsOnEars(lastLandmarks, exerciseHelpers())) {
-            markInvalid('Hands must touch ears at the top of each rep.');
             stage = nextStage;
             return;
         }
@@ -530,6 +526,9 @@ let currentMode = 'pushup';
         if (window.FitLahPushupExercise) {
             FitLahPushupExercise.reset();
         }
+        if (window.FitLahSitupExercise) {
+            FitLahSitupExercise.reset();
+        }
         updateCounters();
     }
 
@@ -543,6 +542,9 @@ let currentMode = 'pushup';
         invalidReps = 0;
         if (window.FitLahPushupExercise) {
             FitLahPushupExercise.reset();
+        }
+        if (window.FitLahSitupExercise) {
+            FitLahSitupExercise.reset();
         }
         updateCounters();
         startRecBtn.style.display = 'inline-block';
