@@ -196,5 +196,23 @@
     "time": "20:38:57",
     "source": "webcam_cv",
     "ai_recommendation": null
+  },
+  {
+    "id": 12,
+    "nric": "S9999999Z",
+    "exercise": "situp",
+    "exercise_label": "Sit Ups",
+    "valid_reps": 6,
+    "invalid_reps": 2,
+    "duration_seconds": 60,
+    "started_at": "2026-05-29T08:38:07.792Z",
+    "ended_at": "2026-05-29T08:40:11.950Z",
+    "video_file": "situp_20260529_164012.webm",
+    "video_path": "userdata/situp_videos/situp_20260529_164012.webm",
+    "personal_best": 6,
+    "date": "2026-05-29",
+    "time": "16:40:12",
+    "source": "webcam_cv",
+    "ai_recommendation": null
   }
 ]

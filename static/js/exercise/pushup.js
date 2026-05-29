@@ -27,29 +27,29 @@
         // The first rep is only armed after the user holds a valid straight-arm plank for 1 second.
         READY_HOLD_MS: 1000,
         // MediaPipe visibility is noisy in side view; this keeps low-confidence frames from moving states.
-        POSE_CONFIDENCE_MIN: 0.45,
+        POSE_CONFIDENCE_MIN: 0.28,
         // EMA smoothing absorbs small landmark jitter without adding visible lag to rep transitions.
         SMOOTHING_ALPHA: 0.45,
         // Straight arms define a valid push-up top position.
-        UP_ELBOW_MIN_ANGLE: 150,
+        UP_ELBOW_MIN_ANGLE: 115,
         // A rep must pass this elbow depth, or an equivalent shoulder drop, before it can count.
-        DOWN_ELBOW_MAX_ANGLE: 112,
-        MIN_SHOULDER_DROP: 0.055,
+        DOWN_ELBOW_MAX_ANGLE: 145,
+        MIN_SHOULDER_DROP: 0.02,
         // Prevent quick oscillations or single-frame flicker from becoming duplicate reps.
-        MIN_REP_DURATION_MS: 650,
-        REP_COOLDOWN_MS: 650,
-        STABLE_FRAMES_REQUIRED: 2,
+        MIN_REP_DURATION_MS: 300,
+        REP_COOLDOWN_MS: 300,
+        STABLE_FRAMES_REQUIRED: 1,
         // Full-body validation thresholds are normalized by body length so they scale with camera distance.
-        BODY_STRAIGHTNESS_TOLERANCE: 0.13,
-        HEAD_ALIGNMENT_TOLERANCE: 0.22,
-        SHOULDER_SYMMETRY_TOLERANCE: 0.12,
-        HIP_SYMMETRY_TOLERANCE: 0.10,
-        MIN_HIP_ANGLE: 155,
-        MIN_KNEE_ANGLE: 162,
-        WRIST_SHOULDER_MAX_OFFSET: 0.95,
-        WRIST_BELOW_SHOULDER_MIN: 0.04,
-        CAMERA_WIDTH_MAX_RATIO: 0.42,
-        MIN_BODY_LENGTH: 0.25
+        BODY_STRAIGHTNESS_TOLERANCE: 0.35,
+        HEAD_ALIGNMENT_TOLERANCE: 0.55,
+        SHOULDER_SYMMETRY_TOLERANCE: 0.35,
+        HIP_SYMMETRY_TOLERANCE: 0.35,
+        MIN_HIP_ANGLE: 105,
+        MIN_KNEE_ANGLE: 110,
+        WRIST_SHOULDER_MAX_OFFSET: 2.2,
+        WRIST_BELOW_SHOULDER_MIN: -0.08,
+        CAMERA_WIDTH_MAX_RATIO: 1.0,
+        MIN_BODY_LENGTH: 0.12
     };
 
     const tracker = {

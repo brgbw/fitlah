@@ -22,7 +22,6 @@ let currentMode = 'pushup';
     let lastInvalidAt = 0;
     let lastRepAt = 0;
     let lastLandmarks = null;
-    let handsOnEarsStreak = 0;
     let cvMetrics = null;
     let lastSessionMetrics = null;
     let lastSessionId = null;
@@ -77,9 +76,9 @@ let currentMode = 'pushup';
         } else {
             modeSitupBtn.classList.add('mode-active');
             modePushupBtn.classList.remove('mode-active');
-            handsBadge.style.display = 'inline-block';
+            handsBadge.style.display = 'none';
             document.getElementById('stationHeader').innerText = 'Sit-up Recording';
-            document.getElementById('warningMessage').innerText = 'Hands on ears at all times. Lie back, then sit up. Your first valid rep starts the 1-minute timer.';
+            document.getElementById('warningMessage').innerText = 'Lie back, then sit up. Your first valid rep starts the 1-minute timer.';
         }
 
         if (stream) {
@@ -229,18 +228,6 @@ let currentMode = 'pushup';
         return point && (point.visibility || 0) > minVis;
     }
 
-    function updateHandsBadge(onEars) {
-        if (currentMode !== 'situp') return;
-        handsBadge.style.display = 'inline-block';
-        if (onEars) {
-            handsBadge.className = 'hands-ok-badge ok';
-            handsBadge.textContent = '✓ Hands on ears';
-        } else {
-            handsBadge.className = 'hands-ok-badge bad';
-            handsBadge.textContent = '✗ Hands must touch ears';
-        }
-    }
-
     function updatePositionLock(inPosition) {
         if (inPosition) {
             positionLockFrames++;
@@ -263,16 +250,11 @@ let currentMode = 'pushup';
             sessionStarted,
             setWarning,
             stage,
-            updateHandsBadge,
             updatePositionLock,
             visibleLoose,
-            handsOnEarsStreak,
             resetPositionLock() {
                 positionLockFrames = 0;
                 positionReady = false;
-            },
-            setHandsOnEarsStreak(value) {
-                handsOnEarsStreak = value;
             },
             setPositionReady(value) {
                 positionReady = value;
@@ -372,8 +354,6 @@ let currentMode = 'pushup';
             elbow_up_angles: [],
             hip_down_angles: [],
             hip_up_angles: [],
-            hands_off_ears_samples: 0,
-            hands_on_ears_samples: 0,
             shallow_rep_signals: 0,
             form_flags: []
         };
@@ -521,7 +501,6 @@ let currentMode = 'pushup';
         lastSessionId = null;
         uploadBtn.innerText = 'Save Session';
         uploadBtn.style.pointerEvents = 'auto';
-        handsOnEarsStreak = 0;
         cvMetrics = null;
         if (window.FitLahPushupExercise) {
             FitLahPushupExercise.reset();
