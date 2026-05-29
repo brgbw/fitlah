@@ -17,7 +17,7 @@ def update_personal_best(nric, exercise_type, reps):
         best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
 
 def save_ai_recommendation(db, session_id, nric, recommendation):
-    """Persist AI coach output on workout_sessions and linked performance_log."""
+    """Persist AI coach output on performance_log entries."""
     if not recommendation.get("success") or not session_id:
         return False
 
@@ -30,35 +30,17 @@ def save_ai_recommendation(db, session_id, nric, recommendation):
     }
 
     updated = False
-    for session in db.get("workout_sessions", []):
-        if session.get("id") == session_id and session.get("nric") == nric:
-            session["ai_recommendation"] = ai_data
-            updated = True
-            break
-
     for log in db.get("performance_log", []):
-        if log.get("session_id") == session_id and log.get("nric") == nric:
+        if log.get("id") == session_id and log.get("nric") == nric:
             log["ai_recommendation"] = ai_data
             updated = True
 
     return updated
 
 def attach_ai_to_performance_logs(db, logs, nric):
-    """Join performance logs with AI data from workout_sessions when needed."""
-    sessions_by_id = {
-        s.get("id"): s
-        for s in db.get("workout_sessions", [])
-        if s.get("nric") == nric
-    }
-    enriched = []
-    for log in logs:
-        row = dict(log)
-        if not row.get("ai_recommendation"):
-            session = sessions_by_id.get(row.get("session_id"))
-            if session and session.get("ai_recommendation"):
-                row["ai_recommendation"] = session["ai_recommendation"]
-        enriched.append(row)
-    return enriched
+    """AI data is now directly on the performance_log records, so this is a pass-through."""
+    return logs
+
 
 def find_auth_user(nric):
     normalized = (nric or "").strip().upper()

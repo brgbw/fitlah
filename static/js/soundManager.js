@@ -33,10 +33,18 @@
         oscillator.stop(ctx.currentTime + duration / 1000);
     }
 
-    function playRepSound() {
+    function playRepSound(count) {
         // Two-tone beep for successful rep
         playTone(800, 100);
         setTimeout(() => playTone(1200, 100), 120);
+
+        // Speak the count
+        if (count !== undefined && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(count.toString());
+            utterance.rate = 1.3;
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     function playErrorSound() {
@@ -47,6 +55,19 @@
     function playCountdownSound() {
         // Quick tick for countdown
         playTone(600, 80);
+    }
+
+    function playCountdownWarning(secondsLeft) {
+        // Warning tone (sharp beep)
+        playTone(900, 150, 'sine');
+
+        // Speak the remaining seconds
+        if (secondsLeft !== undefined && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(secondsLeft.toString());
+            utterance.rate = 1.4;
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     function playSessionStartSound() {
@@ -60,6 +81,14 @@
         // Two descending tones for session end
         playTone(1000, 150);
         setTimeout(() => playTone(600, 150), 160);
+        
+        // Announce time's up
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance("Time's up!");
+            utterance.rate = 1.2;
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     window.SoundManager = {
@@ -68,6 +97,7 @@
         playCountdownSound,
         playSessionStartSound,
         playSessionEndSound,
+        playCountdownWarning,
         playTone
     };
 })();

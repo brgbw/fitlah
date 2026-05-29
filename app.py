@@ -66,6 +66,18 @@ def login():
 
     return render_template("auth.html", mode="login", error=error)
 
+def nric_check(ic):
+    n = 0
+    if not ic[1:8].isnumeric():return False
+    if len(ic) == 9:
+        for i in range(1,8):
+            n += (int(ic[i])*int("02765432"[i]))
+        if ic[0] == "F" or ic[0] == "G":
+            return ic[8] == "XWUTRQPNMLK"[n%11]
+        elif ic[0] == "S" or ic[0] == "T":
+            return ic[8] == "JZIHGFEDCBA"[n%11]
+    return False
+
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -77,11 +89,11 @@ def signup():
         nric = request.form.get("nric", "").strip().upper()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
-        name = request.form.get("name", "").strip()
-        rank = request.form.get("rank", "").strip() or "Soldier"
-        unit = request.form.get("unit", "").strip() or "Unassigned"
+        name = request.form.get("name", "").strip().upper()
+        rank = request.form.get("rank", "").strip().upper() or "SOLDIER"
+        unit = request.form.get("unit", "").strip().upper() or "UNASSIGNED"
 
-        if not nric or len(nric) < 5:
+        if not nric_check(nric):
             error = "Enter a valid NRIC."
         elif not password or len(password) < 6:
             error = "Password must be at least 6 characters."

@@ -8,7 +8,7 @@
     "rank": "COL",
     "unit": "ATI",
     "created_at": "2026-05-23 16:09:25",
-    "last_login": "2026-05-29 20:06:22"
+    "last_login": "2026-05-29 15:57:33"
   },
   {
     "id": 2,
@@ -56,13 +56,35 @@
   },
   {
     "id": 6,
-    "nric": "12345",
-    "password_hash": "scrypt:32768:8:1$sPZCSdQ9daXN7mky$180257caeea7e0075a684540bc6fb33cec22c000771bdfef74496faa39ad1d2246a897daa300cd42338de9d7434ae25211d51eb6865b1f41f136404b6b080bf4",
+    "nric": "1234567",
+    "password_hash": "scrypt:32768:8:1$fwtMSIBVzX1eN9p0$01d43582a6f5b081569c35d31e72eca5893770c50b5c4b91d0de3df914d1695a4d05ebd0f19f013486b033328c0485effa8a679932e436f3963c3175867122fc",
     "password_is_default": false,
-    "name": "lol ok",
-    "rank": "rec",
-    "unit": ":P",
-    "created_at": "2026-05-29 16:54:06",
-    "last_login": "2026-05-29 16:55:11"
+    "name": "Rush B",
+    "rank": "5SG",
+    "unit": "-1",
+    "created_at": "2026-05-29 17:30:51",
+    "last_login": null
+  },
+  {
+    "id": 7,
+    "nric": "S0000001I",
+    "password_hash": "scrypt:32768:8:1$EmC7IfI5Ub9KOgtO$5da97a2381a2f83968939cc08bde44807def1a243791f71f4c2f607b0edef336a6b5253759af0fcbb007b7131de1db27a6ad177161620aea2f2175d21353bcb6",
+    "password_is_default": false,
+    "name": "Test",
+    "rank": "Test",
+    "unit": "Tes",
+    "created_at": "2026-05-29 19:39:34",
+    "last_login": null
+  },
+  {
+    "id": 8,
+    "nric": "F0000000X",
+    "password_hash": "scrypt:32768:8:1$N90k8fIn3p42Ptql$5df38dca61f75f502110fae39cece2c4e35d673c71c8913ecdf0be72c2463c7ecca30003ad4f27ae549c66b00c094e9c6ad89ee4600b81b16d4af61c1132d3ca",
+    "password_is_default": false,
+    "name": "TESTING TESTS",
+    "rank": "MASTER~",
+    "unit": "DEGENERATES",
+    "created_at": "2026-05-29 19:56:04",
+    "last_login": null
   }
 ]

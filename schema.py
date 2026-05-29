@@ -93,17 +93,166 @@ def ensure_personal_best_data(db):
             })
 
 def ensure_performance_log_schema(db):
-    """Scope performance logs by NRIC and normalize fields used by the UI."""
-    db.setdefault("performance_log", [])
-    db.setdefault("workout_sessions", [])
-    default_nric = "S3456789C"
+    """Scope performance logs by NRIC, merge workout_sessions into performance_log, and normalize fields."""
+    import os
+    import json
+    
+    # 1. Manual check and load of workout_sessions.json if it exists on disk
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    workout_sessions_path = os.path.join(base_dir, "serverdata", "workout_sessions.json")
+    workout_path = os.path.join(base_dir, "serverdata", "workout.json")
+    
+    workout_sessions = []
+    if os.path.exists(workout_sessions_path):
+        try:
+            with open(workout_sessions_path, 'r') as f:
+                workout_sessions = json.load(f)
+        except Exception as e:
+            print(f"Error reading workout_sessions.json: {e}")
+            
+    # Also load performance_log from db
+    performance_log = db.setdefault("performance_log", [])
+    
+    # 2. Perform merge if workout_sessions are found
+    if workout_sessions:
+        # Index workout_sessions by (nric, video_path) and (nric, session_id)
+        sessions_by_video = {}
+        sessions_by_id = {}
+        for s in workout_sessions:
+            nric = s.get("nric")
+            vpath = s.get("video_path")
+            sid = s.get("id")
+            if nric and vpath:
+                sessions_by_video[(nric, vpath)] = s
+            if nric and sid:
+                sessions_by_id[(nric, sid)] = s
 
-    for log in db["performance_log"]:
+        merged_session_ids = set()
+        
+        # Merge workout_sessions details into existing performance_log entries
+        for log in performance_log:
+            nric = log.get("nric")
+            vpath = log.get("video_path")
+            sid = log.get("session_id")
+            
+            # Find matching session
+            session = None
+            if nric and vpath and (nric, vpath) in sessions_by_video:
+                session = sessions_by_video[(nric, vpath)]
+            elif nric and sid and (nric, sid) in sessions_by_id:
+                session = sessions_by_id[(nric, sid)]
+                
+            if session:
+                merged_session_ids.add(session.get("id"))
+                # Merge fields from session into log
+                for field in ["exercise", "started_at", "ended_at", "video_file", "personal_best", "source", "ai_recommendation"]:
+                    if field in session and field not in log:
+                        log[field] = session[field]
+                # If the log's ai_recommendation is null but session has it, copy it
+                if not log.get("ai_recommendation") and session.get("ai_recommendation"):
+                    log["ai_recommendation"] = session["ai_recommendation"]
+
+        # Add workout_sessions that were not merged
+        for s in workout_sessions:
+            if s.get("id") not in merged_session_ids:
+                exercise = s.get("exercise", "pushup")
+                label = s.get("exercise_label", "Push Ups")
+                valid_reps = s.get("valid_reps", 0)
+                invalid_reps = s.get("invalid_reps", 0)
+                duration_seconds = s.get("duration_seconds", 60)
+                
+                new_log = {
+                    "id": 0, # will assign unique ID below
+                    "nric": s.get("nric"),
+                    "event": f"Webcam {label}",
+                    "name": f"Webcam {label}",
+                    "type": exercise,
+                    "score": f"{valid_reps} reps",
+                    "time": f"{duration_seconds // 60}:{duration_seconds % 60:02d} min",
+                    "date": s.get("date", datetime.now().strftime("%Y-%m-%d")),
+                    "notes": f"Computer vision session. Valid: {valid_reps}, invalid: {invalid_reps}, duration: {duration_seconds}s. Video: {s.get('video_file', '')}.",
+                    "exercise": exercise,
+                    "valid_reps": valid_reps,
+                    "invalid_reps": invalid_reps,
+                    "duration_seconds": duration_seconds,
+                    "video_path": s.get("video_path"),
+                    "ai_recommendation": s.get("ai_recommendation"),
+                    "started_at": s.get("started_at"),
+                    "ended_at": s.get("ended_at"),
+                    "personal_best": s.get("personal_best"),
+                    "video_file": s.get("video_file"),
+                    "source": s.get("source", "webcam_cv")
+                }
+                performance_log.append(new_log)
+
+    # 3. Clean up fields, normalize exercises/types to pushup, situp, run
+    default_nric = "S3456789C"
+    unique_id = 1
+    
+    for log in performance_log:
+        log["id"] = unique_id
+        unique_id += 1
+        
         log.setdefault("nric", default_nric)
-        log.setdefault("type", "logged")
         log.setdefault("time", "")
         log.setdefault("notes", "")
+        
+        # Determine the normalized type (pushup, situp, run)
+        exercise = log.get("exercise") or ""
+        event = log.get("event") or ""
+        name = log.get("name") or ""
+        notes = log.get("notes") or ""
+        
+        # Lowercase check
+        exercise_lower = exercise.lower()
+        event_lower = event.lower()
+        name_lower = name.lower()
+        notes_lower = notes.lower()
+        
+        if "pushup" in exercise_lower or "push" in event_lower or "push" in name_lower or "push" in notes_lower:
+            log["type"] = "pushup"
+            log["exercise"] = "pushup"
+            log["event"] = "Webcam Push Ups" if "webcam" in event_lower else "Push-ups"
+            log["name"] = log["event"]
+        elif "situp" in exercise_lower or "sit" in event_lower or "sit" in name_lower or "sit" in notes_lower:
+            log["type"] = "situp"
+            log["exercise"] = "situp"
+            log["event"] = "Webcam Sit Ups" if "webcam" in event_lower else "Sit-ups"
+            log["name"] = log["event"]
+        else:
+            log["type"] = "run"
+            log["exercise"] = "run"
+            # If name is not descriptive, rename to 2.4km Run
+            if not event or event == "Performance Entry" or "camp" in event_lower:
+                log["event"] = event or "2.4km Run"
+            log["name"] = log["event"]
+
         if "name" not in log:
             log["name"] = log.get("event", "Performance Entry")
         if "event" not in log:
             log["event"] = log.get("name", "Performance Entry")
+
+    # Save changes to db
+    db["performance_log"] = performance_log
+    
+    # 4. Remove workout_sessions and workout from db if exists
+    if "workout_sessions" in db:
+        del db["workout_sessions"]
+    if "workout" in db:
+        del db["workout"]
+
+    # 5. Delete the files from disk on startup
+    if os.path.exists(workout_sessions_path):
+        try:
+            os.remove(workout_sessions_path)
+            print("Successfully deleted workout_sessions.json")
+        except Exception as e:
+            print(f"Error deleting workout_sessions.json: {e}")
+            
+    if os.path.exists(workout_path):
+        try:
+            os.remove(workout_path)
+            print("Successfully deleted workout.json")
+        except Exception as e:
+            print(f"Error deleting workout.json: {e}")
+
