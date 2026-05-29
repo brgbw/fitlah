@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Camera Setup | FitLah NSmen Portal{% endblock %}
+
 {% block content %}
 <style>
     .prep-shell {
@@ -10,116 +11,274 @@
     }
 
     .prep-card {
+        width: 100%;
         background: #FFFFFF;
         border: 1px solid #CBD5E1;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 40px;
         box-shadow: var(--card-shadow);
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        gap: 30px;
-        width: 100%;
+        gap: 32px;
     }
 
     .prep-card h2 {
-        font-size: 32px;
+        font-size: 34px;
         color: #0F172A;
         margin-bottom: 10px;
-        letter-spacing: 0;
+        letter-spacing: -0.5px;
     }
 
     .prep-card-intro {
         color: #475569;
         font-size: 18px;
-        line-height: 1.55;
-        max-width: 840px;
+        line-height: 1.65;
+        max-width: 820px;
     }
 
-    .instruction-list {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(280px, 1fr));
-        gap: 16px;
+    /* =========================
+       PROGRESS
+    ========================== */
+
+    .progress-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
     }
 
-    .instruction-item {
-        display: grid;
-        grid-template-columns: 48px 1fr;
-        gap: 16px;
-        align-items: start;
-        padding: 20px;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: #F8FAFC;
-        position: relative;
+    .progress-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .progress-top span {
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748B;
+    }
+
+    .progress-track {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        background: #E2E8F0;
         overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        width: 25%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #00A86B, #008F5B);
+        transition:
+            width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.25s ease;
+        position: relative;
+    }
+
+    .progress-fill::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.55) 50%,
+            rgba(255,255,255,0) 100%
+        );
+        animation: shimmer 2.2s linear infinite;
+    }
+
+    @keyframes shimmer {
+        from {
+            transform: translateX(-120px);
+        }
+
+        to {
+            transform: translateX(120px);
+        }
+    }
+
+    /* =========================
+       INSTRUCTION CARD
+    ========================== */
+
+    .instruction-stage {
+        position: relative;
+        min-height: 150px;
+        perspective: 1200px;
+    }
+
+    .instruction-step {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(60px) scale(0.96);
+        transition:
+            opacity 0.45s ease,
+            transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .instruction-step.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(0) scale(1);
+    }
+
+    .instruction-card {
+        display: grid;
+        grid-template-columns: 76px 1fr;
+        gap: 24px;
+        padding: 30px;
+        border-radius: 16px;
+        border: 1px solid #E2E8F0;
+        background:
+            radial-gradient(circle at top right, rgba(0,168,107,0.06), transparent 30%),
+            linear-gradient(to bottom right, #FFFFFF, #F8FAFC);
+        box-shadow:
+            0 10px 24px rgba(15, 23, 42, 0.05),
+            inset 0 1px 0 rgba(255,255,255,0.7);
     }
 
     .instruction-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
+        width: 76px;
+        height: 76px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #E8F8F2, #D1FAE5);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #E8F8F2;
         color: #008F5B;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.75),
+            0 12px 20px rgba(0, 168, 107, 0.08);
+        animation: floatIcon 3.5s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+        0% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+
+        100% {
+            transform: translateY(0px);
+        }
     }
 
     .instruction-icon svg {
-        width: 24px;
-        height: 24px;
+        width: 34px;
+        height: 34px;
         stroke: currentColor;
         stroke-width: 2;
         fill: none;
     }
 
-    .instruction-item h3 {
-        font-size: 18px;
+    .instruction-content h3 {
+        font-size: 28px;
         color: #0F172A;
-        margin-bottom: 6px;
-    }
-    
-    /* Animated decorative line under each instruction title */
-    .instruction-content {
-        position: relative;
+        margin-bottom: 14px;
+        letter-spacing: -0.5px;
     }
 
-    .animated-line {
-        height: 6px;
-        width: 100%;
-        border-radius: 6px;
-        margin-top: 6px;
-        background: linear-gradient(90deg, rgba(0,159,122,0.08) 0%, rgba(0,159,122,0.36) 50%, rgba(0,159,122,0.08) 100%);
-        background-size: 200% 100%;
-        animation: slide 3s linear infinite;
-        transition: transform 200ms ease, height 200ms ease;
-    }
-
-    .instruction-item:hover .animated-line {
-        height: 8px;
-        transform: scaleX(1.02);
-    }
-
-    @keyframes slide {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 200% 50%; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .animated-line { animation: none; }
-    }
-    .instruction-item p {
-        font-size: 15px;
+    .instruction-content p {
+        font-size: 16px;
+        line-height: 1.8;
         color: #475569;
-        line-height: 1.5;
+        max-width: 720px;
     }
+
+    /* =========================
+       STEP DOTS
+    ========================== */
+
+    .step-dots {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .step-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        background: #CBD5E1;
+        transition: all 0.35s ease;
+    }
+
+    .step-dot.active {
+        width: 34px;
+        background: #00A86B;
+    }
+
+    /* =========================
+       CONTROLS
+    ========================== */
+
+    .instruction-controls {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        margin-top: 6px;
+    }
+
+    .step-btn {
+        border: none;
+        border-radius: 10px;
+        padding: 14px 22px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+
+    .step-btn.secondary {
+        background: #F1F5F9;
+        color: #334155;
+    }
+
+    .step-btn.secondary:hover {
+        background: #E2E8F0;
+    }
+
+    .step-btn.primary {
+        background: linear-gradient(135deg, #00A86B, #008F5B);
+        color: #FFFFFF;
+        box-shadow: 0 10px 22px rgba(0, 143, 91, 0.22);
+    }
+
+    .step-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(0, 143, 91, 0.28);
+    }
+
+    .step-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* =========================
+       SAFETY
+    ========================== */
 
     .safety-strip {
         border-left: 4px solid #F59E0B;
         background: #FFFBEB;
         padding: 18px 20px;
-        border-radius: 6px;
+        border-radius: 8px;
     }
 
     .safety-strip h3 {
@@ -131,16 +290,20 @@
     .safety-strip p {
         font-size: 15px;
         color: #78350F;
-        line-height: 1.5;
+        line-height: 1.6;
     }
+
+    /* =========================
+       FOOTER
+    ========================== */
 
     .prep-actions {
         display: flex;
-        align-items: center;
         justify-content: space-between;
+        align-items: center;
         gap: 12px;
-        border-top: 1px solid #E2E8F0;
         padding-top: 24px;
+        border-top: 1px solid #E2E8F0;
     }
 
     .secondary-link {
@@ -150,96 +313,359 @@
         text-decoration: none;
     }
 
+    .secondary-link:hover {
+        color: #0F172A;
+    }
+
     .primary-action {
         border: none;
-        border-radius: 6px;
-        background: #006039;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #006039, #008F5B);
         color: #FFFFFF;
-        padding: 15px 22px;
+        padding: 15px 24px;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         cursor: pointer;
+        transition: all 0.25s ease;
     }
 
     .primary-action:hover {
-        background: #015936;
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(0, 96, 57, 0.24);
     }
 
-    @media (max-width: 940px) {
+    .primary-action.locked {
+        opacity: 0.45;
+        pointer-events: none;
+        box-shadow: none;
+    }
+
+    /* =========================
+       MOBILE
+    ========================== */
+
+    @media (max-width: 760px) {
+
         .prep-card {
-            padding: 28px;
+            padding: 26px;
         }
 
-        .instruction-list {
+        .instruction-card {
             grid-template-columns: 1fr;
+        }
+
+        .instruction-icon {
+            width: 66px;
+            height: 66px;
+        }
+
+        .instruction-content h3 {
+            font-size: 24px;
+        }
+
+        .instruction-controls {
+            flex-direction: column;
+        }
+
+        .step-btn {
+            width: 100%;
         }
     }
 </style>
 
 <div class="prep-shell">
     <section class="prep-card">
+
         <div>
             <h2>Quick setup check</h2>
-            <p class="prep-card-intro">Before the camera opens, set up your laptop and workout space so FitLah can clearly track your push-up or sit-up session.</p>
+
+            <p class="prep-card-intro">
+                Before the camera opens, set up your laptop and workout space
+                so FitLah can clearly track your push-up or sit-up session.
+            </p>
         </div>
 
-        <div class="instruction-list">
-            <div class="instruction-item">
-                <div class="instruction-icon">
-                    <svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16h10l-2-8H9l-2 8z"></path><path d="M9 8V5h6v3"></path></svg>
-                </div>
-                <div class="instruction-content">
-                    <h3>Laptop on the floor</h3>
-                    <div class="animated-line" aria-hidden="true"></div>
-                    <p>Keep it stable, screen open near 90 degrees, with the camera facing your full side profile.</p>
-                </div>
+        <!-- Progress -->
+        <div class="progress-wrapper">
+
+            <div class="progress-top">
+                <span id="stepText">Step 1 of 4</span>
+                <span>Camera setup guide</span>
             </div>
 
-            <div class="instruction-item">
-                <div class="instruction-icon">
-                    <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
-                </div>
-                <div class="instruction-content">
-                    <h3>Full body inside the frame</h3>
-                    <div class="animated-line" aria-hidden="true"></div>
-                    <p>Leave space around your head, shoulders, hips, knees, and ankles so body tracking stays stable.</p>
-                </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
             </div>
 
-            <div class="instruction-item">
-                <div class="instruction-icon">
-                    <svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.5-2.9 7.4-7 9-4.1-1.6-7-4.5-7-9V7l7-4z"></path><path d="M9 12l2 2 4-5"></path></svg>
-                </div>
-                <div class="instruction-content">
-                    <h3>Clear the workout area</h3>
-                    <div class="animated-line" aria-hidden="true"></div>
-                    <p>Use a flat surface, move loose items away, and stop if you feel pain, dizziness, or sharp discomfort.</p>
-                </div>
-            </div>
-
-            <div class="instruction-item">
-                <div class="instruction-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>
-                </div>
-                <div class="instruction-content">
-                    <h3>Flow on the next screen</h3>
-                    <div class="animated-line" aria-hidden="true"></div>
-                    <p>Start camera, choose push-up or sit-up, get into position, then your first valid rep starts the timer.</p>
-                </div>
-            </div>
         </div>
 
+        <!-- Instruction Stage -->
+        <div class="instruction-stage">
+
+            <!-- STEP 1 -->
+            <div class="instruction-step active">
+
+                <div class="instruction-card">
+
+                    <div class="instruction-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 19h16"></path>
+                            <path d="M7 16h10l-2-8H9l-2 8z"></path>
+                            <path d="M9 8V5h6v3"></path>
+                        </svg>
+                    </div>
+
+                    <div class="instruction-content">
+                        <h3>Laptop on the floor</h3>
+
+                        <p>
+                            Keep your laptop stable on the floor with the screen
+                            opened around 90 degrees. Ensure the webcam captures
+                            your full side profile clearly.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="instruction-step">
+
+                <div class="instruction-card">
+
+                    <div class="instruction-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 5h16v14H4z"></path>
+                            <path d="M8 12h8"></path>
+                            <path d="M12 8v8"></path>
+                        </svg>
+                    </div>
+
+                    <div class="instruction-content">
+                        <h3>Full body inside the frame</h3>
+
+                        <p>
+                            Leave space around your head, shoulders, hips,
+                            knees, and ankles so body tracking remains stable
+                            throughout the workout.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="instruction-step">
+
+                <div class="instruction-card">
+
+                    <div class="instruction-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 3l7 4v5c0 4.5-2.9 7.4-7 9-4.1-1.6-7-4.5-7-9V7l7-4z"></path>
+                            <path d="M9 12l2 2 4-5"></path>
+                        </svg>
+                    </div>
+
+                    <div class="instruction-content">
+                        <h3>Clear the workout area</h3>
+
+                        <p>
+                            Use a flat surface and remove nearby objects that
+                            may block movement. Stop immediately if you feel
+                            pain, dizziness, or discomfort.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="instruction-step">
+
+                <div class="instruction-card">
+
+                    <div class="instruction-icon">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <path d="M12 8v4l3 2"></path>
+                        </svg>
+                    </div>
+
+                    <div class="instruction-content">
+                        <h3>Ready for workout detection</h3>
+
+                        <p>
+                            Start the camera, choose your exercise mode,
+                            position yourself correctly, and your first valid
+                            rep will automatically begin the timer.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Step Dots -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="instruction-controls">
+
+            <button
+                class="step-btn secondary"
+                id="prevBtn"
+                disabled>
+                Previous
+            </button>
+
+            <button
+                class="step-btn primary"
+                id="nextBtn">
+                Next
+            </button>
+
+        </div>
+
+        <!-- Safety -->
         <div class="safety-strip">
             <h3>Safety note</h3>
-            <p>Warm up first. For sit-ups, keep hands touching your ears. For push-ups, keep your body aligned and avoid placing the laptop where it can be kicked or stepped on.</p>
+
+            <p>
+                Warm up before starting. For sit-ups, keep your hands touching
+                your ears. For push-ups, maintain proper body alignment and
+                avoid placing the laptop where it can be kicked or stepped on.
+            </p>
         </div>
 
+        <!-- Footer -->
         <div class="prep-actions">
-            <a class="secondary-link" href="{{ url_for('dashboard') }}">Back</a>
-            <button class="primary-action" type="button" onclick="window.location.href='{{ url_for('webcam') }}'">Ready</button>
+
+            <a
+                class="secondary-link"
+                href="{{ url_for('dashboard') }}">
+                Back
+            </a>
+
+            <button
+                class="primary-action locked"
+                id="readyBtn"
+                type="button">
+                Read all instructions first
+            </button>
+
         </div>
+
     </section>
 </div>
+
+<script>
+    const steps = document.querySelectorAll('.instruction-step');
+    const dots = document.querySelectorAll('.step-dot');
+
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+
+    const progressFill = document.getElementById('progressFill');
+    const stepText = document.getElementById('stepText');
+
+    const readyBtn = document.getElementById('readyBtn');
+
+    let currentStep = 0;
+    const totalSteps = steps.length;
+
+    function updateUI() {
+
+        // Steps
+        steps.forEach((step, index) => {
+            step.classList.toggle('active', index === currentStep);
+        });
+
+        // Dots
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentStep);
+        });
+
+        // Progress
+        const progress = ((currentStep + 1) / totalSteps) * 100;
+        progressFill.style.width = `${progress}%`;
+
+        // Label
+        stepText.textContent =
+            `Step ${currentStep + 1} of ${totalSteps}`;
+
+        // Buttons
+        prevBtn.disabled = currentStep === 0;
+
+        // Final step
+        if (currentStep === totalSteps - 1) {
+
+            nextBtn.textContent = 'Completed';
+
+            readyBtn.classList.remove('locked');
+            readyBtn.textContent = 'Ready';
+
+        } else {
+
+            nextBtn.textContent = 'Next';
+
+            readyBtn.classList.add('locked');
+            readyBtn.textContent = 'Read all instructions first';
+        }
+    }
+
+    nextBtn.addEventListener('click', () => {
+
+        if (currentStep < totalSteps - 1) {
+
+            currentStep++;
+            updateUI();
+
+            // subtle pulse effect
+            progressFill.animate([
+                { transform: 'scaleY(1)' },
+                { transform: 'scaleY(1.35)' },
+                { transform: 'scaleY(1)' }
+            ], {
+                duration: 260,
+                easing: 'ease'
+            });
+
+        }
+
+    });
+
+    prevBtn.addEventListener('click', () => {
+
+        if (currentStep > 0) {
+            currentStep--;
+            updateUI();
+        }
+
+    });
+
+    readyBtn.addEventListener('click', () => {
+
+        if (!readyBtn.classList.contains('locked')) {
+
+            window.location.href = "{{ url_for('webcam') }}";
+
+        }
+
+    });
+
+    updateUI();
+</script>
+
 {% endblock %}
