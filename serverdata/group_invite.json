@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1,
+    "sender": "\u5c0f\u660e",
+    "sender_nric": "S9999999Z",
+    "recipient_nric": "T1234567A",
+    "recipient_name": "Peter Pan",
+    "group_id": 1,
+    "group_name": "Supreme Leaders",
+    "invited_on": "2026-05-29",
+    "status": "Pending"
+  }
+]

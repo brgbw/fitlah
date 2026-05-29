@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": 1,
+    "group_id": 1,
+    "nric": "S9999999Z",
+    "name": "\u5c0f\u660e",
+    "rank": "General",
+    "pushups": 0,
+    "situps": 0,
+    "run_time": "--:--"
+  }
+]

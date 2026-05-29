@@ -154,6 +154,9 @@ let currentMode = 'pushup';
 
         if (!results.poseLandmarks) {
             if (!isReplayMode) {
+                if (currentMode === 'pushup' && window.FitLahPushupExercise) {
+                    FitLahPushupExercise.reset();
+                }
                 setWarning('No body detected. Keep your full side profile inside the frame.');
             }
             ctx.restore();
@@ -524,6 +527,9 @@ let currentMode = 'pushup';
         uploadBtn.style.pointerEvents = 'auto';
         handsOnEarsStreak = 0;
         cvMetrics = null;
+        if (window.FitLahPushupExercise) {
+            FitLahPushupExercise.reset();
+        }
         updateCounters();
     }
 
@@ -535,6 +541,9 @@ let currentMode = 'pushup';
         stage = null;
         validReps = 0;
         invalidReps = 0;
+        if (window.FitLahPushupExercise) {
+            FitLahPushupExercise.reset();
+        }
         updateCounters();
         startRecBtn.style.display = 'inline-block';
         stopRecBtn.style.display = 'none';
