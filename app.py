@@ -582,6 +582,121 @@ def api_ai_recommendation():
     return jsonify(result), status
 
 
+@app.route("/strava-sync")
+@login_required
+def strava_sync():
+    """Render Strava sync page with auth code and app URLs."""
+    user = current_user()
+    strava_client_id = os.environ.get("STRAVA_CLIENT_ID", "")
+    # The OAuth redirect should return to the Strava sync page where we handle the code
+    strava_redirect_uri = url_for("strava_sync", _external=True)
+    
+    return render_template(
+        "stravasync.html",
+        user=user,
+        strava_client_id=strava_client_id,
+        strava_redirect_uri=strava_redirect_uri
+    )
+
+
+@app.route("/api/strava-callback", methods=["POST"])
+@login_required
+def api_strava_callback():
+    """Exchange auth code for access token and fetch recent runs."""
+    import requests
+    
+    data = request.get_json() or {}
+    auth_code = data.get("code", "").strip()
+    
+    if not auth_code:
+        return jsonify({"success": False, "error": "No authorization code provided"}), 400
+    
+    strava_client_id = os.environ.get("STRAVA_CLIENT_ID", "")
+    strava_client_secret = os.environ.get("STRAVA_CLIENT_SECRET", "")
+    
+    if not strava_client_id or not strava_client_secret:
+        return jsonify({"success": False, "error": "Strava credentials not configured"}), 500
+    
+    try:
+        # Exchange code for token
+        token_response = requests.post(
+            "https://www.strava.com/api/v3/oauth/token",
+            data={
+                "client_id": strava_client_id,
+                "client_secret": strava_client_secret,
+                "code": auth_code,
+                "grant_type": "authorization_code"
+            },
+            timeout=10
+        )
+        
+        if token_response.status_code != 200:
+            return jsonify({
+                "success": False,
+                "error": "Failed to authenticate with Strava"
+            }), 400
+        
+        token_data = token_response.json()
+        access_token = token_data.get("access_token", "")
+        athlete_id = token_data.get("athlete", {}).get("id", "")
+        
+        if not access_token:
+            return jsonify({
+                "success": False,
+                "error": "No access token in response"
+            }), 400
+        
+        # Fetch recent runs
+        runs_response = requests.get(
+            "https://www.strava.com/api/v3/athlete/activities",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"per_page": 5, "page": 1},
+            timeout=10
+        )
+        
+        if runs_response.status_code != 200:
+            return jsonify({
+                "success": False,
+                "error": "Failed to fetch Strava activities"
+            }), 400
+        
+        activities = runs_response.json()
+        run_activities = [
+            {
+                "name": act.get("name", "Run"),
+                "distance": round(act.get("distance", 0) / 1000, 2),
+                "moving_time": act.get("moving_time", 0),
+                "elapsed_time": act.get("elapsed_time", 0),
+                "date": act.get("start_date", "").split("T")[0],
+                "type": act.get("type", "Run")
+            }
+            for act in activities
+            if act.get("type") == "Run"
+        ]
+        
+        # Store token in session for this user
+        user = current_user()
+        session[f"strava_token_{user.get('nric')}"] = access_token
+        session[f"strava_athlete_id_{user.get('nric')}"] = athlete_id
+        
+        return jsonify({
+            "success": True,
+            "activities": run_activities,
+            "message": f"Successfully synced {len(run_activities)} recent runs"
+        }), 200
+    
+    except requests.RequestException as e:
+        return jsonify({
+            "success": False,
+            "error": f"Request error: {str(e)}"
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Error: {str(e)}"
+        }), 500
+
+
 if __name__ == "__main__":
     # Ensure userdata directories exist
     os.makedirs(os.path.join(BASE_DIR, 'userdata', 'pushup_videos'), exist_ok=True)

@@ -630,7 +630,32 @@
     }
 
     function triggerStravaModal() {
-        document.getElementById('stravaModal').style.display = 'flex';
+        // Open stravasync page in a popup window
+        const width = 700;
+        const height = 900;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        
+        window.stravaWindow = window.open(
+            "{{ url_for('strava_sync') }}",
+            "StravaSync",
+            `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+        );
+        
+        // Listen for messages from popup
+        window.addEventListener("message", function(event) {
+            // Verify origin for security
+            if (event.origin !== window.location.origin) return;
+            
+            if (event.data.type === "STRAVA_SYNC_SUCCESS") {
+                console.log("Strava sync completed:", event.data);
+                // Optionally refresh dashboard or show confirmation
+                alert("Strava sync successful! " + event.data.message);
+            } else if (event.data.type === "STRAVA_SYNC_ERROR") {
+                console.error("Strava sync error:", event.data);
+                alert("Strava sync failed: " + event.data.error);
+            }
+        }, false);
     }
 
     function closeStravaModal() {
