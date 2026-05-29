@@ -1,6 +1,6 @@
 (function () {
     const STATE = {
-        NOT_READY: 'not_ready',
+        NOT_READY: 'Waiting',
         READY: 'ready',
         UP: 'up',
         DOWN: 'down',

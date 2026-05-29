@@ -189,31 +189,128 @@ let currentMode = 'pushup';
     }
 
     function drawBodySkeleton(landmarks) {
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#00A86B';
-        for (const [aIdx, bIdx] of BODY_CONNECTIONS) {
-            const a = landmarks[aIdx];
-            const b = landmarks[bIdx];
-            if ((a.visibility || 0) > 0.4 && (b.visibility || 0) > 0.4) {
-                ctx.beginPath();
-                ctx.moveTo(a.x * poseCanvas.width, a.y * poseCanvas.height);
-                ctx.lineTo(b.x * poseCanvas.width, b.y * poseCanvas.height);
-                ctx.stroke();
-            }
-        }
-        for (const idx of BODY_LANDMARK_INDICES) {
-            const lm = landmarks[idx];
-            if ((lm.visibility || 0) > 0.4) {
-                ctx.beginPath();
-                ctx.arc(lm.x * poseCanvas.width, lm.y * poseCanvas.height, 4, 0, 2 * Math.PI);
-                ctx.fillStyle = '#F43F5E';
-                ctx.fill();
-                ctx.strokeStyle = '#FFFFFF';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
+    ctx.save();
+
+    // ===== GLOWING CONNECTIONS =====
+    for (const [aIdx, bIdx] of BODY_CONNECTIONS) {
+        const a = landmarks[aIdx];
+        const b = landmarks[bIdx];
+
+        if ((a.visibility || 0) > 0.4 && (b.visibility || 0) > 0.4) {
+
+            const x1 = a.x * poseCanvas.width;
+            const y1 = a.y * poseCanvas.height;
+            const x2 = b.x * poseCanvas.width;
+            const y2 = b.y * poseCanvas.height;
+
+            // Futuristic gradient line
+            const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+            gradient.addColorStop(0, "#00FFFF");
+            gradient.addColorStop(0.5, "#00FF88");
+            gradient.addColorStop(1, "#7C3AED");
+
+            // Outer glow
+            ctx.shadowColor = "#00FFFF";
+            ctx.shadowBlur = 20;
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Bright center line
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
         }
     }
+
+    // ===== AI JOINTS =====
+    for (const idx of BODY_LANDMARK_INDICES) {
+        const lm = landmarks[idx];
+
+        if ((lm.visibility || 0) > 0.4) {
+
+            const x = lm.x * poseCanvas.width;
+            const y = lm.y * poseCanvas.height;
+
+            // Glow
+            ctx.shadowColor = "#00FFFF";
+            ctx.shadowBlur = 25;
+
+            // Outer ring
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(0,255,255,0.15)";
+            ctx.fill();
+
+            // Main node
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = "#00FFFF";
+            ctx.fill();
+
+            // White core
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fill();
+
+            // Tech ring
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = "#00FFFF";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(x, y, 14, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    // ===== SHOULDER-HIP TRIANGLE =====
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+
+    if (
+        leftShoulder && rightShoulder &&
+        leftHip && rightHip
+    ) {
+        ctx.beginPath();
+        ctx.moveTo(
+            leftShoulder.x * poseCanvas.width,
+            leftShoulder.y * poseCanvas.height
+        );
+
+        ctx.lineTo(
+            rightShoulder.x * poseCanvas.width,
+            rightShoulder.y * poseCanvas.height
+        );
+
+        ctx.lineTo(
+            rightHip.x * poseCanvas.width,
+            rightHip.y * poseCanvas.height
+        );
+
+        ctx.lineTo(
+            leftHip.x * poseCanvas.width,
+            leftHip.y * poseCanvas.height
+        );
+
+        ctx.closePath();
+
+        ctx.fillStyle = "rgba(0,255,255,0.05)";
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
 
     function bestSide(landmarks) {
         const left = [11, 13, 15, 23, 25, 27].reduce((sum, idx) => sum + (landmarks[idx].visibility || 0), 0);
@@ -326,23 +423,115 @@ let currentMode = 'pushup';
         return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
     }
 
-    function drawHudOverlay() {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
-        ctx.fillRect(16, 16, 250, 92);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '700 10px Segoe UI, Arial';
-        ctx.fillText(`${currentMode === 'pushup' ? 'Push-Ups' : 'Sit-Ups'}: ${validReps}`, 32, 48);
-        ctx.fillStyle = '#FCA5A5';
-        ctx.fillText(`Invalid: ${invalidReps}`, 32, 76);
-        ctx.fillStyle = '#BBF7D0';
-        ctx.fillText(`Stage: ${stage || 'ready'}`, 142, 76);
-        if (isRecording && timerDisplay.style.display !== 'none') {
-            ctx.fillStyle = '#FDE68A';
-            ctx.fillText(timerDisplay.textContent, 200, 48);
-        }
+function drawHudOverlay() {
+    const x = 20;
+    const y = 70;
+    const w = 320;
+    const h = 105;
+    const r = 14;
+
+    const COLORS = {
+        panel: 'rgba(15, 23, 42, 0.70)',
+        border: 'rgba(34, 211, 238, 0.55)',
+        accent: '#22D3EE',
+        text: 'rgba(248, 250, 252, 0.92)',
+        subtext: 'rgba(148, 163, 184, 0.9)',
+        good: '#4ADE80',
+        bad: '#FB7185'
+    };
+
+    ctx.save();
+
+    // =========================
+    // PANEL
+    // =========================
+    ctx.fillStyle = COLORS.panel;
+    ctx.strokeStyle = COLORS.border;
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+
+    ctx.fill();
+    ctx.stroke();
+
+    // =========================
+    // HEADER (clean, no extra line under it)
+    // =========================
+    ctx.fillStyle = COLORS.accent;
+    ctx.font = '600 12px Segoe UI';
+    ctx.textAlign = 'left';
+
+    ctx.fillText('AI FITNESS TRACKER', x + 14, y + 20);
+
+    // =========================
+    // LABELS
+    // =========================
+    const labelY = y + 48;
+    const valueY = y + 78;
+
+    ctx.font = '500 11px Segoe UI';
+    ctx.fillStyle = COLORS.subtext;
+
+    ctx.fillText('REPS', x + 14, labelY);
+    ctx.fillText('INVALID', x + 120, labelY);
+    ctx.fillText('STAGE', x + 230, labelY);
+
+    // =========================
+    // VALUES
+    // =========================
+    ctx.font = '600 18px Segoe UI';
+
+    // ✅ GOOD REPS NOW GREEN
+    ctx.fillStyle = COLORS.good;
+    ctx.fillText(String(validReps), x + 14, valueY);
+
+    // invalid stays red
+    ctx.fillStyle = COLORS.bad;
+    ctx.fillText(String(invalidReps), x + 120, valueY);
+
+    // stage stays neutral green (fine for system state)
+    ctx.fillStyle = COLORS.good;
+    ctx.fillText((stage || 'READY').toUpperCase(), x + 230, valueY);
+
+    // =========================
+    // PROGRESS BAR
+    // =========================
+    const progress = Math.min(validReps / 20, 1);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(x + 14, y + 90, w - 28, 5);
+
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, COLORS.accent);
+    grad.addColorStop(1, COLORS.good);
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(x + 14, y + 90, (w - 28) * progress, 5);
+
+    // =========================
+    // RECORD DOT
+    // =========================
+    if (isRecording) {
+        ctx.fillStyle = '#FB7185';
+        ctx.beginPath();
+        ctx.arc(x + w - 14, y + 18, 4, 0, Math.PI * 2);
+        ctx.fill();
     }
 
-    function setWarning(text) {
+    ctx.restore();
+}
+
+function setWarning(text) {
         document.getElementById('warningMessage').innerText = text;
     }
 
