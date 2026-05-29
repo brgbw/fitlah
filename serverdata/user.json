@@ -62,5 +62,13 @@
     "rank": "MASTER~",
     "unit": "DEGENERATES",
     "last_login": null
+  },
+  {
+    "id": 9,
+    "nric": "G0000000X",
+    "name": "OMD",
+    "rank": "SV4",
+    "unit": "RIAU FORCES",
+    "last_login": null
   }
 ]

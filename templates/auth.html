@@ -193,7 +193,8 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        input {
+        input,
+        select {
             width: 100%;
             border: 1px solid var(--border);
             border-radius: 6px;
@@ -204,7 +205,11 @@
             font-size: 14px;
             transition: all 0.15s ease;
         }
-        input:focus {
+        select {
+            appearance: none;
+        }
+        input:focus,
+        select:focus {
             border-color: var(--primary);
             background-color: #FFFFFF;
             box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.12);
@@ -324,7 +329,12 @@
                     <div class="form-row">
                         <div class="form-field">
                             <label for="rank">Rank</label>
-                            <input id="rank" name="rank" type="text" placeholder="e.g. Lieutenant">
+                            <select id="rank" name="rank" required>
+                                <option value="" disabled {% if not selected_rank %}selected{% endif %}>Select rank</option>
+                                {% for rank in signup_ranks %}
+                                <option value="{{ rank }}" {% if selected_rank == rank %}selected{% endif %}>{{ rank }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-field">
                             <label for="unit">Unit</label>

@@ -19,6 +19,14 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.environ.get("FITLAH_SECRET_KEY", "fitlah-dev-secret-key")
 
+SIGNUP_RANKS = [
+    "REC", "PTE", "PFC", "LCP", "CPL", "CFC", "SCT", "3SG", "2SG", "1SG", "SSG", "MSG",
+    "3WO", "2WO", "1WO", "MWO", "SWO", "CWO", "OCT", "MID", "2LT", "LTA", "CPT", "MAJ",
+    "LTC", "SLTC", "COL", "BG", "MG", "LG", "RADM(1)", "RADM(2)", "VADM", "ME1(T)",
+    "ME1", "ME2", "ME3", "ME4(T)", "ME4(A)", "ME4", "ME5", "ME6", "ME7", "ME8", "ME9",
+    "SV(T)", "SV1", "SV2", "SV3", "SV4"
+]
+
 @app.teardown_appcontext
 def teardown_db(exception):
     close_db(exception)
@@ -85,16 +93,20 @@ def signup():
         return redirect(url_for("dashboard"))
 
     error = None
+    selected_rank = ""
     if request.method == "POST":
         nric = request.form.get("nric", "").strip().upper()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
         name = request.form.get("name", "").strip().upper()
-        rank = request.form.get("rank", "").strip().upper() or "SOLDIER"
+        rank = request.form.get("rank", "").strip().upper()
+        selected_rank = rank
         unit = request.form.get("unit", "").strip().upper() or "UNASSIGNED"
 
         if not nric_check(nric):
             error = "Enter a valid NRIC."
+        elif rank not in SIGNUP_RANKS:
+            error = "Select a valid rank."
         elif not password or len(password) < 6:
             error = "Password must be at least 6 characters."
         elif password != confirm_password:
@@ -142,7 +154,13 @@ def signup():
                 session["user_nric"] = nric
                 return redirect(url_for("dashboard"))
 
-    return render_template("auth.html", mode="signup", error=error)
+    return render_template(
+        "auth.html",
+        mode="signup",
+        error=error,
+        signup_ranks=SIGNUP_RANKS,
+        selected_rank=selected_rank
+    )
 
 
 @app.route("/logout")
