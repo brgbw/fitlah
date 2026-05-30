@@ -3,14 +3,14 @@ from datetime import datetime
 from flask import jsonify, render_template, request
 
 from ..auth import current_user, login_required
-from ..db import fetch_table, insert_row, next_id, query_db, update_row
+from ..db import fetch_table, insert_row, next_id, update_row
 from ..helpers import (
     create_invites_for_group,
     find_group,
     get_personal_best,
-    member_with_personal_best,
     user_is_group_member,
 )
+from ..ippt_scoring import age_profile_from_nric, calculate_from_personal_best
 
 
 def _member_row(user, group_id):
@@ -20,9 +20,40 @@ def _member_row(user, group_id):
         "nric": user.get("nric"),
         "name": user.get("name", "NSman"),
         "rank": user.get("rank", "Soldier"),
+        **age_profile_from_nric(user.get("nric")),
         "pushups": personal_best.get("pushups", 0),
         "situps": personal_best.get("situps", 0),
         "run_time": personal_best.get("run_time", "--:--"),
+    }
+
+
+def _default_best(nric):
+    return {
+        "nric": nric,
+        "pushups": 0,
+        "situps": 0,
+        "run_time": "--:--",
+        **age_profile_from_nric(nric),
+        "updated_at": None,
+    }
+
+
+def _member_with_best(member, best_by_nric):
+    nric = (member.get("nric") or "").strip().upper()
+    best = dict(best_by_nric.get(nric) or _default_best(nric))
+    best.update(age_profile_from_nric(nric))
+    score = calculate_from_personal_best(best, best.get("age_group"))
+    return {
+        **member,
+        "age": best.get("age"),
+        "age_group": best.get("age_group"),
+        "personal_best": best,
+        "ippt_score": score,
+        "ippt_points": score.get("total_points", 0),
+        "ippt_award": score.get("award", {}),
+        "pushups": best.get("pushups", 0),
+        "situps": best.get("situps", 0),
+        "run_time": best.get("run_time", "--:--"),
     }
 
 
@@ -31,29 +62,50 @@ def register_group_routes(app):
     @login_required
     def group():
         user = current_user()
-        invites = query_db(
-            "group_invite",
-            lambda x: x.get("recipient_nric") == user.get("nric") and x.get("status") == "Pending",
-        )
+        sort_order = request.args.get("sort") or "desc"
+        reverse_sort = sort_order != "asc"
+        user_nric = user.get("nric")
+        all_invites = fetch_table("group_invite")
+        all_members = fetch_table("group_member")
+        all_groups = fetch_table("fitness_group")
+        personal_bests = fetch_table("personal_best")
+        best_by_nric = {
+            (best.get("nric") or "").strip().upper(): best
+            for best in personal_bests
+            if best.get("nric")
+        }
+
+        invites = [
+            invite for invite in all_invites
+            if invite.get("recipient_nric") == user_nric and invite.get("status") == "Pending"
+        ]
         joined_group_ids = {
             member.get("group_id")
-            for member in query_db("group_member", lambda x: x.get("nric") == user.get("nric"))
+            for member in all_members
+            if member.get("nric") == user_nric
         }
-        groups = query_db("fitness_group", lambda x: x.get("id") in joined_group_ids)
+        groups = [group for group in all_groups if group.get("id") in joined_group_ids]
 
         group_data = []
         for fitness_group in groups:
+            group_members = [
+                _member_with_best(member, best_by_nric)
+                for member in all_members
+                if member.get("group_id") == fitness_group.get("id")
+            ]
             members = sorted(
-                [
-                    member_with_personal_best(member)
-                    for member in query_db("group_member", lambda x: x.get("group_id") == fitness_group.get("id"))
-                ],
-                key=lambda x: x.get("personal_best", {}).get("pushups", 0),
-                reverse=True,
+                group_members,
+                key=lambda x: x.get("ippt_score", {}).get("total_points", 0),
+                reverse=reverse_sort,
             )
             group_data.append({"group": fitness_group, "members": members})
 
-        return render_template("group_invites.html", invites=invites, group_data=group_data)
+        return render_template(
+            "group_invites.html",
+            invites=invites,
+            group_data=group_data,
+            sort_order=sort_order,
+        )
 
     @app.route("/api/accept-invite/<int:invite_id>", methods=["POST"])
     @login_required

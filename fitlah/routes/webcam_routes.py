@@ -8,6 +8,7 @@ from ..auth import current_user, login_required
 from ..config import BASE_DIR
 from ..db import delete_row, delete_rows, fetch_table, insert_row, next_id, query_db, update_row
 from ..helpers import get_personal_best, save_ai_recommendation, update_personal_best
+from ..ippt_scoring import age_profile_from_nric
 
 
 def _exercise_labels(exercise_type):
@@ -34,6 +35,7 @@ def recalculate_exercise_best(db, nric, exercise_type):
             "pushups": 0,
             "situps": 0,
             "run_time": "--:--",
+            **age_profile_from_nric(nric),
             "updated_at": None,
         }
         insert_row("personal_best", personal_best)
@@ -78,6 +80,34 @@ def register_webcam_routes(app):
     @login_required
     def webcam_prep():
         return render_template("webcam_prep.html")
+
+    @app.route("/ai-recommendations")
+    @login_required
+    def ai_recommendations():
+        user = current_user()
+        nric = user.get("nric")
+        raw_ids = request.args.get("session_ids", "")
+        session_ids = []
+        for item in raw_ids.split(","):
+            try:
+                session_ids.append(int(item))
+            except (TypeError, ValueError):
+                continue
+
+        logs = [
+            log for log in fetch_table("performance_log")
+            if log.get("nric") == nric and log.get("ai_recommendation")
+        ]
+        if session_ids:
+            allowed = set(session_ids)
+            logs = [log for log in logs if int(log.get("session_id") or 0) in allowed]
+            order = {session_id: index for index, session_id in enumerate(session_ids)}
+            logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
+        else:
+            logs.sort(key=lambda log: (log.get("date") or "", log.get("time") or ""), reverse=True)
+            logs = logs[:3]
+
+        return render_template("ai_recommendations.html", recommendations=logs)
 
     @app.route("/api/workout-session/<int:session_id>", methods=["DELETE"])
     @login_required

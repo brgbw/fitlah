@@ -1,7 +1,8 @@
-Version 0.1.2 
+Version 0.1.3
 
 Refactor Code and UI
-Seed data is used only to populate empty PostgreSQL tables on first startup.
+Removed serverdata json completely
+
 
 
 

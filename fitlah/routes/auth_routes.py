@@ -6,6 +6,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from ..auth import current_user
 from ..constants import SIGNUP_RANKS
 from ..db import fetch_table, insert_row, next_id, update_row
+from ..ippt_scoring import age_profile_from_nric
+from ..profile_age import sync_age_for_nric
 from ..validators import nric_check
 
 
@@ -23,6 +25,7 @@ def register_auth_routes(app):
 
             if user and check_password_hash(user.get("password_hash", ""), password):
                 session["user_nric"] = user["nric"]
+                sync_age_for_nric(user["nric"])
                 update_row("auth_user", "nric", user["nric"], {
                     "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 })
@@ -60,6 +63,7 @@ def register_auth_routes(app):
                 error = "Enter your name."
             else:
                 existing = next((u for u in fetch_table("auth_user") if u.get("nric") == nric), None)
+                age_profile = age_profile_from_nric(nric)
 
                 if existing and not existing.get("password_is_default"):
                     error = "This NRIC already has an account. Please log in."
@@ -70,6 +74,7 @@ def register_auth_routes(app):
                         "name": name,
                         "rank": rank,
                         "unit": unit,
+                        **age_profile,
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     })
                     session["user_nric"] = nric
@@ -83,6 +88,7 @@ def register_auth_routes(app):
                         "name": name,
                         "rank": rank,
                         "unit": unit,
+                        **age_profile,
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "last_login": None,
                     }
@@ -93,6 +99,7 @@ def register_auth_routes(app):
                         "name": name,
                         "rank": rank,
                         "unit": unit,
+                        **age_profile,
                         "last_login": None,
                     })
                     session["user_nric"] = nric

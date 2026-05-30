@@ -9,6 +9,9 @@
         declineInvite: (inviteId) => `/api/decline-invite/${inviteId}`
     };
 
+    let activeGroupId = groupRosterData[0]?.group?.id || null;
+    let leaderboardSort = document.getElementById('leaderboardSort')?.value || 'desc';
+
     function openModal(modalId) {
         document.getElementById(modalId).classList.add('active');
     }
@@ -17,24 +20,38 @@
         document.getElementById(modalId).classList.remove('active');
     }
 
+    function sortedMembers(members) {
+        return [...members].sort((a, b) => {
+            const aScore = Number(a.ippt_score?.total_points || a.ippt_points || 0);
+            const bScore = Number(b.ippt_score?.total_points || b.ippt_points || 0);
+            return leaderboardSort === 'asc' ? aScore - bScore : bScore - aScore;
+        });
+    }
+
     function renderRoster(groupId) {
         const tableBody = document.getElementById('groupTableBody');
+        activeGroupId = Number(groupId);
         const selected = groupRosterData.find(item => item.group.id === Number(groupId));
 
         if (!selected || selected.members.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No roster records available for this group yet.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">No roster records available for this group yet.</td></tr>';
             return;
         }
 
-        tableBody.innerHTML = selected.members.map(member => {
+        tableBody.innerHTML = sortedMembers(selected.members).map(member => {
             const best = member.personal_best || {};
-            const pushups = Number(best.pushups || 0);
+            const score = member.ippt_score || {};
+            const award = score.award || {};
 
             return `
                 <tr>
                     <td>
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
                         <span class="user-id-tag">${escapeHtml(member.nric || '')}</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${member.age || '--'}</div>
+                        <span class="pb-unit">${escapeHtml(member.age_group || 'Age Band')}</span>
                     </td>
                     <td class="pb-cell">
                         <div class="pb-value">${best.pushups || '--'}</div>
@@ -47,6 +64,15 @@
                     <td class="pb-cell">
                         <div class="pb-value">${escapeHtml(best.run_time || '--:--')}</div>
                         <span class="pb-unit">Minutes</span>
+                    </td>
+                    <td class="pb-cell">
+                        <div class="pb-value">${score.total_points || 0}</div>
+                        <span class="pb-unit">Points</span>
+                    </td>
+                    <td>
+                        <span class="status-badge-pill ${escapeHtml(award.code || 'fail')}">
+                            ${escapeHtml(award.label || 'Fail')}
+                        </span>
                     </td>
                 </tr>`;
         }).join('');
@@ -69,6 +95,16 @@
         tabElement.classList.add('active');
         document.getElementById('tableTitleContext').innerText = `${tabElement.innerText} Roster Records - Personal Bests`;
         renderRoster(tabElement.dataset.groupId);
+    }
+
+    function setLeaderboardSort(value) {
+        leaderboardSort = value === 'asc' ? 'asc' : 'desc';
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort', leaderboardSort);
+        window.history.replaceState({}, '', url.toString());
+        if (activeGroupId) {
+            renderRoster(activeGroupId);
+        }
     }
 
     function addChipToken() {
@@ -197,6 +233,7 @@
     window.openModal = openModal;
     window.closeModal = closeModal;
     window.selectTab = selectTab;
+    window.setLeaderboardSort = setLeaderboardSort;
     window.addChipToken = addChipToken;
     window.submitCreateGroup = submitCreateGroup;
     window.addMemberToGroup = addMemberToGroup;

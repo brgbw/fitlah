@@ -261,6 +261,193 @@
         white-space: nowrap;
     }
 
+    .ippt-panel {
+        padding: 24px;
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FCFA 100%);
+    }
+
+    .ippt-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .ippt-title-row h3 {
+        color: #0F172A;
+        font-size: 19px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .ippt-title-row p {
+        color: #64748B;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .score-hero {
+        display: grid;
+        grid-template-columns: 104px 1fr;
+        align-items: center;
+        gap: 16px;
+        --award-color: #0F766E;
+        border: 1px solid #D9E7E0;
+        border-radius: 12px;
+        background: #FFFFFF;
+        padding: 18px;
+        margin-bottom: 12px;
+    }
+
+    .score-hero.award-gold {
+        --award-color: #D97706;
+    }
+
+    .score-hero.award-silver {
+        --award-color: #64748B;
+    }
+
+    .score-hero.award-pass-incentive {
+        --award-color: #16A34A;
+    }
+
+    .score-hero.award-pass {
+        --award-color: #2563EB;
+    }
+
+    .score-hero.award-fail {
+        --award-color: #EA580C;
+    }
+
+    .score-ring {
+        width: 92px;
+        height: 92px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background:
+            radial-gradient(circle at center, #FFFFFF 57%, transparent 59%),
+            conic-gradient(var(--award-color, #0F766E) calc(var(--score-percent, 0) * 1%), #E2E8F0 0);
+    }
+
+    .score-line {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+    }
+
+    .score-total {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+    }
+
+    .score-total strong {
+        color: #0F172A;
+        font-size: 28px;
+        font-weight: 620;
+        line-height: 1;
+    }
+
+    .score-total span {
+        color: #64748B;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .award-pill {
+        display: inline-flex;
+        width: fit-content;
+        border-radius: 999px;
+        background: #E0F2FE;
+        color: #0369A1;
+        border: 1px solid #BAE6FD;
+        padding: 7px 11px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .award-pill.gold {
+        background: #FEF3C7;
+        color: #B45309;
+        border-color: #FCD34D;
+    }
+
+    .award-pill.silver {
+        background: #F1F5F9;
+        color: #475569;
+        border-color: #CBD5E1;
+    }
+
+    .award-pill.pass-incentive {
+        background: #DCFCE7;
+        color: #166534;
+        border-color: #86EFAC;
+    }
+
+    .award-pill.pass {
+        background: #DBEAFE;
+        color: #1D4ED8;
+        border-color: #93C5FD;
+    }
+
+    .award-pill.fail {
+        background: #FFF7ED;
+        color: #B45309;
+        border-color: #FED7AA;
+    }
+
+    .score-note {
+        color: #475569;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .score-note:empty {
+        display: none;
+    }
+
+    .station-grid {
+        display: grid;
+        gap: 8px;
+    }
+
+    .station-card {
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        background: #FFFFFF;
+        padding: 12px 13px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .station-card span {
+        display: block;
+        color: #64748B;
+        font-size: 12px;
+        font-weight: 550;
+        margin-bottom: 3px;
+    }
+
+    .station-card strong {
+        display: block;
+        color: #0F172A;
+        font-size: 17px;
+        font-weight: 600;
+    }
+
+    .station-card small {
+        color: #64748B;
+        font-size: 12px;
+        text-align: right;
+        font-weight: 600;
+    }
+
     .strava-preview-status::before {
         content: "";
         width: 7px;
@@ -436,7 +623,12 @@
 
         .dashboard-grid,
         .action-stack,
+        .station-grid,
         .strava-ai-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .score-hero {
             grid-template-columns: 1fr;
         }
     }
@@ -520,6 +712,66 @@
         </section>
 
         <aside class="side-stack">
+            <section class="panel ippt-panel">
+                <div class="ippt-title-row">
+                    <div>
+                        <h3>Your IPPT Readiness</h3>
+                        <p>
+                            Personal bests from your latest training records.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="score-hero award-{{ ippt_score.award.code }}" id="ipptScoreHero" style="--score-percent: {{ ippt_score.total_points }}">
+                    <div class="score-ring">
+                        <div class="score-total">
+                            <strong id="ipptTotalPoints">{{ ippt_score.total_points }}</strong>
+                            <span>/100</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="score-line">
+                            <div class="award-pill {{ ippt_score.award.code }}" id="ipptAward">
+                                {{ ippt_score.award.label }}
+                            </div>
+                        </div>
+
+                        <p class="score-note" id="ipptScoreNote">
+                            {% if not ippt_score.complete %}
+                                Add all three stations to complete your score.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="station-grid">
+                    <div class="station-card">
+                        <div>
+                            <span>Push-up</span>
+                            <strong id="ipptPushups">{{ ippt_score.pushups }} reps</strong>
+                        </div>
+                        <small><span id="ipptPushupPoints">{{ ippt_score.pushup_points }}</span> pts</small>
+                    </div>
+
+                    <div class="station-card">
+                        <div>
+                            <span>Sit-up</span>
+                            <strong id="ipptSitups">{{ ippt_score.situps }} reps</strong>
+                        </div>
+                        <small><span id="ipptSitupPoints">{{ ippt_score.situp_points }}</span> pts</small>
+                    </div>
+
+                    <div class="station-card">
+                        <div>
+                            <span>2.4km</span>
+                            <strong id="ipptRunTime">{{ ippt_score.run_time }}</strong>
+                        </div>
+                        <small><span id="ipptRunPoints">{{ ippt_score.run_points }}</span> pts</small>
+                    </div>
+                </div>
+            </section>
+
             <section class="panel recent-panel">
 
                 <div class="panel-title recent-activity-title">
@@ -597,6 +849,31 @@
         card.style.display = 'block';
     }
 
+    async function refreshIpptScore() {
+        const response = await fetch('/api/ippt-score');
+        const data = await response.json();
+        if (!response.ok || !data.success) return;
+
+        const score = data.score;
+        const award = document.getElementById('ipptAward');
+        document.getElementById('ipptTotalPoints').textContent = score.total_points;
+        document.getElementById('ipptScoreHero').style.setProperty('--score-percent', score.total_points);
+        document.getElementById('ipptPushups').textContent = `${score.pushups} reps`;
+        document.getElementById('ipptSitups').textContent = `${score.situps} reps`;
+        document.getElementById('ipptRunTime').textContent = score.run_time;
+        document.getElementById('ipptPushupPoints').textContent = score.pushup_points;
+        document.getElementById('ipptSitupPoints').textContent = score.situp_points;
+        document.getElementById('ipptRunPoints').textContent = score.run_points;
+        document.getElementById('ipptScoreNote').textContent = score.complete
+            ? ''
+            : 'Add all three stations to complete your score.';
+        award.textContent = score.award.label;
+        award.className = `award-pill ${score.award.code}`;
+
+        const scoreHero = document.getElementById('ipptScoreHero');
+        scoreHero.className = `score-hero award-${score.award.code}`;
+    }
+
     async function importMockStravaRun(runId, button) {
         const result = document.getElementById('stravaImportResult');
         const status = document.getElementById('stravaImportStatus');
@@ -624,6 +901,7 @@
             allRuns.forEach(row => row.classList.toggle('selected', row.dataset.runId === runId));
             status.textContent = `${data.log.name} imported to Calendar and performance log.`;
             renderStravaAi(data.ai_recommendation || {});
+            refreshIpptScore();
             button.textContent = 'Imported';
         } catch (error) {
             status.className = 'strava-import-status error';
@@ -634,6 +912,7 @@
             });
         }
     }
+
 </script>
 
 {% endblock %}

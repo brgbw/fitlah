@@ -113,6 +113,33 @@
         margin-bottom: 20px;
     }
 
+    .leaderboard-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .sort-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #64748B;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .sort-control select {
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: #0F172A;
+        font-size: 12px;
+        padding: 8px 10px;
+        outline: none;
+    }
+
     /* Leaderboard Table */
     .sync-table-container {
         background-color: #FFFFFF;
@@ -198,6 +225,15 @@
     .status-badge-pill.incomplete { 
         background-color: #FFE4E6; 
         color: #E11D48; 
+    }
+    .status-badge-pill.fail {
+        background-color: #FFF7ED;
+        color: #B45309;
+    }
+    .status-badge-pill.pass,
+    .status-badge-pill.pass-incentive {
+        background-color: #E8F8F2;
+        color: #047857;
     }
 
     /* Panel Box */
@@ -514,7 +550,17 @@
             <button onclick="addMemberToGroup()">Send Invite</button>
         </div>
 
-        <div class="section-title" id="tableTitleContext">Leaderboard</div>
+        <div class="leaderboard-bar">
+            <div class="section-title" id="tableTitleContext">Leaderboard</div>
+
+            <label class="sort-control">
+                Sort
+                <select id="leaderboardSort" onchange="setLeaderboardSort(this.value)">
+                    <option value="desc" {% if sort_order != 'asc' %}selected{% endif %}>Highest score</option>
+                    <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Lowest score</option>
+                </select>
+            </label>
+        </div>
         
         <!-- Leaderboard Table -->
         <div class="sync-table-container">
@@ -522,9 +568,12 @@
                 <thead>
                     <tr>
                         <th>Personnel Name</th>
+                        <th>Age</th>
                         <th>PB Push-Ups</th>
                         <th>PB Sit-Ups</th>
                         <th>PB 2.4km Run</th>
+                        <th>IPPT Score</th>
+                        <th>Award</th>
                 
                     </tr>
                 </thead>
@@ -535,6 +584,10 @@
                             <td>
                                 <strong>{{ member.name }}</strong>
                                 <span class="user-id-tag">{{ member.nric }}</span>
+                            </td>
+                            <td class="pb-cell">
+                                <div class="pb-value">{{ member.age or '--' }}</div>
+                                <span class="pb-unit">{{ member.age_group or 'Age Band' }}</span>
                             </td>
                             <td class="pb-cell">
                                 <div class="pb-value">{{ member.personal_best.pushups or '--' }}</div>
@@ -548,12 +601,21 @@
                                 <div class="pb-value">{{ member.personal_best.run_time or '--:--' }}</div>
                                 <span class="pb-unit">Minutes</span>
                             </td>
+                            <td class="pb-cell">
+                                <div class="pb-value">{{ member.ippt_score.total_points }}</div>
+                                <span class="pb-unit">Points</span>
+                            </td>
+                            <td>
+                                <span class="status-badge-pill {{ member.ippt_score.award.code }}">
+                                    {{ member.ippt_score.award.label }}
+                                </span>
+                            </td>
                         
                         </tr>
                         {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="5" class="empty-state">No groups available. Create a group to get started.</td>
+                        <td colspan="7" class="empty-state">No groups available. Create a group to get started.</td>
                     </tr>
                     {% endif %}
                 </tbody>

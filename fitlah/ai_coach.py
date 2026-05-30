@@ -1,130 +1,130 @@
-"""Google AI Studio (Gemini) exercise coaching from computer-vision session metrics.
-
-Uses the Gemini API endpoint that accepts keys from https://aistudio.google.com/apikey
-"""
+"""OpenRouter exercise coaching from computer-vision session metrics."""
 
 import json
 import os
 import re
-import ssl
-import urllib.error
-import urllib.request
+
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 try:
     import certifi
 except ImportError:
     certifi = None
 
-# Default model — pick any model name shown in Google AI Studio (e.g. gemini-2.0-flash)
-DEFAULT_MODEL = "gemini-2.0-flash"
-GOOGLE_AI_STUDIO_API = "https://generativelanguage.googleapis.com/v1beta/models"
+DEFAULT_MODEL = "openai/gpt-4o-mini"
+OPENROUTER_CHAT_COMPLETIONS_API = "https://openrouter.ai/api/v1/chat/completions"
 
 
-def _ssl_context(verify=True):
-    """Build SSL context. certifi helps on many systems; verify=False for local Windows dev."""
-    if not verify or os.environ.get("FITLAH_INSECURE_SSL", "").lower() in {"1", "true", "yes"}:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-
+def _verify_setting():
     cafile = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
     if not cafile and certifi:
         cafile = certifi.where()
-
-    if cafile:
-        return ssl.create_default_context(cafile=cafile)
-    return ssl.create_default_context()
+    return cafile or True
 
 
-def _urlopen(req, timeout=45):
-    """HTTPS open with certifi; auto-retry without verify if Windows SSL store fails."""
+def _should_retry_without_ssl_verify():
+    return os.environ.get("FITLAH_INSECURE_SSL", "").lower() not in {"0", "false", "no"}
+
+
+def _request_timeout():
     try:
-        return urllib.request.urlopen(req, timeout=timeout, context=_ssl_context(verify=True))
-    except urllib.error.URLError as exc:
-        reason = str(exc.reason)
-        if "CERTIFICATE_VERIFY_FAILED" not in reason:
-            raise
-        if os.environ.get("FITLAH_INSECURE_SSL", "").lower() in {"0", "false", "no"}:
-            raise
-        return urllib.request.urlopen(req, timeout=timeout, context=_ssl_context(verify=False))
+        return int(os.environ.get("OPENROUTER_TIMEOUT_SECONDS", "120"))
+    except ValueError:
+        return 120
 
 
-def get_google_config():
-    """Load Google AI Studio key and model from environment."""
+def get_openrouter_config():
+    """Load OpenRouter API key and model from environment."""
     api_key = (
-        os.environ.get("GOOGLE_AI_STUDIO_API_KEY")
-        or os.environ.get("GOOGLE_API_KEY")
-        or os.environ.get("GEMINI_API_KEY")
+        os.environ.get("OPENROUTER_API_KEY")
+        or os.environ.get("OPENROUTER_KEY")
         or ""
     ).strip()
     return {
         "api_key": api_key,
-        "model": (os.environ.get("GOOGLE_MODEL") or DEFAULT_MODEL).strip(),
+        "model": (os.environ.get("OPENROUTER_MODEL") or DEFAULT_MODEL).strip(),
     }
 
 
-def _call_gemini(system_prompt, user_prompt):
-    config = get_google_config()
+def _call_openrouter(system_prompt, user_prompt):
+    config = get_openrouter_config()
     if not config["api_key"]:
         return {
             "success": False,
             "error": (
-                "Google AI Studio API key is not set. Add GOOGLE_AI_STUDIO_API_KEY "
-                "(or GOOGLE_API_KEY) to your .env file. Create a key at "
-                "https://aistudio.google.com/apikey"
+                "OpenRouter API key is not set. Add OPENROUTER_API_KEY to your .env file "
+                "and restart the server."
             ),
         }
 
-    url = f"{GOOGLE_AI_STUDIO_API}/{config['model']}:generateContent?key={config['api_key']}"
-    payload = json.dumps(
-        {
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-            "generationConfig": {
-                "temperature": 0.65,
-                "maxOutputTokens": 900,
-                "responseMimeType": "application/json",
-            },
-        }
-    ).encode("utf-8")
-
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+    headers = {
+        "Authorization": f"Bearer {config['api_key']}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "HTTP-Referer": os.environ.get("OPENROUTER_SITE_URL", "http://localhost:5000"),
+        "X-Title": os.environ.get("OPENROUTER_APP_NAME", "FitLah"),
+    }
+    payload = {
+        "model": config["model"],
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.1,
+        "top_p": 1.0,
+        "stream": False,
+    }
 
     try:
-        with _urlopen(req, timeout=45) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        hint = ""
-        if exc.code == 404 and "model" in detail.lower():
-            hint = f" Check GOOGLE_MODEL in .env — use a model name from Google AI Studio (current: {config['model']})."
-        return {"success": False, "error": f"Google AI Studio error ({exc.code}): {detail[:280]}{hint}"}
-    except urllib.error.URLError as exc:
-        reason = str(exc.reason)
-        hint = ""
-        if "CERTIFICATE_VERIFY_FAILED" in reason:
-            hint = (
-                " Run: pip install certifi, restart the server, and try again. "
-                "Dev-only fallback: set FITLAH_INSECURE_SSL=1 in .env (not for production)."
+        response = requests.post(
+            OPENROUTER_CHAT_COMPLETIONS_API,
+            headers=headers,
+            json=payload,
+            timeout=_request_timeout(),
+            verify=_verify_setting(),
+        )
+        response.raise_for_status()
+        body = response.json()
+    except requests.exceptions.SSLError as exc:
+        if not _should_retry_without_ssl_verify():
+            return {"success": False, "error": f"Could not reach OpenRouter API: {exc}"}
+        requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+        try:
+            response = requests.post(
+                OPENROUTER_CHAT_COMPLETIONS_API,
+                headers=headers,
+                json=payload,
+                timeout=_request_timeout(),
+                verify=False,
             )
-        return {"success": False, "error": f"Could not reach Google AI Studio API: {reason}{hint}"}
+            response.raise_for_status()
+            body = response.json()
+        except requests.RequestException as retry_exc:
+            return {"success": False, "error": f"Could not reach OpenRouter API: {retry_exc}"}
+        except ValueError:
+            return {"success": False, "error": "OpenRouter API returned a non-JSON response."}
+    except requests.HTTPError as exc:
+        detail = response.text if "response" in locals() else str(exc)
+        hint = ""
+        if response.status_code == 404 and "model" in detail.lower():
+            hint = f" Check OPENROUTER_MODEL in .env (current: {config['model']})."
+        return {"success": False, "error": f"OpenRouter API error ({response.status_code}): {detail[:280]}{hint}"}
+    except requests.RequestException as exc:
+        return {"success": False, "error": f"Could not reach OpenRouter API: {exc}"}
+    except ValueError:
+        return {"success": False, "error": "OpenRouter API returned a non-JSON response."}
 
     try:
-        content = body["candidates"][0]["content"]["parts"][0]["text"]
+        content = body["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError):
-        return {"success": False, "error": "Unexpected response format from Google AI Studio (Gemini)."}
+        return {"success": False, "error": "Unexpected response format from OpenRouter chat completions API."}
 
     parsed = _parse_coach_json(content)
     if not parsed:
         return {
             "success": True,
-            "summary": content.strip(),
+            "summary": _limit_words(content, 7),
             "dos": [],
             "donts": [],
             "focus_areas": [],
@@ -153,10 +153,10 @@ def _parse_coach_json(text):
             continue
         if isinstance(data, dict):
             return {
-                "summary": str(data.get("summary", "")).strip(),
-                "dos": _as_list(data.get("dos")),
-                "donts": _as_list(data.get("donts")),
-                "focus_areas": _as_list(data.get("focus_areas")),
+                "summary": _limit_words(data.get("summary", ""), 7),
+                "dos": [_limit_words(item, 5) for item in _as_list(data.get("dos"))[:1]],
+                "donts": [_limit_words(item, 5) for item in _as_list(data.get("donts"))[:1]],
+                "focus_areas": [_limit_words(item, 2) for item in _as_list(data.get("focus_areas"))[:1]],
             }
     return None
 
@@ -169,11 +169,34 @@ def _as_list(value):
     return []
 
 
+def _limit_words(text, max_words):
+    cleaned = _clean_text(text)
+    words = cleaned.split()
+    return " ".join(words[:max_words])
+
+
+def _clean_text(text):
+    cleaned = str(text or "").replace("—", "-").replace("–", "-").strip()
+    cleaned = re.sub(
+        r"^(great job|good job|well done|nice work|sure|of course|here'?s|i think|you should)\b[:,!\s-]*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"\byou should\b[:,!\s-]*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(I|we|let's|please)\b[:,!\s-]*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .,:;!-")
+    return cleaned
+
+
 def _build_system_prompt():
     return (
         "You are a certified Singapore IPPT fitness coach. You receive structured metrics from "
-        "a webcam computer-vision system (pose landmarks, rep counts, form flags)—never video. "
-        "Give practical, encouraging, specific advice. Use plain language. "
+        "a webcam computer-vision system: pose landmarks, rep counts, and form flags. Never video. "
+        "You are not a chat assistant. You are a strict JSON formatter. "
+        "Give terse point-form coaching using command verbs. "
+        "No greetings. No praise. No first-person wording. No explanations. No filler. "
+        "Do not use em dashes. "
         "For sit-ups, emphasise hands-on-ears if compliance is low. "
         "For push-ups, emphasise depth, body alignment, and pacing. "
         "Respond ONLY with valid JSON, no markdown fences."
@@ -188,16 +211,17 @@ def _build_user_prompt(metrics):
         f"Session metrics (JSON):\n{json.dumps(metrics, indent=2)}\n\n"
         "Return JSON exactly in this shape:\n"
         "{\n"
-        '  "summary": "2-3 sentence overview of performance",\n'
-        '  "dos": ["3-5 specific things to keep doing"],\n'
-        '  "donts": ["3-5 specific mistakes to avoid"],\n'
-        '  "focus_areas": ["2-3 priorities for the next session"]\n'
-        "}"
+        '  "summary": "direct verdict, max 7 words",\n'
+        '  "dos": ["exactly 1 command point, max 5 words"],\n'
+        '  "donts": ["exactly 1 avoid point, max 5 words"],\n'
+        '  "focus_areas": ["exactly 1 focus label, max 2 words"]\n'
+        "}\n"
+        "Use fragments, not sentences. No conversational words. No em dashes."
     )
 
 
 def generate_exercise_recommendation(metrics):
-    """Return coaching text from CV metrics via Google AI Studio (Gemini)."""
+    """Return coaching text from CV metrics via OpenRouter."""
     if not metrics or not isinstance(metrics, dict):
         return {"success": False, "error": "No session metrics provided."}
 
@@ -205,4 +229,4 @@ def generate_exercise_recommendation(metrics):
     if exercise not in {"pushup", "situp"}:
         return {"success": False, "error": "Invalid exercise type in metrics."}
 
-    return _call_gemini(_build_system_prompt(), _build_user_prompt(metrics))
+    return _call_openrouter(_build_system_prompt(), _build_user_prompt(metrics))

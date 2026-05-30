@@ -1,12 +1,14 @@
 from datetime import datetime
 from .db import fetch_table, insert_row, next_id, update_row
 from .auth import current_user
+from .ippt_scoring import age_profile_from_nric, calculate_from_personal_best, format_run_time, parse_run_time
 
 def update_personal_best(nric, exercise_type, reps):
     if exercise_type not in {"pushup", "situp"}:
         return
 
     best = get_personal_best(nric)
+    best.update(age_profile_from_nric(nric))
     exists = any(pb.get("nric") == nric for pb in fetch_table("personal_best"))
 
     field = "pushups" if exercise_type == "pushup" else "situps"
@@ -21,6 +23,33 @@ def update_personal_best(nric, exercise_type, reps):
         for member in fetch_table("group_member"):
             if member.get("nric") == best["nric"]:
                 update_row("group_member", "id", member["id"], {field: reps})
+
+
+def update_run_personal_best(nric, run_time):
+    new_seconds = parse_run_time(run_time)
+    if not new_seconds:
+        return False
+
+    best = get_personal_best(nric)
+    best.update(age_profile_from_nric(nric))
+    exists = any(pb.get("nric") == best["nric"] for pb in fetch_table("personal_best"))
+    current_seconds = parse_run_time(best.get("run_time"))
+
+    if current_seconds and current_seconds <= new_seconds:
+        return False
+
+    best["run_time"] = format_run_time(new_seconds)
+    best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
+    if exists:
+        update_row("personal_best", "nric", best["nric"], best)
+    else:
+        insert_row("personal_best", best)
+
+    for member in fetch_table("group_member"):
+        if member.get("nric") == best["nric"]:
+            update_row("group_member", "id", member["id"], {"run_time": best["run_time"]})
+
+    return True
 
 def save_ai_recommendation(db, session_id, nric, recommendation):
     """Persist AI coach output on performance_log entries."""
@@ -66,20 +95,28 @@ def get_personal_best(nric):
     normalized = (nric or "").strip().upper()
     best = next((pb for pb in fetch_table("personal_best") if pb.get("nric") == normalized), None)
     if best:
+        best.update(age_profile_from_nric(normalized))
         return best
     return {
         "nric": normalized,
         "pushups": 0,
         "situps": 0,
         "run_time": "--:--",
+        **age_profile_from_nric(normalized),
         "updated_at": None
     }
 
 def member_with_personal_best(member):
     best = get_personal_best(member.get("nric"))
+    score = calculate_from_personal_best(best, best.get("age_group"))
     return {
         **member,
+        "age": best.get("age"),
+        "age_group": best.get("age_group"),
         "personal_best": best,
+        "ippt_score": score,
+        "ippt_points": score.get("total_points", 0),
+        "ippt_award": score.get("award", {}),
         "pushups": best.get("pushups", 0),
         "situps": best.get("situps", 0),
         "run_time": best.get("run_time", "--:--")

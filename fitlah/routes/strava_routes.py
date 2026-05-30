@@ -5,6 +5,7 @@ from flask import jsonify, render_template, request, session, url_for
 
 from ..auth import current_user, login_required
 from ..db import insert_row, next_id
+from ..helpers import update_run_personal_best
 
 
 def _mock_strava_runs():
@@ -184,6 +185,8 @@ def register_strava_routes(app):
             return jsonify({"success": False, "error": "Unknown Strava run selected."}), 400
 
         user = current_user()
+        if run["distance_km"] >= 2.35:
+            update_run_personal_best(user.get("nric"), run["time"])
         ai_recommendation = _run_recommendation(run)
         new_log = {
             "id": next_id("performance_log"),

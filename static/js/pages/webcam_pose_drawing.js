@@ -111,64 +111,77 @@
     }
 
     function drawHudOverlay(ctx, stats) {
-        const x = 20;
-        const y = 70;
-        const w = 320;
-        const h = 105;
-        const r = 14;
+        const x = 16;
+        const y = 16;
+        const w = 238;
+        const h = 82;
+        const r = 12;
         const colors = {
-            panel: 'rgba(15, 23, 42, 0.70)',
-            border: 'rgba(34, 211, 238, 0.55)',
-            accent: '#22D3EE',
-            text: 'rgba(248, 250, 252, 0.92)',
-            subtext: 'rgba(148, 163, 184, 0.9)',
-            good: '#4ADE80',
-            bad: '#FB7185'
+            panel: 'rgba(255, 255, 255, 0.88)',
+            border: 'rgba(203, 213, 225, 0.9)',
+            shadow: 'rgba(15, 23, 42, 0.32)',
+            text: '#0F172A',
+            subtext: '#64748B',
+            good: '#15803D',
+            bad: '#CA8A04',
+            progressTrack: 'rgba(226, 232, 240, 0.95)',
+            progress: '#2563EB'
         };
 
         ctx.save();
+        ctx.shadowColor = colors.shadow;
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 6;
         ctx.fillStyle = colors.panel;
+        roundedRect(ctx, x, y, w, h, r);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
         ctx.strokeStyle = colors.border;
         ctx.lineWidth = 1;
         roundedRect(ctx, x, y, w, h, r);
-        ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = colors.accent;
+        ctx.fillStyle = colors.text;
         ctx.font = '600 12px Segoe UI';
         ctx.textAlign = 'left';
-        ctx.fillText('AI FITNESS TRACKER', x + 14, y + 20);
-
-        ctx.font = '500 11px Segoe UI';
-        ctx.fillStyle = colors.subtext;
-        ctx.fillText('REPS', x + 14, y + 48);
-        ctx.fillText('INVALID', x + 120, y + 48);
-        ctx.fillText('STAGE', x + 230, y + 48);
-
-        ctx.font = '600 18px Segoe UI';
-        ctx.fillStyle = colors.good;
-        ctx.fillText(String(stats.validReps), x + 14, y + 78);
-        ctx.fillStyle = colors.bad;
-        ctx.fillText(String(stats.invalidReps), x + 120, y + 78);
-        ctx.fillStyle = colors.good;
-        ctx.fillText((stats.stage || 'READY').toUpperCase(), x + 230, y + 78);
-
-        const progress = Math.min(stats.validReps / 20, 1);
-        ctx.fillStyle = 'rgba(255,255,255,0.06)';
-        ctx.fillRect(x + 14, y + 90, w - 28, 5);
-
-        const grad = ctx.createLinearGradient(x, 0, x + w, 0);
-        grad.addColorStop(0, colors.accent);
-        grad.addColorStop(1, colors.good);
-        ctx.fillStyle = grad;
-        ctx.fillRect(x + 14, y + 90, (w - 28) * progress, 5);
+        ctx.fillText('Live Form', x + 12, y + 19);
 
         if (stats.isRecording) {
             ctx.fillStyle = colors.bad;
             ctx.beginPath();
-            ctx.arc(x + w - 14, y + 18, 4, 0, Math.PI * 2);
+            ctx.arc(x + w - 18, y + 15, 4, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        ctx.font = '500 10px Segoe UI';
+        ctx.fillStyle = colors.subtext;
+        ctx.fillText('Valid', x + 12, y + 43);
+        ctx.fillText('Invalid', x + 76, y + 43);
+        ctx.fillText('Stage', x + 148, y + 43);
+
+        ctx.font = '600 18px Segoe UI';
+        ctx.fillStyle = colors.good;
+        ctx.fillText(String(stats.validReps), x + 12, y + 64);
+        ctx.fillStyle = colors.bad;
+        ctx.fillText(String(stats.invalidReps), x + 76, y + 64);
+        ctx.fillStyle = colors.text;
+        ctx.font = '600 13px Segoe UI';
+        const stageText = (stats.stage || 'Ready').slice(0, 10);
+        ctx.fillText(stageText, x + 148, y + 63);
+
+        const progress = Math.min(stats.validReps / 20, 1);
+        const trackX = x + 12;
+        const trackY = y + 73;
+        const trackW = w - 24;
+        const trackH = 4;
+
+        ctx.fillStyle = colors.progressTrack;
+        roundedRect(ctx, trackX, trackY, trackW, trackH, 2);
+        ctx.fill();
+        ctx.fillStyle = colors.progress;
+        roundedRect(ctx, trackX, trackY, trackW * progress, trackH, 2);
+        ctx.fill();
 
         ctx.restore();
     }
@@ -178,4 +191,3 @@
         drawHudOverlay
     };
 })();
-

@@ -6,10 +6,9 @@
     /* Active Vision Layout Splitter */
     .vision-workspace {
         display: grid;
-        grid-template-columns: 1fr 220px;
+        grid-template-columns: minmax(0, 1fr) 220px;
         gap: 20px;
         flex: 1;
-        min-height: 500px;
         margin-bottom: 20px;
         align-items: start;
     }
@@ -17,21 +16,21 @@
     .vision-main-column {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 14px;
         min-width: 0;
     }
 
     /* Video Feed Container */
     .video-feed-card {
-        background-color: #0F172A;
-        border-radius: 12px;
+        background-color: #0B1220;
+        border-radius: 14px;
         position: relative;
         overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-        border: 1px solid #334155;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.08);
+        border: 1px solid #1E293B;
         height: 500px; /* Force fixed height so starting camera doesn't cause scrolling */
     }
 
@@ -55,7 +54,7 @@
     .camera-placeholder {
         color: #94A3B8;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -66,32 +65,33 @@
     .diagnostics-sidebar {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
+        height: 500px;
     }
 
     .metric-v-card {
-        background-color: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 20px 16px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        background-color: #FFFFFF;
+        border: 1px solid #D9E2EC;
+        border-radius: 14px;
+        padding: 18px 14px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        flex: 1; /* This makes the cards fill the vertical space equally */
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        flex: 1;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     
     .metric-v-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 4px 10px -3px rgba(0, 0, 0, 0.04);
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
     }
 
     .counter-focus-valid {
-        background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
-        border-color: #BBF7D0;
+        background: #FFFFFF;
+        border-color: #E2E8F0;
     }
 
     .counter-focus-valid .hud-lbl { 
@@ -99,24 +99,24 @@
     }
     
     .counter-focus-invalid {
-        background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%);
-        border-color: #FECDD3;
+        background: #FFFFFF;
+        border-color: #E2E8F0;
     }
 
     .counter-focus-invalid .hud-lbl { 
-        color: #BE123C; 
+        color: #854D0E; 
     }
 
     .giant-counter {
-        font-size: 42px;
-        font-weight: 800;
+        font-size: 48px;
+        font-weight: 600;
         line-height: 1;
         margin-top: 8px;
-        letter-spacing: -1px;
+        letter-spacing: 0;
     }
 
     .counter-focus-valid .giant-counter { color: #15803D; }
-    .counter-focus-invalid .giant-counter { color: #E11D48; }
+    .counter-focus-invalid .giant-counter { color: #CA8A04; }
 
     .giant-counter span {
         font-size: 14px;
@@ -126,37 +126,42 @@
     }
 
     .form-status-alert {
-        background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
-        border-color: #FDE68A;
+        background: #FFFFFF;
+        border-color: #D9E2EC;
+        align-items: stretch;
+        justify-content: flex-start;
+        text-align: left;
+        flex: 1.25;
+        padding: 16px;
     }
 
     .status-msg-text {
         font-size: 13px;
-        font-weight: 600;
-        color: #B45309;
-        margin-top: 8px;
-        line-height: 1.4;
+        font-weight: 500;
+        color: #334155;
+        margin-top: 10px;
+        line-height: 1.5;
     }
 
     .stage-pill {
         margin-top: 10px;
-        color: #475569;
+        color: #64748B;
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.6px;
     }
 
     /* Control Interface Strip */
     .control-strip {
-        background-color: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 10px;
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
         padding: 16px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         flex-shrink: 0;
     }
 
@@ -170,12 +175,12 @@
     }
 
     .stop-btn {
-        background-color: var(--accent-red);
+        background-color: #2563EB;
         color: #ffffff;
         border: none;
         padding: 12px 24px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
         border-radius: 8px;
         cursor: pointer;
         letter-spacing: 0.5px;
@@ -194,13 +199,14 @@
 
     .header-section h1 {
         font-size: 26px;
-        color: black;
-        letter-spacing: -0.6px;
+        color: #0F172A;
+        letter-spacing: 0;
+        font-weight: 600;
     }
 
     .header-section p {
         font-size: 14px;
-        color: black;
+        color: #64748B;
         margin-top: 6px;
         max-width: 520px;
         line-height: 1.5;
@@ -209,11 +215,11 @@
     .mode-toggle {
         display: flex;
         gap: 6px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
         border-radius: 12px;
         padding: 4px;
-        box-shadow: var(--card-shadow);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
 
     .mode-toggle .stop-btn {
@@ -228,20 +234,20 @@
     }
 
     .mode-toggle .stop-btn.mode-active {
-        background: var(--primary);
+        background: #2563EB;
         color: #fff;
-        box-shadow: 0 2px 8px rgba(0, 168, 107, 0.35);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
     }
 
     .video-feed-card {
-        box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.08);
     }
 
     .metric-v-card .hud-lbl {
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.08em;
         color: var(--text-muted);
     }
 
@@ -264,33 +270,34 @@
     .control-actions .stop-btn {
         text-transform: none;
         letter-spacing: 0;
-        font-weight: 600;
+        font-weight: 500;
         font-size: 13px;
     }
 
     .control-actions .stop-btn#startCamBtn {
-        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        background: #2563EB;
     }
 
     .control-actions .stop-btn#uploadBtn {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+        background: #0F766E;
     }
 
     .control-actions .stop-btn#attachVideoBtn {
-        background: linear-gradient(135deg, #0F766E 0%, #0D9488 100%);
+        background: #0891B2;
     }
 
     .control-actions .stop-btn#completeBtn {
         margin-left: auto;
+        background: #475569 !important;
     }
 
     .session-timer {
         font-size: 28px;
-        font-weight: 800;
+        font-weight: 650;
         font-variant-numeric: tabular-nums;
-        color: var(--primary);
-        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
-        border: 2px solid #A7F3D0;
+        color: #0F766E;
+        background: #F0FDFA;
+        border: 1px solid #99F6E4;
         border-radius: 12px;
         padding: 10px 20px;
         min-width: 100px;
@@ -299,9 +306,9 @@
     }
 
     .session-timer.timer-active {
-        color: #DC2626;
-        background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
-        border-color: #FECACA;
+        color: #B45309;
+        background: #FFFBEB;
+        border-color: #FDE68A;
         animation: timer-pulse 1s ease-in-out infinite;
     }
 
@@ -313,7 +320,7 @@
         border: 1px solid #E2E8F0;
         border-radius: 12px;
         padding: 12px 14px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         flex-wrap: wrap;
     }
 
@@ -326,7 +333,7 @@
         border-radius: 8px;
         cursor: pointer;
         font-size: 14px;
-        font-weight: 800;
+        font-weight: 600;
     }
 
     .review-icon-btn:hover {
@@ -389,71 +396,73 @@
     }
 
     .ai-reco-panel {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 20px 22px;
-        box-shadow: var(--card-shadow);
+        background: #FFFFFF;
+        border: 1px solid #D9E2EC;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     }
 
     .ai-reco-header {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
     }
 
     .ai-reco-header h3 {
-        font-size: 16px;
-        font-weight: 800;
-        color: var(--text-main);
-        letter-spacing: -0.3px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #0F172A;
+        letter-spacing: 0;
     }
 
     .ai-reco-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
-        color: var(--primary);
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: #EFF6FF;
+        color: #2563EB;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
-        font-weight: 800;
+        font-size: 11px;
+        font-weight: 500;
     }
 
     .ai-reco-status {
-        font-size: 13px;
-        color: rgb(0, 0, 0);
-        line-height: 1.5;
-        margin-bottom: 12px;
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.4;
+        margin-bottom: 10px;
     }
 
     .ai-reco-status.loading {
-        color: var(--primary);
-        font-weight: 600;
+        color: #2563EB;
+        font-weight: 500;
     }
 
     .ai-reco-status.error {
-        color: #BE123C;
+        color: #B45309;
     }
 
     .ai-reco-summary {
-        font-size: 14px;
-        color: var(--text-main);
-        line-height: 1.6;
-        margin-bottom: 16px;
-        padding: 14px 16px;
-        background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
-        border-radius: 10px;
-        border-left: 4px solid var(--primary);
+        font-size: 15px;
+        font-weight: 600;
+        color: #0F172A;
+        line-height: 1.35;
+        margin-bottom: 12px;
+        padding: 11px 12px;
+        background: #F8FAFC;
+        border: 1px solid #D9E2EC;
+        border-radius: 8px;
     }
 
     .ai-reco-columns {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        gap: 10px;
     }
 
     @media (max-width: 900px) {
@@ -463,15 +472,15 @@
     }
 
     .ai-reco-block h4 {
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: none;
         letter-spacing: 0.5px;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
 
-    .ai-reco-block.dos h4 { color: #15803D; }
-    .ai-reco-block.donts h4 { color: #BE123C; }
+    .ai-reco-block.dos h4 { color: #0F766E; }
+    .ai-reco-block.donts h4 { color: #92400E; }
 
     .ai-reco-block ul {
         list-style: none;
@@ -481,43 +490,90 @@
 
     .ai-reco-block li {
         font-size: 13px;
-        line-height: 1.45;
-        color: var(--text-main);
-        padding: 8px 10px;
+        font-weight: 500;
+        line-height: 1.35;
+        color: #1E293B;
+        padding: 8px 10px 8px 28px;
         margin-bottom: 6px;
         border-radius: 8px;
         background: #F8FAFC;
+        position: relative;
+    }
+
+    .ai-reco-block li::before {
+        content: "•";
+        position: absolute;
+        left: 12px;
+        color: currentColor;
+        font-weight: 500;
     }
 
     .ai-reco-block.dos li {
-        background: #F0FDF4;
-        border: 1px solid #DCFCE7;
+        background: #F0FDFA;
+        border: 1px solid #99F6E4;
     }
 
     .ai-reco-block.donts li {
-        background: #FFF1F2;
-        border: 1px solid #FFE4E6;
+        background: #FFFBEB;
+        border: 1px solid #FDE68A;
     }
 
     .ai-reco-focus {
-        margin-top: 14px;
-        padding-top: 14px;
+        margin-top: 10px;
+        padding-top: 10px;
         border-top: 1px solid var(--border);
     }
 
     .ai-reco-focus h4 {
-        font-size: 12px;
-        font-weight: 800;
+        font-size: 11px;
+        font-weight: 600;
         color: #1D4ED8;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 8px;
     }
 
-    .ai-reco-focus p {
+    .ai-reco-focus ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .ai-reco-focus li {
         font-size: 13px;
-        color: var(--text-muted);
-        line-height: 1.5;
+        font-weight: 500;
+        color: #1D4ED8;
+        line-height: 1.25;
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        border-radius: 999px;
+        padding: 7px 10px;
+    }
+
+    @media (max-width: 980px) {
+        .vision-workspace {
+            grid-template-columns: 1fr;
+        }
+
+        .diagnostics-sidebar {
+            height: auto;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .form-status-alert {
+            grid-column: 1 / -1;
+            min-height: 120px;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .diagnostics-sidebar {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -566,28 +622,28 @@
         </div>
 
         <!-- AI personalised coach (text metrics only, no video sent) -->
-        <section class="ai-reco-panel" id="aiRecoPanel">
+        <section class="ai-reco-panel" id="aiRecoPanel" style="display: none;">
             <div class="ai-reco-header">
-                <span class="ai-reco-icon">✦</span>
-                <h3>AI Personalised Coach</h3>
+                <h3>AI Coach Notes</h3>
+                <span class="ai-reco-icon">AI</span>
             </div>
             <p class="ai-reco-status" id="aiRecoStatus">
-                Complete a session and review your recording to receive tailored push-up or sit-up advice.
+                Complete a session to get short, direct form notes.
             </p>
             <div id="aiRecoSummary" class="ai-reco-summary" style="display: none;"></div>
             <div class="ai-reco-columns" id="aiRecoColumns" style="display: none;">
                 <div class="ai-reco-block dos">
-                    <h4>What to do</h4>
+                    <h4>Do</h4>
                     <ul id="aiRecoDos"></ul>
                 </div>
                 <div class="ai-reco-block donts">
-                    <h4>What to avoid</h4>
+                    <h4>Avoid</h4>
                     <ul id="aiRecoDonts"></ul>
                 </div>
             </div>
             <div class="ai-reco-focus" id="aiRecoFocus" style="display: none;">
-                <h4>Next session focus</h4>
-                <p id="aiRecoFocusText"></p>
+                <h4>Focus</h4>
+                <ul id="aiRecoFocusText"></ul>
             </div>
         </section>
     </div>
@@ -595,16 +651,15 @@
     <!-- Right Diagnostic Readout Columns -->
     <div class="diagnostics-sidebar">
         <div class="metric-v-card counter-focus-valid">
-            <div class="hud-lbl">Valid Repetitions</div>
-            <div class="giant-counter" id="repCounter">0 <span>/ 60</span></div>
+            <div class="hud-lbl">Valid Reps</div>
+            <div class="giant-counter" id="repCounter">0</div>
             <div class="stage-pill" id="stageDisplay">Stage: Ready</div>
         </div>
         <div class="metric-v-card counter-focus-invalid">
             <div class="hud-lbl">Invalid Reps</div>
-            <div class="giant-counter" id="invalidRepCounter">0 <span>/ Warn</span></div>
+            <div class="giant-counter" id="invalidRepCounter">0</div>
         </div>
         <div class="metric-v-card form-status-alert">
-            <div class="hud-lbl" style="color: #92400E;">Warning</div>
             <p class="status-msg-text" id="warningMessage">Keep spine rigid. Core deflection detected during extension phase.</p>
             <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
         </div>

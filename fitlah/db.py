@@ -7,6 +7,7 @@ from flask import g
 from .config import BASE_DIR, SEEDDATA_DIR
 
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/fitlah"
+_SCHEMA_READY = False
 
 TABLE_NAMES = [
     "user",
@@ -32,6 +33,8 @@ TABLES = {
             "name": "TEXT",
             "rank": "TEXT",
             "unit": "TEXT",
+            "age": "INTEGER",
+            "age_group": "TEXT",
             "created_at": "TEXT",
             "last_login": "TEXT",
         },
@@ -44,6 +47,8 @@ TABLES = {
             "name": "TEXT",
             "rank": "TEXT",
             "unit": "TEXT",
+            "age": "INTEGER",
+            "age_group": "TEXT",
             "last_login": "TEXT",
         },
     },
@@ -103,6 +108,8 @@ TABLES = {
             "nric": "TEXT",
             "name": "TEXT",
             "rank": "TEXT",
+            "age": "INTEGER",
+            "age_group": "TEXT",
             "pushups": "INTEGER",
             "situps": "INTEGER",
             "run_time": "TEXT",
@@ -150,6 +157,8 @@ TABLES = {
             "pushups": "INTEGER",
             "situps": "INTEGER",
             "run_time": "TEXT",
+            "age": "INTEGER",
+            "age_group": "TEXT",
             "updated_at": "TEXT",
         },
     },
@@ -215,6 +224,10 @@ def _deserialize_row(row):
 
 
 def ensure_tables():
+    global _SCHEMA_READY
+    if _SCHEMA_READY:
+        return
+
     with _connect() as conn:
         with conn.cursor() as cursor:
             for config in TABLES.values():
@@ -234,6 +247,7 @@ def ensure_tables():
                 cursor.execute(
                     f"ALTER TABLE {db_table} ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{{}}'::jsonb"
                 )
+    _SCHEMA_READY = True
 
 
 def load_db():

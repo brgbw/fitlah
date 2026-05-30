@@ -2,6 +2,7 @@ from datetime import datetime
 
 from werkzeug.security import generate_password_hash
 
+from .ippt_scoring import age_profile_from_nric
 from .schemas.performance_log_schema import ensure_performance_log_schema
 
 
@@ -38,6 +39,7 @@ def ensure_auth_tables(db):
             "name": person.get("name") or "NSman",
             "rank": person.get("rank") or "Soldier",
             "unit": person.get("unit") or "Unassigned",
+            **age_profile_from_nric(nric),
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "last_login": None,
         })
@@ -78,6 +80,7 @@ def ensure_personal_best_data(db):
             "pushups": member.get("pushups", 0),
             "situps": member.get("situps", 0),
             "run_time": member.get("run_time", "--:--"),
+            **age_profile_from_nric(nric),
             "updated_at": datetime.now().strftime("%Y-%m-%d"),
         })
         existing.add(nric)
@@ -95,5 +98,6 @@ def ensure_personal_best_data(db):
             db["personal_best"].append({
                 "nric": nric,
                 **best,
+                **age_profile_from_nric(nric),
                 "updated_at": datetime.now().strftime("%Y-%m-%d"),
             })
