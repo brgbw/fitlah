@@ -27,7 +27,7 @@
         // MediaPipe visibility can flicker during floor exercises; low-confidence frames do not move states.
         POSE_CONFIDENCE_MIN: 0.2,
         // EMA smoothing reduces small landmark jitter while keeping transitions responsive.
-        SMOOTHING_ALPHA: 0.45,
+        SMOOTHING_ALPHA: 0.4,
         // Bent knees are required for a proper sit-up setup; overly straight legs are rejected.
         KNEE_ANGLE_MIN: 20,
         KNEE_ANGLE_MAX: 178,
@@ -44,7 +44,7 @@
         MIN_BODY_SPAN: 0.12,
         MIN_REP_DURATION_MS: 250,
         REP_COOLDOWN_MS: 250,
-        STABLE_FRAMES_REQUIRED: 1
+        STABLE_FRAMES_REQUIRED: 2
     };
 
     const tracker = {

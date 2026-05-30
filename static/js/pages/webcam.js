@@ -4,6 +4,14 @@ let currentMode = 'pushup';
     let stream = null;
     let pose = null;
     let detectLoopRunning = false;
+    const POSE_TARGET_FPS = 18;
+    const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
+    let poseLoopRequestId = null;
+    let poseInFlight = false;
+    let lastPoseSentAt = 0;
+    let cachedExerciseHelpers = null;
+    let lastWarningText = '';
+    let lastCounterSignature = '';
     let mediaRecorder = null;
     let recordedChunks = [];
     let videoBlob = null;
@@ -12,6 +20,8 @@ let currentMode = 'pushup';
     let isRecording = false;
     let sessionArmed = false;
     let sessionStarted = false;
+    let analyzeReplayMode = false;
+    let attachedVideoFile = null;
     let positionReady = false;
     let positionLockFrames = 0;
     let isReplayMode = false;
@@ -31,6 +41,8 @@ let currentMode = 'pushup';
     let videoObjectUrl = null;
     let discardRecordingOnStop = false;
     let aiRecoLoading = false;
+    let reviewController = null;
+    let lastAnalyzedVideoTime = -1;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -38,6 +50,8 @@ let currentMode = 'pushup';
     const playbackVideo = document.getElementById('playbackVideo');
     const cameraPlaceholder = document.getElementById('cameraPlaceholder');
     const startCamBtn = document.getElementById('startCamBtn');
+    const attachVideoBtn = document.getElementById('attachVideoBtn');
+    const videoAttachmentInput = document.getElementById('videoAttachmentInput');
     const startRecBtn = document.getElementById('startRecBtn');
     const stopRecBtn = document.getElementById('stopRecBtn');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -53,14 +67,12 @@ let currentMode = 'pushup';
     const aiRecoDonts = document.getElementById('aiRecoDonts');
     const aiRecoFocus = document.getElementById('aiRecoFocus');
     const aiRecoFocusText = document.getElementById('aiRecoFocusText');
-
-    const BODY_CONNECTIONS = [
-        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-        [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
-        [24, 26], [26, 28], [27, 29], [29, 31], [28, 30],
-        [30, 32], [15, 17], [15, 19], [16, 18], [16, 20]
-    ];
-    const BODY_LANDMARK_INDICES = new Set(BODY_CONNECTIONS.flat());
+    const reviewControls = document.getElementById('reviewControls');
+    const reviewSeek = document.getElementById('reviewSeek');
+    const reviewCurrentTime = document.getElementById('reviewCurrentTime');
+    const reviewDuration = document.getElementById('reviewDuration');
+    const reviewSpeed = document.getElementById('reviewSpeed');
+    const reviewJumpTime = document.getElementById('reviewJumpTime');
 
     function setExerciseMode(mode) {
         if (isRecording || sessionStarted) return;
@@ -72,13 +84,13 @@ let currentMode = 'pushup';
             modeSitupBtn.classList.remove('mode-active');
             handsBadge.style.display = 'none';
             document.getElementById('stationHeader').innerText = 'Push-up Recording';
-            document.getElementById('warningMessage').innerText = 'Place your camera side-on. Get into push-up position. Your first full rep will start the 1-minute timer.';
+            setWarning('Place your camera side-on. Get into push-up position. Your first full rep will start the 1-minute timer.');
         } else {
             modeSitupBtn.classList.add('mode-active');
             modePushupBtn.classList.remove('mode-active');
             handsBadge.style.display = 'none';
             document.getElementById('stationHeader').innerText = 'Sit-up Recording';
-            document.getElementById('warningMessage').innerText = 'Lie back, then sit up. Your first valid rep starts the 1-minute timer.';
+            setWarning('Lie back, then sit up. Your first valid rep starts the 1-minute timer.');
         }
 
         if (stream) {
@@ -87,8 +99,7 @@ let currentMode = 'pushup';
             playbackVideo.style.display = 'none';
             poseCanvas.style.display = 'block';
             isReplayMode = false;
-            detectLoopRunning = true;
-            runPoseLoop();
+            startPoseLoop();
         }
     }
 
@@ -101,7 +112,12 @@ let currentMode = 'pushup';
 
             await initPose();
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 960, height: 540 },
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 360 },
+                    frameRate: { ideal: 24, max: 30 },
+                    facingMode: 'user'
+                },
                 audio: false
             });
             sourceVideo.srcObject = stream;
@@ -112,9 +128,8 @@ let currentMode = 'pushup';
             playbackVideo.style.display = 'none';
             startCamBtn.style.display = 'none';
             startRecBtn.style.display = 'inline-block';
-            detectLoopRunning = true;
             armSession();
-            runPoseLoop();
+            startPoseLoop();
         } catch (err) {
             alert('Could not access camera or pose model: ' + err.message);
         }
@@ -126,24 +141,55 @@ let currentMode = 'pushup';
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
         });
         pose.setOptions({
-            modelComplexity: 1,
+            modelComplexity: 0,
             smoothLandmarks: true,
             enableSegmentation: false,
-            minDetectionConfidence: 0.55,
-            minTrackingConfidence: 0.55
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
         });
         pose.onResults(handlePoseResults);
     }
 
-    async function runPoseLoop() {
-        if (!detectLoopRunning || !pose) return;
-        const imageSource = isReplayMode ? playbackVideo : sourceVideo;
-        if (imageSource.readyState < 2) {
-            requestAnimationFrame(runPoseLoop);
+    function startPoseLoop() {
+        if (poseLoopRequestId !== null) return;
+        detectLoopRunning = true;
+        poseLoopRequestId = requestAnimationFrame(runPoseLoop);
+    }
+
+    function stopPoseLoop() {
+        detectLoopRunning = false;
+        if (poseLoopRequestId !== null) {
+            cancelAnimationFrame(poseLoopRequestId);
+            poseLoopRequestId = null;
+        }
+        poseInFlight = false;
+    }
+
+    async function runPoseLoop(timestamp = performance.now()) {
+        if (!detectLoopRunning || !pose) {
+            poseLoopRequestId = null;
             return;
         }
-        await pose.send({ image: imageSource });
-        requestAnimationFrame(runPoseLoop);
+
+        const imageSource = isReplayMode ? playbackVideo : sourceVideo;
+        const replayIsPaused = isReplayMode && playbackVideo.paused;
+
+        if (imageSource.readyState >= 2 &&
+            !poseInFlight &&
+            !replayIsPaused &&
+            timestamp - lastPoseSentAt >= POSE_MIN_FRAME_MS) {
+            poseInFlight = true;
+            lastPoseSentAt = timestamp;
+            try {
+                await pose.send({ image: imageSource });
+            } catch (err) {
+                console.warn('Pose frame skipped:', err);
+            } finally {
+                poseInFlight = false;
+            }
+        }
+
+        poseLoopRequestId = requestAnimationFrame(runPoseLoop);
     }
 
     function handlePoseResults(results) {
@@ -165,6 +211,7 @@ let currentMode = 'pushup';
         }
 
         const landmarks = results.poseLandmarks;
+        const helpers = exerciseHelpers();
         lastLandmarks = landmarks;
         drawBodySkeleton(landmarks);
         if (currentMode === 'situp') {
@@ -172,15 +219,21 @@ let currentMode = 'pushup';
                 ctx,
                 width: poseCanvas.width,
                 height: poseCanvas.height,
-                helpers: exerciseHelpers()
+                helpers
             });
         }
 
-        if (!isReplayMode) {
+        const replayFrameAdvanced = !isReplayMode ||
+            (analyzeReplayMode && !playbackVideo.paused && playbackVideo.currentTime !== lastAnalyzedVideoTime);
+
+        if (replayFrameAdvanced) {
+            if (isReplayMode) {
+                lastAnalyzedVideoTime = playbackVideo.currentTime;
+            }
             if (currentMode === 'pushup') {
-                FitLahPushupExercise.analyze(landmarks, exerciseHelpers());
+                FitLahPushupExercise.analyze(landmarks, helpers);
             } else {
-                FitLahSitupExercise.analyze(landmarks, exerciseHelpers());
+                FitLahSitupExercise.analyze(landmarks, helpers);
             }
         }
 
@@ -189,128 +242,8 @@ let currentMode = 'pushup';
     }
 
     function drawBodySkeleton(landmarks) {
-    ctx.save();
-
-    // ===== GLOWING CONNECTIONS =====
-    for (const [aIdx, bIdx] of BODY_CONNECTIONS) {
-        const a = landmarks[aIdx];
-        const b = landmarks[bIdx];
-
-        if ((a.visibility || 0) > 0.4 && (b.visibility || 0) > 0.4) {
-
-            const x1 = a.x * poseCanvas.width;
-            const y1 = a.y * poseCanvas.height;
-            const x2 = b.x * poseCanvas.width;
-            const y2 = b.y * poseCanvas.height;
-
-            // Futuristic gradient line
-            const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-            gradient.addColorStop(0, "#00FFFF");
-            gradient.addColorStop(0.5, "#00FF88");
-            gradient.addColorStop(1, "#7C3AED");
-
-            // Outer glow
-            ctx.shadowColor = "#00FFFF";
-            ctx.shadowBlur = 20;
-
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-
-            // Bright center line
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = "#FFFFFF";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-        }
+        FitLahPoseDrawing.drawBodySkeleton(ctx, poseCanvas, landmarks);
     }
-
-    // ===== AI JOINTS =====
-    for (const idx of BODY_LANDMARK_INDICES) {
-        const lm = landmarks[idx];
-
-        if ((lm.visibility || 0) > 0.4) {
-
-            const x = lm.x * poseCanvas.width;
-            const y = lm.y * poseCanvas.height;
-
-            // Glow
-            ctx.shadowColor = "#00FFFF";
-            ctx.shadowBlur = 25;
-
-            // Outer ring
-            ctx.beginPath();
-            ctx.arc(x, y, 10, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0,255,255,0.15)";
-            ctx.fill();
-
-            // Main node
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = "#00FFFF";
-            ctx.fill();
-
-            // White core
-            ctx.beginPath();
-            ctx.arc(x, y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fill();
-
-            // Tech ring
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = "#00FFFF";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(x, y, 14, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-    }
-
-    // ===== SHOULDER-HIP TRIANGLE =====
-    const leftShoulder = landmarks[11];
-    const rightShoulder = landmarks[12];
-    const leftHip = landmarks[23];
-    const rightHip = landmarks[24];
-
-    if (
-        leftShoulder && rightShoulder &&
-        leftHip && rightHip
-    ) {
-        ctx.beginPath();
-        ctx.moveTo(
-            leftShoulder.x * poseCanvas.width,
-            leftShoulder.y * poseCanvas.height
-        );
-
-        ctx.lineTo(
-            rightShoulder.x * poseCanvas.width,
-            rightShoulder.y * poseCanvas.height
-        );
-
-        ctx.lineTo(
-            rightHip.x * poseCanvas.width,
-            rightHip.y * poseCanvas.height
-        );
-
-        ctx.lineTo(
-            leftHip.x * poseCanvas.width,
-            leftHip.y * poseCanvas.height
-        );
-
-        ctx.closePath();
-
-        ctx.fillStyle = "rgba(0,255,255,0.05)";
-        ctx.fill();
-    }
-
-    ctx.restore();
-}
 
     function bestSide(landmarks) {
         const left = [11, 13, 15, 23, 25, 27].reduce((sum, idx) => sum + (landmarks[idx].visibility || 0), 0);
@@ -335,18 +268,28 @@ let currentMode = 'pushup';
     }
 
     function exerciseHelpers() {
-        return {
+        if (cachedExerciseHelpers) return cachedExerciseHelpers;
+
+        cachedExerciseHelpers = {
             angle,
             bestSide,
             countValidRep,
             distance,
-            isRecording,
+            get isRecording() {
+                return isRecording;
+            },
             markInvalid,
-            metrics: cvMetrics,
+            get metrics() {
+                return cvMetrics;
+            },
             noteFormFlag,
-            sessionStarted,
+            get sessionStarted() {
+                return sessionStarted;
+            },
             setWarning,
-            stage,
+            get stage() {
+                return stage;
+            },
             updatePositionLock,
             visibleLoose,
             resetPositionLock() {
@@ -360,6 +303,7 @@ let currentMode = 'pushup';
                 stage = value;
             }
         };
+        return cachedExerciseHelpers;
     }
 
     function countValidRep(nextStage) {
@@ -423,115 +367,18 @@ let currentMode = 'pushup';
         return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
     }
 
-function drawHudOverlay() {
-    const x = 20;
-    const y = 70;
-    const w = 320;
-    const h = 105;
-    const r = 14;
-
-    const COLORS = {
-        panel: 'rgba(15, 23, 42, 0.70)',
-        border: 'rgba(34, 211, 238, 0.55)',
-        accent: '#22D3EE',
-        text: 'rgba(248, 250, 252, 0.92)',
-        subtext: 'rgba(148, 163, 184, 0.9)',
-        good: '#4ADE80',
-        bad: '#FB7185'
-    };
-
-    ctx.save();
-
-    // =========================
-    // PANEL
-    // =========================
-    ctx.fillStyle = COLORS.panel;
-    ctx.strokeStyle = COLORS.border;
-    ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-
-    ctx.fill();
-    ctx.stroke();
-
-    // =========================
-    // HEADER (clean, no extra line under it)
-    // =========================
-    ctx.fillStyle = COLORS.accent;
-    ctx.font = '600 12px Segoe UI';
-    ctx.textAlign = 'left';
-
-    ctx.fillText('AI FITNESS TRACKER', x + 14, y + 20);
-
-    // =========================
-    // LABELS
-    // =========================
-    const labelY = y + 48;
-    const valueY = y + 78;
-
-    ctx.font = '500 11px Segoe UI';
-    ctx.fillStyle = COLORS.subtext;
-
-    ctx.fillText('REPS', x + 14, labelY);
-    ctx.fillText('INVALID', x + 120, labelY);
-    ctx.fillText('STAGE', x + 230, labelY);
-
-    // =========================
-    // VALUES
-    // =========================
-    ctx.font = '600 18px Segoe UI';
-
-    // ✅ GOOD REPS NOW GREEN
-    ctx.fillStyle = COLORS.good;
-    ctx.fillText(String(validReps), x + 14, valueY);
-
-    // invalid stays red
-    ctx.fillStyle = COLORS.bad;
-    ctx.fillText(String(invalidReps), x + 120, valueY);
-
-    // stage stays neutral green (fine for system state)
-    ctx.fillStyle = COLORS.good;
-    ctx.fillText((stage || 'READY').toUpperCase(), x + 230, valueY);
-
-    // =========================
-    // PROGRESS BAR
-    // =========================
-    const progress = Math.min(validReps / 20, 1);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    ctx.fillRect(x + 14, y + 90, w - 28, 5);
-
-    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
-    grad.addColorStop(0, COLORS.accent);
-    grad.addColorStop(1, COLORS.good);
-
-    ctx.fillStyle = grad;
-    ctx.fillRect(x + 14, y + 90, (w - 28) * progress, 5);
-
-    // =========================
-    // RECORD DOT
-    // =========================
-    if (isRecording) {
-        ctx.fillStyle = '#FB7185';
-        ctx.beginPath();
-        ctx.arc(x + w - 14, y + 18, 4, 0, Math.PI * 2);
-        ctx.fill();
+    function drawHudOverlay() {
+        FitLahPoseDrawing.drawHudOverlay(ctx, {
+            validReps,
+            invalidReps,
+            stage,
+            isRecording
+        });
     }
 
-    ctx.restore();
-}
-
-function setWarning(text) {
+    function setWarning(text) {
+        if (text === lastWarningText) return;
+        lastWarningText = text;
         document.getElementById('warningMessage').innerText = text;
     }
 
@@ -561,7 +408,7 @@ function setWarning(text) {
     }
 
     function finalizeSessionMetrics() {
-        const duration = Math.max(1, 60 - timeLeft);
+        const duration = Math.max(1, sessionDurationSeconds());
         const total = validReps + invalidReps;
         const m = cvMetrics || {};
         const payload = {
@@ -663,9 +510,13 @@ function setWarning(text) {
     }
 
     function updateCounters() {
+        const nextStage = stage || 'Ready';
+        const signature = `${validReps}|${invalidReps}|${nextStage}`;
+        if (signature === lastCounterSignature) return;
+        lastCounterSignature = signature;
         document.getElementById('repCounter').innerHTML = `${validReps} <span>/ 60</span>`;
         document.getElementById('invalidRepCounter').innerHTML = `${invalidReps} <span>/ Warn</span>`;
-        document.getElementById('stageDisplay').innerText = `Stage: ${stage || 'Ready'}`;
+        document.getElementById('stageDisplay').innerText = `Stage: ${nextStage}`;
     }
 
     function resetRepState() {
@@ -674,18 +525,22 @@ function setWarning(text) {
         stage = null;
         lastInvalidAt = 0;
         lastRepAt = 0;
+        lastCounterSignature = '';
         positionLockFrames = 0;
         positionReady = false;
         sessionStarted = false;
         sessionStartedAt = null;
         isRecording = false;
         isReplayMode = false;
+        analyzeReplayMode = false;
+        attachedVideoFile = null;
         videoBlob = null;
         recordedChunks = [];
         if (videoObjectUrl) {
             URL.revokeObjectURL(videoObjectUrl);
             videoObjectUrl = null;
         }
+        lastAnalyzedVideoTime = -1;
         lastSessionMetrics = null;
         lastSessionId = null;
         uploadBtn.innerText = 'Save Session';
@@ -700,12 +555,20 @@ function setWarning(text) {
         updateCounters();
     }
 
+    function sessionDurationSeconds() {
+        if (attachedVideoFile && Number.isFinite(playbackVideo.duration)) {
+            return Math.round(playbackVideo.duration || playbackVideo.currentTime || 1);
+        }
+        return 60 - timeLeft;
+    }
+
     function armSession() {
         if (isRecording || sessionStarted) return;
         sessionArmed = true;
         positionLockFrames = 0;
         positionReady = false;
         stage = null;
+        lastCounterSignature = '';
         validReps = 0;
         invalidReps = 0;
         if (window.FitLahPushupExercise) {
@@ -796,7 +659,7 @@ function setWarning(text) {
                 SoundManager.playSessionEndSound();
             }
             
-            startPlaybackReplay();
+            startPlaybackReplay({ analyze: false });
         };
 
         isRecording = true;
@@ -821,33 +684,126 @@ function setWarning(text) {
         setWarning('Recording started — 1 minute on the clock!');
     }
 
-    function startPlaybackReplay() {
+    function startPlaybackReplay(options = {}) {
         isReplayMode = true;
-        detectLoopRunning = true;
+        analyzeReplayMode = Boolean(options.analyze);
         playbackVideo.style.display = 'none';
         poseCanvas.style.display = 'block';
         playbackVideo.currentTime = 0;
+        lastAnalyzedVideoTime = -1;
+        showReviewControls();
         const playReplay = () => playbackVideo.play().catch(() => {});
         if (playbackVideo.readyState >= 2) {
             playReplay();
         } else {
             playbackVideo.onloadeddata = playReplay;
         }
-        setWarning('Playback with skeleton overlay — review your form, then upload to save.');
+        setWarning(analyzeReplayMode
+            ? 'Analysing attached video with skeleton overlay. Use the timeline controls to review or skip.'
+            : 'Playback with skeleton overlay — review your form, then upload to save.');
 
         playbackVideo.onended = () => {
             isReplayMode = false;
-            detectLoopRunning = true;
+            const wasAnalyzingAttachment = analyzeReplayMode;
+            analyzeReplayMode = false;
             playbackVideo.style.display = 'none';
             poseCanvas.style.display = 'block';
             uploadBtn.style.display = 'inline-block';
             startRecBtn.style.display = 'inline-block';
-            setWarning('Review complete. Save session, or switch exercise mode.');
+            startRecBtn.style.display = stream ? 'inline-block' : 'none';
+            isRecording = false;
+            sessionStarted = false;
+            sessionArmed = false;
+            if (wasAnalyzingAttachment) {
+                lastSessionMetrics = finalizeSessionMetrics();
+                setWarning('Attached video analysis complete. Save the session or adjust playback to review form.');
+            } else {
+                setWarning('Review complete. Save session, or switch exercise mode.');
+            }
             if (lastSessionMetrics) {
                 fetchAiRecommendation(lastSessionMetrics);
             }
         };
-        runPoseLoop();
+        startPoseLoop();
+    }
+
+    function showReviewControls() {
+        reviewControls.style.display = 'flex';
+        if (!reviewController && window.FitLahVideoReview) {
+            reviewController = FitLahVideoReview.createController({
+                video: playbackVideo,
+                seek: reviewSeek,
+                current: reviewCurrentTime,
+                duration: reviewDuration,
+                speed: reviewSpeed,
+                timeInput: reviewJumpTime
+            });
+        }
+        if (reviewController) {
+            reviewController.refresh();
+        }
+    }
+
+    function hideReviewControls() {
+        reviewControls.style.display = 'none';
+    }
+
+    function selectRecordedVideo() {
+        if (isRecording) {
+            alert('Stop the current session before attaching a video.');
+            return;
+        }
+        videoAttachmentInput.click();
+    }
+
+    async function loadRecordedVideo(file) {
+        if (!file) return;
+        if (!window.Pose) {
+            alert('Pose model is still loading. Please try again in a moment.');
+            return;
+        }
+
+        await initPose();
+        clearCurrentRecordingUi('Loading attached video...');
+        attachedVideoFile = file;
+        videoBlob = file;
+        sessionStartedAt = new Date().toISOString();
+        sessionStarted = true;
+        sessionArmed = false;
+        isRecording = true;
+        isReplayMode = true;
+        analyzeReplayMode = true;
+        initCvMetrics();
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
+        videoObjectUrl = URL.createObjectURL(file);
+        playbackVideo.src = videoObjectUrl;
+        playbackVideo.muted = true;
+        playbackVideo.controls = false;
+        sourceVideo.style.display = 'none';
+        cameraPlaceholder.style.display = 'none';
+        poseCanvas.style.display = 'block';
+        startCamBtn.style.display = 'inline-block';
+        startRecBtn.style.display = 'none';
+        stopRecBtn.style.display = 'inline-block';
+        uploadBtn.style.display = 'none';
+        timerDisplay.style.display = 'none';
+        resetAiRecoPanel();
+        updateCounters();
+
+        playbackVideo.onloadedmetadata = () => {
+            showReviewControls();
+            startPlaybackReplay({ analyze: true });
+        };
+        if (playbackVideo.readyState >= 1) {
+            showReviewControls();
+            startPlaybackReplay({ analyze: true });
+        }
     }
 
     function stopRecording() {
@@ -883,6 +839,7 @@ function setWarning(text) {
         playbackVideo.load();
         playbackVideo.onended = null;
         playbackVideo.style.display = 'none';
+        hideReviewControls();
         poseCanvas.style.display = stream ? 'block' : 'none';
         stopRecBtn.style.display = 'none';
         uploadBtn.style.display = 'none';
@@ -891,8 +848,9 @@ function setWarning(text) {
         resetRepState();
         if (stream) {
             sessionArmed = true;
-            detectLoopRunning = true;
-            runPoseLoop();
+            startPoseLoop();
+        } else {
+            stopPoseLoop();
         }
         resetAiRecoPanel();
         setWarning(message || 'Session stopped. The current recording was deleted.');
@@ -910,7 +868,7 @@ function setWarning(text) {
     }
 
     async function stopSession() {
-        if (!stream) return;
+        if (!stream && !videoBlob && !attachedVideoFile) return;
 
         const sessionsToDelete = savedSessionIds.length
             ? savedSessionIds.slice()
@@ -954,7 +912,7 @@ function setWarning(text) {
         formData.append('exercise', currentMode);
         formData.append('valid_reps', validReps);
         formData.append('invalid_reps', invalidReps);
-        formData.append('duration_seconds', 60 - timeLeft);
+        formData.append('duration_seconds', lastSessionMetrics?.duration_seconds || sessionDurationSeconds());
         if (sessionStartedAt) {
             formData.append('started_at', sessionStartedAt);
             formData.append('ended_at', new Date().toISOString());
@@ -987,9 +945,19 @@ function setWarning(text) {
                 const label = currentMode === 'pushup' ? 'Push-up' : 'Sit-up';
                 setWarning(`${label} saved — ${result.valid_reps} reps logged. Record another exercise or tap Done.`);
                 resetRepState();
-                armSession();
-                detectLoopRunning = true;
-                runPoseLoop();
+                if (stream) {
+                    armSession();
+                    startPoseLoop();
+                } else {
+                    hideReviewControls();
+                    cameraPlaceholder.style.display = 'block';
+                    cameraPlaceholder.textContent = 'Attach another video or return when done';
+                    poseCanvas.style.display = 'none';
+                    startRecBtn.style.display = 'none';
+                    stopRecBtn.style.display = 'none';
+                    uploadBtn.style.display = 'none';
+                    stopPoseLoop();
+                }
                 checkCompletion();
                 uploadBtn.innerText = 'Saved ✓';
             } else {
@@ -1021,11 +989,46 @@ function setWarning(text) {
             alert('Please complete and upload at least one exercise session first.');
             return;
         }
+        stopPoseLoop();
         if (stream) stream.getTracks().forEach(t => t.stop());
         window.location.href = "/";
     }
+
+    function toggleReviewPlayback() {
+        if (playbackVideo.paused) {
+            playbackVideo.play().catch(() => {});
+        } else {
+            playbackVideo.pause();
+        }
+    }
+
+    function skipReviewBy(seconds) {
+        if (reviewController) reviewController.seekBy(seconds);
+    }
+
+    function jumpReviewToInput() {
+        if (reviewController) reviewController.seekTo(reviewJumpTime.value);
+    }
+
+    function skipReviewToEnd() {
+        if (!Number.isFinite(playbackVideo.duration)) return;
+        playbackVideo.currentTime = Math.max(0, playbackVideo.duration - 0.2);
+        playbackVideo.play().catch(() => {});
+    }
+
+    videoAttachmentInput.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        loadRecordedVideo(file);
+        event.target.value = '';
+    });
 
     window.addEventListener('DOMContentLoaded', () => {
         resetAiRecoPanel();
         setExerciseMode('pushup');
     });
+
+    window.selectRecordedVideo = selectRecordedVideo;
+    window.toggleReviewPlayback = toggleReviewPlayback;
+    window.skipReviewBy = skipReviewBy;
+    window.jumpReviewToInput = jumpReviewToInput;
+    window.skipReviewToEnd = skipReviewToEnd;

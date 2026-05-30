@@ -1,4 +1,9 @@
-Version 0.1.1 Rank DropBox Update 潘
+Version 0.1.2 
 
-Increase version number and edit breif description just before editing 
+Refactor Code and UI
+Server data is now not gonna be used anymore, it is seeded, it is only going to be accessed if postgres is not used.
+
+
+
+Increase version number and edit brief description just before editing 
 so that people will know if it is the latest version

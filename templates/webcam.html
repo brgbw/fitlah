@@ -276,6 +276,10 @@
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     }
 
+    .control-actions .stop-btn#attachVideoBtn {
+        background: linear-gradient(135deg, #0F766E 0%, #0D9488 100%);
+    }
+
     .control-actions .stop-btn#completeBtn {
         margin-left: auto;
     }
@@ -299,6 +303,64 @@
         background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
         border-color: #FECACA;
         animation: timer-pulse 1s ease-in-out infinite;
+    }
+
+    .review-controls {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+        flex-wrap: wrap;
+    }
+
+    .review-icon-btn {
+        border: 1px solid #CBD5E1;
+        background: #FFFFFF;
+        color: #0F172A;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .review-icon-btn:hover {
+        background: #F8FAFC;
+    }
+
+    .review-time {
+        font-size: 12px;
+        color: #475569;
+        font-variant-numeric: tabular-nums;
+        min-width: 86px;
+        text-align: center;
+    }
+
+    .review-seek {
+        flex: 1;
+        min-width: 220px;
+        accent-color: var(--primary);
+    }
+
+    .review-select,
+    .review-time-input {
+        height: 34px;
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: #0F172A;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .review-time-input {
+        width: 82px;
     }
 
     @keyframes timer-pulse {
@@ -479,8 +541,27 @@
         <div class="video-feed-card">
             <div class="camera-placeholder" id="cameraPlaceholder">Camera and pose model idle</div>
             <video id="sourceVideo" autoplay muted playsinline></video>
-            <canvas id="poseCanvas" width="960" height="540"></canvas>
+            <canvas id="poseCanvas" width="640" height="360"></canvas>
             <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
+        </div>
+
+        <div class="review-controls" id="reviewControls">
+            <button class="review-icon-btn" type="button" onclick="toggleReviewPlayback()" title="Play or pause">▶</button>
+            <button class="review-icon-btn" type="button" onclick="skipReviewBy(-10)" title="Back 10 seconds">«</button>
+            <button class="review-icon-btn" type="button" onclick="skipReviewBy(10)" title="Forward 10 seconds">»</button>
+            <span class="review-time"><span id="reviewCurrentTime">00:00</span> / <span id="reviewDuration">00:00</span></span>
+            <input class="review-seek" id="reviewSeek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video timeline">
+            <select class="review-select" id="reviewSpeed" aria-label="Playback speed">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+                <option value="4">4x</option>
+            </select>
+            <input class="review-time-input" id="reviewJumpTime" type="number" min="0" step="1" placeholder="sec" aria-label="Jump to second">
+            <button class="review-icon-btn" type="button" onclick="jumpReviewToInput()" title="Jump to time">↦</button>
+            <button class="review-icon-btn" type="button" onclick="skipReviewToEnd()" title="Skip to end">⏭</button>
         </div>
 
         <!-- AI personalised coach (text metrics only, no video sent) -->
@@ -533,6 +614,8 @@
 <div class="control-strip">
     <div class="control-actions">
         <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
+        <button type="button" class="stop-btn" id="attachVideoBtn" onclick="selectRecordedVideo()">Attach Video</button>
+        <input id="videoAttachmentInput" type="file" accept="video/*" style="display: none;">
         <button type="button" class="stop-btn" id="startRecBtn" onclick="stopSession()" style="background-color: #B91C1C; display: none;">Stop Session</button>
         <button type="button" class="stop-btn" id="stopRecBtn" onclick="stopSession()" style="background-color: #B91C1C; display: none;">Stop Session</button>
         <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
@@ -544,6 +627,8 @@
 <script src="{{ url_for('static', filename='js/soundManager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/exercise/pushup.js') }}"></script>
 <script src="{{ url_for('static', filename='js/exercise/situp.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/webcam_pose_drawing.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/webcam_video_review.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/webcam.js') }}"></script>
 {% endblock %}
 

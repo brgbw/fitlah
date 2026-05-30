@@ -25,11 +25,11 @@
 
     const CONFIG = {
         // The first rep is only armed after the user holds a valid straight-arm plank for 1 second.
-        READY_HOLD_MS: 1000,
+        READY_HOLD_MS: 700,
         // MediaPipe visibility is noisy in side view; this keeps low-confidence frames from moving states.
         POSE_CONFIDENCE_MIN: 0.28,
         // EMA smoothing absorbs small landmark jitter without adding visible lag to rep transitions.
-        SMOOTHING_ALPHA: 0.45,
+        SMOOTHING_ALPHA: 0.4,
         // Straight arms define a valid push-up top position.
         UP_ELBOW_MIN_ANGLE: 115,
         // A rep must pass this elbow depth, or an equivalent shoulder drop, before it can count.
@@ -38,7 +38,7 @@
         // Prevent quick oscillations or single-frame flicker from becoming duplicate reps.
         MIN_REP_DURATION_MS: 300,
         REP_COOLDOWN_MS: 300,
-        STABLE_FRAMES_REQUIRED: 1,
+        STABLE_FRAMES_REQUIRED: 2,
         // Full-body validation thresholds are normalized by body length so they scale with camera distance.
         BODY_STRAIGHTNESS_TOLERANCE: 0.35,
         HEAD_ALIGNMENT_TOLERANCE: 0.55,

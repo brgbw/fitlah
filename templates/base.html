@@ -187,8 +187,8 @@
                 Group
             </a>
 
-            <a href="{{ url_for('performance') }}" class="nav-item {% if request.path == '/performance' %}active{% endif %}">
-                Performance
+            <a href="{{ url_for('calendar') }}" class="nav-item {% if request.path in ['/calendar', '/performance'] %}active{% endif %}">
+                Calendar
             </a>
 
             <a href="{{ url_for('dashboard_graph') }}" class="nav-item {% if request.path == '/dashboard-graph' %}active{% endif %}">
