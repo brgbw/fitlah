@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from flask import g
 
-from .config import BASE_DIR, SERVERDATA_DIR
+from .config import BASE_DIR, SEEDDATA_DIR
 
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/fitlah"
 
@@ -171,7 +171,7 @@ def _connect():
 
 
 def _table_path(table_name):
-    return os.path.join(SERVERDATA_DIR, f"{table_name}.json")
+    return os.path.join(SEEDDATA_DIR, f"{table_name}.json")
 
 
 def _load_seed_data():

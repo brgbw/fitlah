@@ -546,7 +546,8 @@
         </div>
 
         <div class="review-controls" id="reviewControls">
-            <button class="review-icon-btn" type="button" onclick="toggleReviewPlayback()" title="Play or pause">▶</button>
+            <button class="review-icon-btn" id="reviewPlayPauseBtn" type="button" onclick="toggleReviewPlayback()" title="Play or pause">▶</button>
+            <button class="review-icon-btn" id="reviewStopBtn" type="button" onclick="stopReviewPlayback()" title="Stop and return to start">■</button>
             <button class="review-icon-btn" type="button" onclick="skipReviewBy(-10)" title="Back 10 seconds">«</button>
             <button class="review-icon-btn" type="button" onclick="skipReviewBy(10)" title="Forward 10 seconds">»</button>
             <span class="review-time"><span id="reviewCurrentTime">00:00</span> / <span id="reviewDuration">00:00</span></span>

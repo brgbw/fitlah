@@ -6,7 +6,7 @@ from .schemas.performance_log_schema import ensure_performance_log_schema
 
 
 def ensure_auth_tables(db):
-    """Ensure every known person has a login record stored in serverdata."""
+    """Ensure every known person has a login record in the seed data."""
     db.setdefault("auth_user", [])
     db.setdefault("user", [])
 
@@ -97,4 +97,3 @@ def ensure_personal_best_data(db):
                 **best,
                 "updated_at": datetime.now().strftime("%Y-%m-%d"),
             })
-

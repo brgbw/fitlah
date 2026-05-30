@@ -43,6 +43,7 @@ let currentMode = 'pushup';
     let aiRecoLoading = false;
     let reviewController = null;
     let lastAnalyzedVideoTime = -1;
+    let forceReplayFrame = false;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -73,6 +74,7 @@ let currentMode = 'pushup';
     const reviewDuration = document.getElementById('reviewDuration');
     const reviewSpeed = document.getElementById('reviewSpeed');
     const reviewJumpTime = document.getElementById('reviewJumpTime');
+    const reviewPlayPauseBtn = document.getElementById('reviewPlayPauseBtn');
 
     function setExerciseMode(mode) {
         if (isRecording || sessionStarted) return;
@@ -173,10 +175,11 @@ let currentMode = 'pushup';
 
         const imageSource = isReplayMode ? playbackVideo : sourceVideo;
         const replayIsPaused = isReplayMode && playbackVideo.paused;
+        const shouldDrawPausedReplayFrame = isReplayMode && forceReplayFrame;
 
         if (imageSource.readyState >= 2 &&
             !poseInFlight &&
-            !replayIsPaused &&
+            (!replayIsPaused || shouldDrawPausedReplayFrame) &&
             timestamp - lastPoseSentAt >= POSE_MIN_FRAME_MS) {
             poseInFlight = true;
             lastPoseSentAt = timestamp;
@@ -186,6 +189,7 @@ let currentMode = 'pushup';
                 console.warn('Pose frame skipped:', err);
             } finally {
                 poseInFlight = false;
+                forceReplayFrame = false;
             }
         }
 
@@ -703,7 +707,6 @@ let currentMode = 'pushup';
             : 'Playback with skeleton overlay — review your form, then upload to save.');
 
         playbackVideo.onended = () => {
-            isReplayMode = false;
             const wasAnalyzingAttachment = analyzeReplayMode;
             analyzeReplayMode = false;
             playbackVideo.style.display = 'none';
@@ -723,6 +726,9 @@ let currentMode = 'pushup';
             if (lastSessionMetrics) {
                 fetchAiRecommendation(lastSessionMetrics);
             }
+            if (reviewController) {
+                reviewController.refresh();
+            }
         };
         startPoseLoop();
     }
@@ -736,7 +742,9 @@ let currentMode = 'pushup';
                 current: reviewCurrentTime,
                 duration: reviewDuration,
                 speed: reviewSpeed,
-                timeInput: reviewJumpTime
+                timeInput: reviewJumpTime,
+                playPause: reviewPlayPauseBtn,
+                onSeeked: requestReplayFrame
             });
         }
         if (reviewController) {
@@ -995,11 +1003,27 @@ let currentMode = 'pushup';
     }
 
     function toggleReviewPlayback() {
+        isReplayMode = true;
+        startPoseLoop();
+        if (playbackVideo.ended && Number.isFinite(playbackVideo.duration)) {
+            playbackVideo.currentTime = 0;
+            requestReplayFrame();
+        }
         if (playbackVideo.paused) {
             playbackVideo.play().catch(() => {});
         } else {
             playbackVideo.pause();
         }
+        if (reviewController) reviewController.refresh();
+    }
+
+    function stopReviewPlayback() {
+        if (!Number.isFinite(playbackVideo.duration)) return;
+        playbackVideo.pause();
+        playbackVideo.currentTime = 0;
+        isReplayMode = true;
+        requestReplayFrame();
+        if (reviewController) reviewController.refresh();
     }
 
     function skipReviewBy(seconds) {
@@ -1013,7 +1037,16 @@ let currentMode = 'pushup';
     function skipReviewToEnd() {
         if (!Number.isFinite(playbackVideo.duration)) return;
         playbackVideo.currentTime = Math.max(0, playbackVideo.duration - 0.2);
+        isReplayMode = true;
+        requestReplayFrame();
         playbackVideo.play().catch(() => {});
+    }
+
+    function requestReplayFrame() {
+        if (!playbackVideo.src) return;
+        isReplayMode = true;
+        forceReplayFrame = true;
+        startPoseLoop();
     }
 
     videoAttachmentInput.addEventListener('change', (event) => {
@@ -1029,6 +1062,7 @@ let currentMode = 'pushup';
 
     window.selectRecordedVideo = selectRecordedVideo;
     window.toggleReviewPlayback = toggleReviewPlayback;
+    window.stopReviewPlayback = stopReviewPlayback;
     window.skipReviewBy = skipReviewBy;
     window.jumpReviewToInput = jumpReviewToInput;
     window.skipReviewToEnd = skipReviewToEnd;

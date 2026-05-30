@@ -13,6 +13,8 @@
         const duration = options.duration;
         const speed = options.speed;
         const timeInput = options.timeInput;
+        const playPause = options.playPause;
+        const onSeeked = options.onSeeked || (() => {});
 
         function refresh() {
             const total = video.duration || 0;
@@ -20,18 +22,23 @@
             seek.value = video.currentTime || 0;
             current.textContent = formatTime(video.currentTime || 0);
             duration.textContent = formatTime(total);
+            if (playPause) {
+                playPause.textContent = video.paused || video.ended ? '▶' : '❚❚';
+            }
         }
 
         function seekBy(deltaSeconds) {
             if (!Number.isFinite(video.duration)) return;
             video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + deltaSeconds));
             refresh();
+            onSeeked();
         }
 
         function seekTo(seconds) {
             if (!Number.isFinite(video.duration)) return;
             video.currentTime = Math.max(0, Math.min(video.duration, Number(seconds) || 0));
             refresh();
+            onSeeked();
         }
 
         function setSpeed(value) {
@@ -41,6 +48,9 @@
 
         function bind() {
             video.addEventListener('loadedmetadata', refresh);
+            video.addEventListener('play', refresh);
+            video.addEventListener('pause', refresh);
+            video.addEventListener('ended', refresh);
             video.addEventListener('timeupdate', refresh);
             seek.addEventListener('input', () => seekTo(seek.value));
             speed.addEventListener('change', () => setSpeed(speed.value));
@@ -64,4 +74,3 @@
         formatTime
     };
 })();
-

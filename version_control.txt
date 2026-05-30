@@ -1,7 +1,7 @@
 Version 0.1.2 
 
 Refactor Code and UI
-Server data is now not gonna be used anymore, it is seeded, it is only going to be accessed if postgres is not used.
+Seed data is used only to populate empty PostgreSQL tables on first startup.
 
 
 

@@ -1,0 +1,41 @@
+Fitlah App Launch Instructions
+
+1. Open a terminal in the project folder:
+
+   C:\Users\brand\OneDrive\Documents\Hackathon\CODE_EXP_FITLAH_2026
+
+2. Create and activate a Python virtual environment:
+
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+
+3. Install the required Python packages:
+
+   pip install -r requirements.txt
+
+4. Set up PostgreSQL before launching the app.
+
+   Follow POSTGRES_SETUP.md to download PostgreSQL, start the PostgreSQL service,
+   create the fitlah database, and configure DATABASE_URL in the .env file.
+
+   Example .env value:
+
+   DATABASE_URL=postgresql://postgres:your_password@localhost:5432/fitlah
+
+5. Start the app:
+
+   python app.py
+
+6. Open the app in your browser:
+
+   http://127.0.0.1:5000
+
+Notes:
+
+- Keep the terminal running while using the app.
+- On first startup, the app creates the required PostgreSQL tables.
+- If the tables are empty, the app imports the JSON files in seeddata/ once as seed data.
+- If PowerShell blocks virtual environment activation, run:
+
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   .\.venv\Scripts\Activate.ps1
