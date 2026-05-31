@@ -226,12 +226,12 @@
 
             <div class="field-row">
                 <label for="strava_user_id">User ID</label>
-                <input id="strava_user_id" name="strava_user_id" type="text" value="{{ strava_token.athlete_id or '' }}" inputmode="numeric" autocomplete="off">
+                <input id="strava_user_id" name="strava_user_id" type="text" value="{{ strava_connection.athlete_id or '' }}" inputmode="numeric" autocomplete="off">
             </div>
 
             <div class="field-row">
                 <label for="strava_api_key">API key</label>
-                <input id="strava_api_key" name="strava_api_key" type="password" value="{{ strava_token.access_token or '' }}" autocomplete="off">
+                <input id="strava_api_key" name="strava_api_key" type="password" value="{{ strava_connection.access_token or '' }}" autocomplete="off">
             </div>
         </section>
 

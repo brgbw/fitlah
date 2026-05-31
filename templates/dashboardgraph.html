@@ -219,7 +219,7 @@
     <div class="graph-header">
         <div>
             <h1>Push-up and Sit-up Trends</h1>
-            <p>Track the number of reps logged from webcam sessions over time. Data is loaded from your performance log API.</p>
+            <p>Track the number of reps logged from webcam sessions over time. Data is loaded from your activity records API.</p>
         </div>
         <button class="refresh-btn" type="button" onclick="refreshDashboardGraph()">Refresh Data</button>
     </div>
@@ -276,5 +276,5 @@
     </section>
 </div>
 
-<script src="{{ url_for('static', filename='js/pages/dashboard_graph.js') }}"></script>
+<script src="{{ asset_url('js/pages/dashboard_graph.js') }}"></script>
 {% endblock %}

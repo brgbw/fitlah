@@ -7,9 +7,15 @@ from flask import jsonify, render_template, request
 from ..ai_coach import generate_exercise_recommendation
 from ..auth import current_user, login_required
 from ..config import BASE_DIR
-from ..db import delete_row, delete_rows, fetch_table, insert_row, next_id, query_db, update_row
 from ..helpers import get_personal_best, save_ai_recommendation, update_personal_best
 from ..ippt_scoring import age_profile_from_nric
+from ..repositories import (
+    activity_records as activity_records_for_nric,
+    create_activity as create_activity_record,
+    delete_activity as delete_activity_record,
+    personal_best as repo_personal_best,
+    save_personal_best,
+)
 from ..temp_analysis import load_temp_analysis_logs, save_temp_analysis
 
 
@@ -23,14 +29,14 @@ def recalculate_exercise_best(db, nric, exercise_type):
     field, _, _ = _exercise_labels(exercise_type)
     best_reps = max(
         [
-            int(session.get("valid_reps") or 0)
-            for session in fetch_table("workout_sessions")
-            if session.get("nric") == nric and session.get("exercise") == exercise_type
+            int(record.get("valid_reps") or 0)
+            for record in activity_records_for_nric(nric)
+            if record.get("exercise") == exercise_type
         ],
         default=0,
     )
 
-    personal_best = next((pb for pb in fetch_table("personal_best") if pb.get("nric") == nric), None)
+    personal_best = repo_personal_best(nric)
     if not personal_best:
         personal_best = {
             "nric": nric,
@@ -40,15 +46,10 @@ def recalculate_exercise_best(db, nric, exercise_type):
             **age_profile_from_nric(nric),
             "updated_at": None,
         }
-        insert_row("personal_best", personal_best)
 
     personal_best[field] = best_reps
     personal_best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
-    update_row("personal_best", "nric", nric, personal_best)
-
-    for member in fetch_table("group_member"):
-        if member.get("nric") == nric:
-            update_row("group_member", "id", member["id"], {field: best_reps})
+    save_personal_best(nric, personal_best)
 
     return best_reps
 
@@ -75,7 +76,6 @@ def register_webcam_routes(app):
     @app.route("/webcam")
     @login_required
     def webcam():
-        sorted(query_db("webcam"), key=lambda x: x["id"], reverse=True)
         return render_template("webcam.html")
 
     @app.route("/webcam-prep")
@@ -100,20 +100,20 @@ def register_webcam_routes(app):
         temp_logs = load_temp_analysis_logs(raw_analysis_ids, nric)
 
         ai_logs = [
-            log for log in fetch_table("performance_log")
-            if log.get("nric") == nric and log.get("ai_recommendation")
+            log for log in activity_records_for_nric(nric)
+            if log.get("ai_recommendation")
         ]
         if session_ids:
             allowed = set(session_ids)
-            ai_logs = [log for log in ai_logs if int(log.get("session_id") or 0) in allowed]
+            ai_logs = [log for log in ai_logs if int(log.get("id") or 0) in allowed]
             order = {session_id: index for index, session_id in enumerate(session_ids)}
-            ai_logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
+            ai_logs.sort(key=lambda log: order.get(int(log.get("id") or 0), 999))
             temp_logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
         else:
             ai_logs.sort(key=lambda log: (log.get("date") or "", log.get("time") or ""), reverse=True)
             ai_logs = ai_logs[:3]
 
-        ai_by_session = {int(log.get("session_id") or 0): log.get("ai_recommendation") for log in ai_logs}
+        ai_by_session = {int(log.get("id") or 0): log.get("ai_recommendation") for log in ai_logs}
         logs = []
         used_sessions = set()
         for log in temp_logs:
@@ -125,7 +125,7 @@ def register_webcam_routes(app):
 
         logs.extend([
             log for log in ai_logs
-            if int(log.get("session_id") or 0) not in used_sessions
+            if int(log.get("id") or 0) not in used_sessions
         ])
 
         return render_template("ai_recommendations.html", recommendations=logs)
@@ -138,7 +138,7 @@ def register_webcam_routes(app):
         session_record = next(
             (
                 item
-                for item in fetch_table("workout_sessions")
+                for item in activity_records_for_nric(nric)
                 if item.get("id") == session_id and item.get("nric") == nric
             ),
             None,
@@ -150,11 +150,7 @@ def register_webcam_routes(app):
         exercise_type = session_record.get("exercise")
         video_deleted = delete_session_video(session_record.get("video_path"))
 
-        delete_row("workout_sessions", "id", session_id)
-        delete_rows(
-            "performance_log",
-            lambda log: log.get("session_id") == session_id and log.get("nric") == nric,
-        )
+        delete_activity_record(session_id, nric)
 
         personal_best = None
         if exercise_type in {"pushup", "situp"}:
@@ -209,33 +205,11 @@ def register_webcam_routes(app):
         session_date = datetime.now().strftime("%Y-%m-%d")
         session_time = datetime.now().strftime("%H:%M:%S")
 
-        session_id = next_id("workout_sessions")
-        session_record = {
-            "id": session_id,
-            "nric": nric,
-            "exercise": exercise_type,
-            "exercise_label": label,
-            "valid_reps": valid_reps,
-            "invalid_reps": invalid_reps,
-            "duration_seconds": duration_seconds,
-            "started_at": started_at or None,
-            "ended_at": ended_at,
-            "video_file": filename,
-            "video_path": relative_video_path.replace("\\", "/"),
-            "personal_best": int(best.get(pb_field) or 0),
-            "date": session_date,
-            "time": session_time,
-            "source": "webcam_cv",
-            "ai_recommendation": None,
-        }
-        insert_row("workout_sessions", session_record)
-
-        log_id = next_id("performance_log")
-        performance_log = {
-            "id": log_id,
+        session_record = create_activity_record({
             "nric": nric,
             "event": f"Webcam {label}",
             "name": f"Webcam {label}",
+            "title": f"Webcam {label}",
             "type": "ippt",
             "score": f"{valid_reps} reps",
             "time": f"{duration_seconds // 60}:{duration_seconds % 60:02d} min",
@@ -248,14 +222,19 @@ def register_webcam_routes(app):
             "valid_reps": valid_reps,
             "invalid_reps": invalid_reps,
             "duration_seconds": duration_seconds,
-            "video_path": session_record["video_path"],
-            "session_id": session_id,
+            "started_at": started_at or None,
+            "ended_at": ended_at,
+            "video_file": filename,
+            "video_path": relative_video_path.replace("\\", "/"),
+            "personal_best": int(best.get(pb_field) or 0),
+            "source": "webcam",
             "ai_recommendation": None,
-        }
-        insert_row("performance_log", performance_log)
+        })
+        session_id = session_record["id"]
+        session_record["session_id"] = session_id
 
         analysis_id = save_temp_analysis(nric, {
-            **performance_log,
+            **session_record,
             "movement_analysis": movement_analysis,
         })
         return jsonify({

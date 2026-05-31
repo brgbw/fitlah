@@ -472,6 +472,17 @@
         padding: 12px;
     }
 
+    .strava-preview-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .strava-preview-run button.secondary {
+        background: #0F172A;
+    }
+
     .strava-preview-run.selected {
         border-color: #FC4C02;
         background: #FFF7ED;
@@ -571,6 +582,58 @@
         font-weight: 700;
     }
 
+    .strava-ippt-result {
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: #FFFFFF;
+    }
+
+    .strava-ippt-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(72px, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .strava-ippt-metrics div,
+    .strava-split-list li {
+        border: 1px solid #E5E7EB;
+        border-radius: 6px;
+        background: #FAFAFA;
+        padding: 9px;
+    }
+
+    .strava-ippt-metrics span,
+    .strava-split-list span {
+        display: block;
+        color: #64748B;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .strava-ippt-metrics strong,
+    .strava-split-list strong {
+        display: block;
+        color: #0F172A;
+        font-size: 14px;
+        margin-top: 2px;
+    }
+
+    .strava-split-list {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(54px, 1fr));
+        gap: 8px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .strava-ai-card.compact h4 {
+        margin-bottom: 6px;
+    }
+
     .recent-list {
         display: grid;
         gap: 12px;
@@ -624,7 +687,9 @@
         .dashboard-grid,
         .action-stack,
         .station-grid,
-        .strava-ai-grid {
+        .strava-ai-grid,
+        .strava-ippt-metrics,
+        .strava-split-list {
             grid-template-columns: 1fr;
         }
 
@@ -850,12 +915,63 @@
         const focus = document.getElementById('stravaAiFocus');
 
         summary.textContent = ai.summary || '';
-        dos.innerHTML = (ai.dos || []).map(item => `<li>${item}</li>`).join('');
-        donts.innerHTML = (ai.donts || []).map(item => `<li>${item}</li>`).join('');
-        focus.textContent = (ai.focus_areas || []).length
-            ? `Next focus: ${ai.focus_areas.join(' · ')}`
+        const recommendations = ai.recommendations || ai.dos || [];
+        dos.innerHTML = recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+        donts.innerHTML = [ai.weakness || (ai.donts || [])[0]].filter(Boolean).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+        focus.textContent = ai.safetyNote
+            ? `Safety: ${ai.safetyNote}`
+            : (ai.focus_areas || []).length
+            ? `Next focus: ${ai.focus_areas.join(' | ')}`
             : '';
+        card.classList.add('compact');
         card.style.display = 'block';
+    }
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[char]));
+    }
+
+    function renderIpptResult(result) {
+        const container = document.getElementById('stravaIpptResult');
+        if (!container || !result) return;
+
+        const splits = result.splits || [];
+        container.className = 'strava-ippt-result';
+        container.innerHTML = `
+            <div class="strava-ippt-metrics">
+                <div><span>Official 2.4km</span><strong>${escapeHtml(result.official_time)}</strong></div>
+                <div><span>Run points</span><strong>${Number(result.run_points || 0)}</strong></div>
+                <div><span>Validity</span><strong>${Number(result.validity_score || 0)}/100 ${escapeHtml(result.status)}</strong></div>
+                <div><span>Ignored</span><strong>${Number(result.extra_distance_m || 0).toFixed(0)} m</strong></div>
+            </div>
+            <ul class="strava-split-list">
+                ${splits.map(split => `
+                    <li>
+                        <span>${Number(split.distance_m)} m</span>
+                        <strong>${escapeHtml(split.time)}</strong>
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+        container.style.display = 'block';
+    }
+
+    async function readJsonResponse(response, fallbackMessage) {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            return response.json();
+        }
+        const text = await response.text();
+        if (text.toLowerCase().includes('<!doctype') || text.toLowerCase().includes('<html')) {
+            throw new Error(fallbackMessage || 'Server returned an HTML error page. Refresh and try again.');
+        }
+        throw new Error(text || fallbackMessage || 'Unexpected server response.');
     }
 
     function renderStravaMessage(title, message, actionLabel, actionUrl) {
@@ -937,12 +1053,28 @@
             meta.textContent = `${activity.distance_km.toFixed(2)} km · ${activity.time} · ${activity.pace} · ${activity.date}`;
             details.append(name, meta);
 
+            const actions = document.createElement('div');
+            actions.className = 'strava-preview-actions';
+
             const button = document.createElement('button');
             button.type = 'button';
             button.textContent = 'Import';
             button.addEventListener('click', () => importStravaRun(activity.id, button));
 
-            row.append(details, button);
+            const ipptButton = document.createElement('button');
+            ipptButton.type = 'button';
+            ipptButton.textContent = '2.4km';
+            ipptButton.addEventListener('click', () => calculateStravaIppt(activity.id, ipptButton));
+
+            const coachButton = document.createElement('button');
+            coachButton.type = 'button';
+            coachButton.className = 'secondary';
+            coachButton.textContent = 'Coach';
+            coachButton.disabled = true;
+            coachButton.addEventListener('click', () => generateRunCoach(activity.id, coachButton));
+
+            actions.append(button, ipptButton, coachButton);
+            row.append(details, actions);
             list.append(row);
         });
     }
@@ -953,7 +1085,7 @@
 
         try {
             const response = await fetch('/api/strava/activities');
-            const data = await response.json();
+            const data = await readJsonResponse(response, 'Could not fetch Strava activities.');
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Could not fetch Strava activities.');
             }
@@ -978,6 +1110,7 @@
         status.className = 'strava-import-status';
         status.textContent = 'Importing selected Strava run into Calendar...';
         document.getElementById('stravaAiCard').style.display = 'none';
+        document.getElementById('stravaIpptResult').style.display = 'none';
         allButtons.forEach(btn => btn.disabled = true);
 
         try {
@@ -986,14 +1119,14 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ activity_id: activityId })
             });
-            const data = await response.json();
+            const data = await readJsonResponse(response, 'Could not import Strava run.');
 
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Could not import Strava run.');
             }
 
             allRuns.forEach(row => row.classList.toggle('selected', row.dataset.activityId === String(activityId)));
-            status.textContent = `${data.log.name} imported to Calendar and performance log.`;
+            status.textContent = `${data.log.name} imported to Calendar and activity records.`;
             renderStravaAi(data.ai_recommendation || {});
             refreshIpptScore();
             button.textContent = 'Imported';
@@ -1001,9 +1134,94 @@
             status.className = 'strava-import-status error';
             status.textContent = error.message;
         } finally {
-            allButtons.forEach(btn => {
-                if (btn.textContent !== 'Imported') btn.disabled = false;
+            restoreStravaButtons();
+        }
+    }
+
+    function restoreStravaButtons() {
+        document.querySelectorAll('.strava-preview-run button').forEach(btn => {
+            if (btn.textContent === 'Imported') return;
+            if (btn.classList.contains('secondary')) {
+                const row = btn.closest('.strava-preview-run');
+                btn.disabled = !row || row.dataset.ipptReady !== 'true';
+                return;
+            }
+            btn.disabled = false;
+        });
+    }
+
+    async function calculateStravaIppt(activityId, button) {
+        const result = document.getElementById('stravaImportResult');
+        const status = document.getElementById('stravaImportStatus');
+        const allRuns = document.querySelectorAll('.strava-preview-run');
+        const allButtons = document.querySelectorAll('.strava-preview-run button');
+
+        result.style.display = 'block';
+        status.className = 'strava-import-status';
+        status.textContent = 'Calculating 2.4km...';
+        document.getElementById('stravaAiCard').style.display = 'none';
+        document.getElementById('stravaIpptResult').style.display = 'none';
+        allButtons.forEach(btn => btn.disabled = true);
+
+        try {
+            const response = await fetch('/api/strava/ippt-24', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activity_id: activityId })
             });
+            const data = await readJsonResponse(response, 'Could not calculate IPPT 2.4km result.');
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Could not calculate IPPT 2.4km result.');
+            }
+
+            allRuns.forEach(row => row.classList.toggle('selected', row.dataset.activityId === String(activityId)));
+            status.textContent = `Saved: ${data.result.official_time}`;
+            renderIpptResult(data.result);
+            refreshIpptScore();
+            button.textContent = 'Recalc';
+            const row = button.closest('.strava-preview-run');
+            if (row) row.dataset.ipptReady = 'true';
+            const coachButton = row ? row.querySelector('button.secondary') : null;
+            if (coachButton) coachButton.disabled = false;
+        } catch (error) {
+            status.className = 'strava-import-status error';
+            status.textContent = error.message;
+        } finally {
+            restoreStravaButtons();
+        }
+    }
+
+    async function generateRunCoach(activityId, button) {
+        const result = document.getElementById('stravaImportResult');
+        const status = document.getElementById('stravaImportStatus');
+        const allButtons = document.querySelectorAll('.strava-preview-run button');
+
+        result.style.display = 'block';
+        status.className = 'strava-import-status';
+        status.textContent = 'Coach is thinking...';
+        allButtons.forEach(btn => btn.disabled = true);
+
+        try {
+            const response = await fetch('/api/strava/ippt-24/recommendation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activity_id: activityId })
+            });
+            const data = await readJsonResponse(response, 'Could not generate coach recommendation.');
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Could not generate coach recommendation.');
+            }
+
+            status.textContent = 'Coach ready.';
+            renderIpptResult(data.result);
+            renderStravaAi(data.ai_recommendation || {});
+        } catch (error) {
+            status.className = 'strava-import-status error';
+            status.textContent = error.message;
+        } finally {
+            restoreStravaButtons();
         }
     }
 

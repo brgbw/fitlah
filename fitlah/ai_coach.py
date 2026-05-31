@@ -152,12 +152,21 @@ def _parse_coach_json(text):
         except json.JSONDecodeError:
             continue
         if isinstance(data, dict):
-            return {
+            parsed = {
                 "summary": _limit_words(data.get("summary", ""), 7),
                 "dos": [_limit_words(item, 5) for item in _as_list(data.get("dos"))[:1]],
                 "donts": [_limit_words(item, 5) for item in _as_list(data.get("donts"))[:1]],
                 "focus_areas": [_limit_words(item, 2) for item in _as_list(data.get("focus_areas"))[:1]],
             }
+            if any(key in data for key in ("strength", "weakness", "recommendations", "safetyNote", "safety_note")):
+                parsed.update({
+                    "summary": _clean_text(data.get("summary", "")),
+                    "strength": _clean_text(data.get("strength", "")),
+                    "weakness": _clean_text(data.get("weakness", "")),
+                    "recommendations": [_clean_text(item) for item in _as_list(data.get("recommendations"))[:5]],
+                    "safetyNote": _clean_text(data.get("safetyNote") or data.get("safety_note", "")),
+                })
+            return parsed
     return None
 
 
@@ -230,3 +239,50 @@ def generate_exercise_recommendation(metrics):
         return {"success": False, "error": "Invalid exercise type in metrics."}
 
     return _call_openrouter(_build_system_prompt(), _build_user_prompt(metrics))
+
+
+def generate_ippt_run_recommendation(run_summary):
+    """Return coaching JSON for an already-computed IPPT 2.4km Strava result."""
+    if not run_summary or not isinstance(run_summary, dict):
+        return {"success": False, "error": "No run summary provided."}
+
+    system_prompt = (
+        "You are a certified Singapore IPPT running coach. You receive only structured "
+        "run analytics that have already been calculated and verified by application code. "
+        "Do not calculate, recalculate, dispute, or verify official timing, points, validity, "
+        "distance, or splits. Use the supplied values as facts. Respond ONLY with valid JSON, "
+        "no markdown fences, no greetings, no first-person wording, and no em dashes."
+    )
+    user_prompt = (
+        "Give personalised coaching from this computed 2.4km run summary.\n\n"
+        f"Run summary JSON:\n{json.dumps(run_summary, indent=2)}\n\n"
+        "Return JSON exactly in this shape:\n"
+        "{\n"
+        '  "summary": "one concise result interpretation",\n'
+        '  "strength": "one clear strength",\n'
+        '  "weakness": "one clear weakness",\n'
+        '  "recommendations": ["3 to 5 concrete training actions"],\n'
+        '  "safetyNote": "one practical safety note"\n'
+        "}\n"
+        "Do not include official timing calculations or validity judgements."
+    )
+    result = _call_openrouter(system_prompt, user_prompt)
+    if not result.get("success"):
+        return result
+
+    return _normalise_ippt_run_response(result)
+
+
+def _normalise_ippt_run_response(data):
+    return {
+        "success": True,
+        "summary": _clean_text(data.get("summary", "")),
+        "strength": _clean_text(data.get("strength", "")) or _clean_text((data.get("dos") or [""])[0]),
+        "weakness": _clean_text(data.get("weakness", "")) or _clean_text((data.get("donts") or [""])[0]),
+        "recommendations": [
+            _clean_text(item)
+            for item in _as_list(data.get("recommendations") or data.get("focus_areas"))[:5]
+            if _clean_text(item)
+        ],
+        "safetyNote": _clean_text(data.get("safetyNote") or data.get("safety_note", "")),
+    }

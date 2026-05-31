@@ -1,18 +1,12 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, url_for
 
 from .auth import current_user
 from .config import BASE_DIR
-from .db import close_db, initialize_database
+from .db import close_db, ensure_tables
 from .routes import register_routes
-from .schema import (
-    ensure_auth_tables,
-    ensure_group_invite_schema,
-    ensure_performance_log_schema,
-    ensure_personal_best_data,
-)
 
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
@@ -32,17 +26,24 @@ def teardown_db(exception):
 
 @app.context_processor
 def inject_current_user():
-    return {"current_user": current_user()}
+    return {
+        "current_user": current_user(),
+        "asset_url": asset_url,
+    }
+
+
+def asset_url(filename):
+    path = os.path.join(BASE_DIR, "static", filename)
+    version = int(os.path.getmtime(path)) if os.path.exists(path) else 1
+    return url_for("static", filename=filename, v=version)
+
+
+app.jinja_env.globals["asset_url"] = asset_url
 
 
 def init_db():
     global _database_initialized
-    initialize_database([
-        ensure_auth_tables,
-        ensure_group_invite_schema,
-        ensure_personal_best_data,
-        ensure_performance_log_schema,
-    ])
+    ensure_tables()
     _database_initialized = True
 
 

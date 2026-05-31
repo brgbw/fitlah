@@ -6,7 +6,7 @@
             <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="" aria-hidden="true">
             <div>
                 <h3>Strava Runs</h3>
-                <span>Import real synced runs into your performance log</span>
+                <span>Import real synced runs into your activity records</span>
             </div>
         </div>
     </div>
@@ -25,6 +25,7 @@
         <div class="strava-ai-card" id="stravaAiCard" style="display: none;">
             <h4>AI Run Recommendation</h4>
             <p id="stravaAiSummary"></p>
+            <div id="stravaIpptResult" style="display: none;"></div>
             <div class="strava-ai-grid">
                 <div>
                     <h5>Do</h5>

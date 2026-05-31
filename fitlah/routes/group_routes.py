@@ -3,7 +3,6 @@ from datetime import datetime
 from flask import jsonify, render_template, request
 
 from ..auth import current_user, login_required
-from ..db import fetch_table, insert_row, next_id, update_row
 from ..helpers import (
     create_invites_for_group,
     find_group,
@@ -11,20 +10,15 @@ from ..helpers import (
     user_is_group_member,
 )
 from ..ippt_scoring import age_profile_from_nric, calculate_from_personal_best
-
-
-def _member_row(user, group_id):
-    personal_best = get_personal_best(user.get("nric"))
-    return {
-        "group_id": group_id,
-        "nric": user.get("nric"),
-        "name": user.get("name", "NSman"),
-        "rank": user.get("rank", "Soldier"),
-        **age_profile_from_nric(user.get("nric")),
-        "pushups": personal_best.get("pushups", 0),
-        "situps": personal_best.get("situps", 0),
-        "run_time": personal_best.get("run_time", "--:--"),
-    }
+from ..repositories import (
+    add_group_member as repo_add_group_member,
+    create_group as repo_create_group,
+    list_group_members,
+    list_groups,
+    list_invites,
+    personal_best as repo_personal_best,
+    update_invite,
+)
 
 
 def _default_best(nric):
@@ -65,10 +59,10 @@ def register_group_routes(app):
         sort_order = request.args.get("sort") or "desc"
         reverse_sort = sort_order != "asc"
         user_nric = user.get("nric")
-        all_invites = fetch_table("group_invite")
-        all_members = fetch_table("group_member")
-        all_groups = fetch_table("fitness_group")
-        personal_bests = fetch_table("personal_best")
+        all_invites = list_invites()
+        all_members = list_group_members()
+        all_groups = list_groups()
+        personal_bests = [repo_personal_best(member.get("nric")) for member in all_members]
         best_by_nric = {
             (best.get("nric") or "").strip().upper(): best
             for best in personal_bests
@@ -111,15 +105,12 @@ def register_group_routes(app):
     @login_required
     def accept_invite(invite_id):
         user = current_user()
-        for invite in fetch_table("group_invite"):
+        for invite in list_invites():
             if invite["id"] == invite_id and invite.get("recipient_nric") == user.get("nric"):
-                update_row("group_invite", "id", invite_id, {"status": "Accepted"})
+                update_invite(invite_id, "accepted")
                 group_id = invite.get("group_id")
                 if group_id and not user_is_group_member(group_id, user.get("nric")):
-                    insert_row("group_member", {
-                        "id": next_id("group_member"),
-                        **_member_row(user, group_id),
-                    })
+                    repo_add_group_member(group_id, user.get("nric"))
                 break
         return jsonify({"success": True})
 
@@ -127,9 +118,9 @@ def register_group_routes(app):
     @login_required
     def decline_invite(invite_id):
         user = current_user()
-        for invite in fetch_table("group_invite"):
+        for invite in list_invites():
             if invite["id"] == invite_id and invite.get("recipient_nric") == user.get("nric"):
-                update_row("group_invite", "id", invite_id, {"status": "Declined"})
+                update_invite(invite_id, "declined")
                 break
         return jsonify({"success": True})
 
@@ -144,18 +135,15 @@ def register_group_routes(app):
             return jsonify({"success": False, "error": "Group name required"}), 400
 
         user = current_user()
+        group_id = repo_create_group(group_name, user.get("nric"))
         new_group = {
-            "id": next_id("fitness_group"),
+            "id": group_id,
             "name": group_name,
             "created_by": user.get("name", "NSman"),
             "created_date": datetime.now().strftime("%Y-%m-%d"),
         }
-        insert_row("fitness_group", new_group)
         created_invites = create_invites_for_group(None, new_group, invited_nrics)
-        insert_row("group_member", {
-            "id": next_id("group_member"),
-            **_member_row(user, new_group["id"]),
-        })
+        repo_add_group_member(group_id, user.get("nric"))
         return jsonify({"success": True, "group_id": new_group["id"], "invites_created": created_invites})
 
     @app.route("/api/add-member", methods=["POST"])

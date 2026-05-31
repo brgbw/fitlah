@@ -2,10 +2,16 @@ from datetime import datetime
 
 from flask import render_template, request, redirect, url_for
 
-from ..app_settings import get_setting, get_settings, set_setting
 from ..auth import current_user, login_required
 from ..constants import SIGNUP_RANKS
-from ..db import query_db, update_row, upsert_row
+from ..repositories import (
+    get_setting,
+    get_settings,
+    save_strava_connection,
+    set_setting,
+    strava_connection,
+    update_user,
+)
 
 
 def register_settings_routes(app):
@@ -13,7 +19,7 @@ def register_settings_routes(app):
     @login_required
     def settings():
         user = current_user()
-        strava_token = _strava_token_for_user(user.get("nric"))
+        strava_connection = _strava_connection_for_user(user.get("nric"))
         strava_config = get_settings([
             "strava_client_id",
             "strava_client_secret",
@@ -46,18 +52,13 @@ def register_settings_routes(app):
                     "rank": rank,
                     "unit": unit or "UNASSIGNED",
                 }
-                update_row("auth_user", "nric", user.get("nric"), profile_updates)
-                update_row("user", "nric", user.get("nric"), profile_updates)
-                update_row("group_member", "nric", user.get("nric"), {
-                    "name": name,
-                    "rank": rank,
-                })
+                update_user(user.get("nric"), profile_updates)
 
-                existing_token = strava_token or {}
-                upsert_row("strava_token", "nric", {
+                existing_token = strava_connection or {}
+                save_strava_connection({
                     "nric": user.get("nric"),
                     "athlete_id": strava_user_id,
-                    "access_token": strava_api_key,
+                    "access_token": strava_api_key or existing_token.get("access_token", ""),
                     "refresh_token": existing_token.get("refresh_token", ""),
                     "expires_at": int(existing_token.get("expires_at") or 0),
                     "scope": existing_token.get("scope", ""),
@@ -74,7 +75,7 @@ def register_settings_routes(app):
         return render_template(
             "settings.html",
             user=user,
-            strava_token=strava_token or {},
+            strava_connection=strava_connection or {},
             strava_config=strava_config,
             has_strava_client_secret=bool(strava_config.get("strava_client_secret")),
             ranks=SIGNUP_RANKS,
@@ -83,8 +84,5 @@ def register_settings_routes(app):
         )
 
 
-def _strava_token_for_user(nric):
-    return next(
-        (token for token in query_db("strava_token", lambda row: row.get("nric") == nric)),
-        None,
-    )
+def _strava_connection_for_user(nric):
+    return strava_connection(nric)

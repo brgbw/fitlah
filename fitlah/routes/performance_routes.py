@@ -1,8 +1,12 @@
 from flask import jsonify, redirect, render_template, request, url_for
 
 from ..auth import current_user, login_required
-from ..db import delete_rows, insert_row, next_id, query_db
-from ..helpers import attach_ai_to_performance_logs
+from ..helpers import attach_ai_to_activity_records
+from ..repositories import (
+    activity_records as activity_records_for_nric,
+    create_activity as create_activity_record,
+    delete_activity as delete_activity_record,
+)
 
 
 def register_performance_routes(app):
@@ -11,7 +15,7 @@ def register_performance_routes(app):
     def calendar():
         user = current_user()
         logs = sorted(
-            query_db("performance_log", lambda x: x.get("nric") == user.get("nric")),
+            activity_records_for_nric(user.get("nric")),
             key=lambda x: x["id"],
             reverse=True,
         )
@@ -22,21 +26,21 @@ def register_performance_routes(app):
     def performance():
         return redirect(url_for("calendar"))
 
-    @app.route("/api/performance-log", methods=["GET"])
+    @app.route("/api/activity-records", methods=["GET"])
     @login_required
-    def api_performance_logs():
+    def api_activity_records():
         user = current_user()
         nric = user.get("nric")
         logs = sorted(
-            query_db("performance_log", lambda x: x.get("nric") == nric),
+            activity_records_for_nric(nric),
             key=lambda x: (x.get("date", ""), x.get("id", 0)),
         )
-        logs = attach_ai_to_performance_logs(None, logs, nric)
+        logs = attach_ai_to_activity_records(None, logs, nric)
         return jsonify({"success": True, "logs": logs})
 
-    @app.route("/api/performance-log", methods=["POST"])
+    @app.route("/api/activity-records", methods=["POST"])
     @login_required
-    def api_create_performance_log():
+    def api_create_activity_record():
         data = request.get_json() or {}
         name = (data.get("name") or "").strip()
         date = (data.get("date") or "").strip()
@@ -44,28 +48,25 @@ def register_performance_routes(app):
         if not name or not date:
             return jsonify({"success": False, "error": "Event name and date are required"}), 400
 
-        new_log = {
-            "id": next_id("performance_log"),
+        new_log = create_activity_record({
             "nric": current_user().get("nric"),
             "event": name,
             "name": name,
+            "title": name,
             "type": data.get("type") or "logged",
             "score": (data.get("score") or "").strip(),
             "time": (data.get("time") or "").strip(),
             "date": date,
             "notes": (data.get("notes") or "").strip(),
-        }
-        insert_row("performance_log", new_log)
+            "source": "manual",
+        })
         return jsonify({"success": True, "log": new_log}), 201
 
-    @app.route("/api/performance-log/<int:log_id>", methods=["DELETE"])
+    @app.route("/api/activity-records/<int:log_id>", methods=["DELETE"])
     @login_required
-    def api_delete_performance_log(log_id):
+    def api_delete_activity_record(log_id):
         user = current_user()
-        deleted = delete_rows(
-            "performance_log",
-            lambda log: log.get("id") == log_id and log.get("nric") == user.get("nric"),
-        )
+        deleted = delete_activity_record(log_id, user.get("nric"))
         if not deleted:
             return jsonify({"success": False, "error": "Log not found"}), 404
 

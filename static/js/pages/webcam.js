@@ -1004,7 +1004,7 @@ let currentMode = 'pushup';
     }
 
     async function deleteSavedSession(sessionId) {
-        const response = await fetch(`/api/performance-log/${sessionId}`, {
+        const response = await fetch(`/api/activity-records/${sessionId}`, {
             method: 'DELETE'
         });
         const result = await response.json();

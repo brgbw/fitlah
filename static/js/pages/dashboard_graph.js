@@ -1,6 +1,6 @@
 (function () {
     const api = {
-        performanceLogs: '/api/performance-log'
+        activityRecords: '/api/activity-records'
     };
 
     const state = {
@@ -371,10 +371,10 @@
         tbody.innerHTML = '<tr><td colspan="5">Loading logs...</td></tr>';
 
         try {
-            const response = await fetch(api.performanceLogs);
+            const response = await fetch(api.activityRecords);
             const data = await response.json();
             if (!data.success) {
-                throw new Error(data.error || 'Could not load performance logs.');
+                throw new Error(data.error || 'Could not load activity records.');
             }
 
             state.logs = getExerciseLogs(data.logs || []);

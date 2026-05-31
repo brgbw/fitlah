@@ -5,9 +5,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..auth import current_user
 from ..constants import SIGNUP_RANKS
-from ..db import fetch_table, insert_row, next_id, update_row
 from ..ippt_scoring import age_profile_from_nric
 from ..profile_age import sync_age_for_nric
+from ..repositories import get_user, save_personal_best, save_user, update_last_login
 from ..validators import nric_check
 
 
@@ -21,14 +21,12 @@ def register_auth_routes(app):
         if request.method == "POST":
             nric = request.form.get("nric", "").strip().upper()
             password = request.form.get("password", "")
-            user = next((u for u in fetch_table("auth_user") if u.get("nric") == nric), None)
+            user = get_user(nric)
 
             if user and check_password_hash(user.get("password_hash", ""), password):
                 session["user_nric"] = user["nric"]
                 sync_age_for_nric(user["nric"])
-                update_row("auth_user", "nric", user["nric"], {
-                    "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                })
+                update_last_login(user["nric"])
                 return redirect(url_for("dashboard"))
 
             error = "Invalid NRIC or password."
@@ -62,13 +60,15 @@ def register_auth_routes(app):
             elif not name:
                 error = "Enter your name."
             else:
-                existing = next((u for u in fetch_table("auth_user") if u.get("nric") == nric), None)
+                existing = get_user(nric)
                 age_profile = age_profile_from_nric(nric)
 
                 if existing and not existing.get("password_is_default"):
                     error = "This NRIC already has an account. Please log in."
                 elif existing:
-                    update_row("auth_user", "nric", nric, {
+                    save_user({
+                        **existing,
+                        "nric": nric,
                         "password_hash": generate_password_hash(password),
                         "password_is_default": False,
                         "name": name,
@@ -80,8 +80,7 @@ def register_auth_routes(app):
                     session["user_nric"] = nric
                     return redirect(url_for("dashboard"))
                 else:
-                    new_user = {
-                        "id": next_id("auth_user"),
+                    save_user({
                         "nric": nric,
                         "password_hash": generate_password_hash(password),
                         "password_is_default": False,
@@ -91,17 +90,8 @@ def register_auth_routes(app):
                         **age_profile,
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "last_login": None,
-                    }
-                    insert_row("auth_user", new_user)
-                    insert_row("user", {
-                        "id": next_id("user"),
-                        "nric": nric,
-                        "name": name,
-                        "rank": rank,
-                        "unit": unit,
-                        **age_profile,
-                        "last_login": None,
                     })
+                    save_personal_best(nric, {"pushups": 0, "situps": 0, "run_time": "--:--"})
                     session["user_nric"] = nric
                     return redirect(url_for("dashboard"))
 

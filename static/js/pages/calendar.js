@@ -3,8 +3,8 @@
   const WEEKDAYS = ['S','M','T','W','T','F','S'];
 
   const api = {
-    logs: '/api/performance-log',
-    log: (logId) => `/api/performance-log/${logId}`
+    logs: '/api/activity-records',
+    log: (logId) => `/api/activity-records/${logId}`
   };
 
   let today = new Date();
@@ -25,8 +25,7 @@
         score: log.score || '',
         time: log.time || '',
         notes: log.notes || '',
-        ai_recommendation: log.ai_recommendation || null,
-        session_id: log.session_id || null
+        ai_recommendation: log.ai_recommendation || null
       });
     });
   }
