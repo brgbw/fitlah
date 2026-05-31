@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}AI Coach Notes | FitLah{% endblock %}
+{% block title %}Session Analysis | FitLah{% endblock %}
 {% block content %}
 <style>
     .notes-shell {
@@ -136,6 +136,48 @@
         border-top: 1px solid #E2E8F0;
     }
 
+    .analysis-panel {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .analysis-topline {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .analysis-canvas {
+        width: 100%;
+        height: 180px;
+        display: block;
+        border: 1px solid #D9E2EC;
+        border-radius: 10px;
+        background: #F8FAFC;
+    }
+
+    .analysis-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .analysis-stat {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 999px;
+        padding: 6px 9px;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
     .focus-chip {
         display: inline-flex;
         background: #EFF6FF;
@@ -175,8 +217,8 @@
 <div class="notes-shell">
     <div class="notes-header">
         <div>
-            <h1>AI Coach Notes</h1>
-            <p>Short form notes from your saved session.</p>
+            <h1>Session Analysis</h1>
+            <p>Movement graphs from your saved workout, with AI notes when available.</p>
         </div>
         <div class="notes-actions">
             <a class="notes-btn" href="{{ url_for('webcam') }}">Record again</a>
@@ -187,7 +229,8 @@
     {% if recommendations %}
     <div class="notes-stack">
         {% for log in recommendations %}
-        {% set ai = log.ai_recommendation %}
+        {% set ai = log.ai_recommendation or {} %}
+        {% set movement = log.movement_analysis %}
         <article class="note-card">
             <div class="note-topline">
                 <span>{{ log.name or log.event or 'Workout session' }}</span>
@@ -221,13 +264,38 @@
                 <span class="focus-chip">{{ ai.focus_areas[0] }}</span>
             </section>
             {% endif %}
+
+            {% if movement and movement.samples %}
+            <section class="analysis-panel">
+                <div class="analysis-topline">
+                    <span>{{ movement.label or 'Movement analysis' }}</span>
+                    <span>{{ movement.duration_seconds or log.duration_seconds or 0 }}s</span>
+                </div>
+                <canvas
+                    class="analysis-canvas"
+                    data-analysis='{{ movement|tojson }}'
+                    aria-label="Movement analysis graph"></canvas>
+                <div class="analysis-stats">
+                    <span class="analysis-stat">Peak {{ movement.stats.peak }}</span>
+                    <span class="analysis-stat">Range {{ movement.stats.range }}</span>
+                </div>
+            </section>
+            {% endif %}
+
+            {% if not ai and movement %}
+            <section class="note-focus">
+                <h2>AI Notes</h2>
+                <span class="focus-chip">Unavailable</span>
+            </section>
+            {% endif %}
         </article>
         {% endfor %}
     </div>
     {% else %}
     <div class="empty-notes">
-        No AI notes were saved for this session.
+        No session analysis was saved yet.
     </div>
     {% endif %}
 </div>
+<script src="{{ url_for('static', filename='js/pages/session_analysis_chart.js') }}?v=graph-analysis-20260531c"></script>
 {% endblock %}

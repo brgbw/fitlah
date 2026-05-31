@@ -103,6 +103,16 @@
             display: flex;
             align-items: center;
             gap: 14px;
+            color: inherit;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: background-color 0.15s ease, padding 0.15s ease;
+        }
+
+        .sidebar-footer:hover {
+            background-color: #F8FAFC;
+            padding-left: 8px;
+            padding-right: 8px;
         }
 
         /* Soldier image */
@@ -197,7 +207,7 @@
         </nav>
 
         <!-- Footer -->
-        <div class="sidebar-footer">
+        <a class="sidebar-footer" href="{{ url_for('settings') }}" aria-label="Open settings">
 
             <img class="soldier-img"
                  src="{{ url_for('static', filename='icon/soldier.jpg') }}"
@@ -213,11 +223,11 @@
                 </div>
 
                 {% if current_user %}
-                <a class="logout-link" href="{{ url_for('logout') }}">Logout</a>
+                <span class="logout-link" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ url_for('logout') }}';">Logout</span>
                 {% endif %}
             </div>
 
-        </div>
+        </a>
 
     </aside>
 

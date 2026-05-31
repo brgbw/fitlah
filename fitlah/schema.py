@@ -84,20 +84,3 @@ def ensure_personal_best_data(db):
             "updated_at": datetime.now().strftime("%Y-%m-%d"),
         })
         existing.add(nric)
-
-    mock_bests = {
-        "T1234567A": {"pushups": 48, "situps": 52, "run_time": "12:18"},
-        "T0725746A": {"pushups": 62, "situps": 59, "run_time": "10:58"},
-    }
-    for nric, best in mock_bests.items():
-        row = next((pb for pb in db["personal_best"] if pb.get("nric") == nric), None)
-        if row:
-            row.update(best)
-            row["updated_at"] = datetime.now().strftime("%Y-%m-%d")
-        else:
-            db["personal_best"].append({
-                "nric": nric,
-                **best,
-                **age_profile_from_nric(nric),
-                "updated_at": datetime.now().strftime("%Y-%m-%d"),
-            })

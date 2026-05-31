@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Settings | FitLah{% endblock %}
+
+{% block content %}
+<style>
+    .settings-shell {
+        max-width: 760px;
+        margin: 0 auto;
+        color: var(--text-main);
+    }
+
+    .settings-header {
+        margin-bottom: 28px;
+    }
+
+    .settings-header h1 {
+        font-size: 28px;
+        font-weight: 650;
+        letter-spacing: 0;
+        margin-bottom: 6px;
+    }
+
+    .settings-header p {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .settings-panel {
+        background: #FFFFFF;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .settings-section {
+        padding: 24px 28px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .settings-section:last-child {
+        border-bottom: none;
+    }
+
+    .section-title {
+        display: grid;
+        gap: 4px;
+        margin-bottom: 20px;
+    }
+
+    .section-title h2 {
+        font-size: 15px;
+        font-weight: 650;
+        letter-spacing: 0;
+    }
+
+    .section-title span {
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    .settings-form {
+        display: grid;
+        gap: 0;
+    }
+
+    .field-row {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        align-items: center;
+        gap: 18px;
+        padding: 10px 0;
+    }
+
+    .field-row label {
+        color: var(--text-main);
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .field-row input,
+    .field-row select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #FFFFFF;
+        color: var(--text-main);
+        font-size: 14px;
+        padding: 10px 11px;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .field-row input:focus,
+    .field-row select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.12);
+    }
+
+    .readonly-value {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .settings-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 18px 28px;
+        background: #F8FAFC;
+    }
+
+    .settings-message {
+        margin-right: auto;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .settings-message.success {
+        color: var(--primary);
+    }
+
+    .settings-message.error {
+        color: #E11D48;
+    }
+
+    .save-button {
+        border: 0;
+        border-radius: 6px;
+        background: var(--text-main);
+        color: #FFFFFF;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 10px 18px;
+        transition: background-color 0.15s ease;
+    }
+
+    .save-button:hover {
+        background: #1E293B;
+    }
+
+    @media (max-width: 760px) {
+        .main-content {
+            padding: 28px 20px;
+        }
+
+        .settings-shell {
+            max-width: 100%;
+        }
+
+        .field-row {
+            grid-template-columns: 1fr;
+            gap: 7px;
+        }
+
+        .settings-section {
+            padding: 22px 20px;
+        }
+
+        .settings-actions {
+            padding: 16px 20px;
+        }
+    }
+</style>
+
+<div class="settings-shell">
+    <header class="settings-header">
+        <h1>Settings</h1>
+        <p>Manage your profile details and Strava connection.</p>
+    </header>
+
+    <form method="post" class="settings-panel">
+        <section class="settings-section">
+            <div class="section-title">
+                <h2>Profile</h2>
+                <span>This is shown in your sidebar and group views.</span>
+            </div>
+
+            <div class="field-row">
+                <label for="name">Name</label>
+                <input id="name" name="name" type="text" value="{{ user.name }}" autocomplete="name" required>
+            </div>
+
+            <div class="field-row">
+                <label for="rank">Rank</label>
+                <select id="rank" name="rank" required>
+                    {% for rank in ranks %}
+                    <option value="{{ rank }}" {% if user.rank == rank %}selected{% endif %}>{{ rank }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field-row">
+                <label for="unit">Unit</label>
+                <input id="unit" name="unit" type="text" value="{{ user.unit or '' }}" autocomplete="organization">
+            </div>
+
+            <div class="field-row">
+                <label>NRIC</label>
+                <div class="readonly-value">{{ user.nric }}</div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <div class="section-title">
+                <h2>Strava</h2>
+                <span>Save Strava user details and OAuth credentials in the database.</span>
+            </div>
+
+            <div class="field-row">
+                <label for="strava_client_id">Client ID</label>
+                <input id="strava_client_id" name="strava_client_id" type="text" value="{{ strava_config.strava_client_id or '' }}" inputmode="numeric" autocomplete="off" required>
+            </div>
+
+            <div class="field-row">
+                <label for="strava_client_secret">Client secret</label>
+                <input id="strava_client_secret" name="strava_client_secret" type="password" placeholder="{% if has_strava_client_secret %}Saved{% endif %}" autocomplete="off">
+            </div>
+
+            <div class="field-row">
+                <label for="strava_redirect_uri">Redirect URI</label>
+                <input id="strava_redirect_uri" name="strava_redirect_uri" type="url" value="{{ strava_config.strava_redirect_uri or '' }}" autocomplete="off" required>
+            </div>
+
+            <div class="field-row">
+                <label for="strava_user_id">User ID</label>
+                <input id="strava_user_id" name="strava_user_id" type="text" value="{{ strava_token.athlete_id or '' }}" inputmode="numeric" autocomplete="off">
+            </div>
+
+            <div class="field-row">
+                <label for="strava_api_key">API key</label>
+                <input id="strava_api_key" name="strava_api_key" type="password" value="{{ strava_token.access_token or '' }}" autocomplete="off">
+            </div>
+        </section>
+
+        <div class="settings-actions">
+            {% if error %}
+            <div class="settings-message error">{{ error }}</div>
+            {% elif saved %}
+            <div class="settings-message success">Settings saved.</div>
+            {% endif %}
+            <button class="save-button" type="submit">Save changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

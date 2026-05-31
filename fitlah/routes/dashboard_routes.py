@@ -4,6 +4,7 @@ from ..auth import current_user, login_required
 from ..db import query_db
 from ..helpers import get_personal_best
 from ..ippt_scoring import AGE_GROUPS, DEFAULT_AGE_GROUP, calculate_from_personal_best
+from .strava_routes import strava_connection_context
 
 
 def register_dashboard_routes(app):
@@ -28,6 +29,7 @@ def register_dashboard_routes(app):
             personal_best=personal_best,
             ippt_score=ippt_score,
             age_groups=AGE_GROUPS,
+            **strava_connection_context(),
         )
 
     @app.route("/api/ippt-score")

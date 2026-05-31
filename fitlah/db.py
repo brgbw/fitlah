@@ -20,6 +20,8 @@ TABLE_NAMES = [
     "performance_log",
     "auth_user",
     "personal_best",
+    "strava_token",
+    "app_setting",
 ]
 
 TABLES = {
@@ -162,6 +164,26 @@ TABLES = {
             "updated_at": "TEXT",
         },
     },
+    "strava_token": {
+        "db_table": "strava_token",
+        "columns": {
+            "nric": "TEXT PRIMARY KEY",
+            "athlete_id": "TEXT",
+            "access_token": "TEXT",
+            "refresh_token": "TEXT",
+            "expires_at": "INTEGER",
+            "scope": "TEXT",
+            "updated_at": "TEXT",
+        },
+    },
+    "app_setting": {
+        "db_table": "app_setting",
+        "columns": {
+            "key": "TEXT PRIMARY KEY",
+            "value": "TEXT",
+            "updated_at": "TEXT",
+        },
+    },
 }
 
 
@@ -197,6 +219,15 @@ def _load_seed_data():
 
 def _known_columns(table_name):
     return TABLES[table_name]["columns"]
+
+
+def _order_column(table_name):
+    columns = TABLES[table_name]["columns"]
+    if "id" in columns:
+        return "id"
+    if "nric" in columns:
+        return "nric"
+    return next(iter(columns))
 
 
 def _serialize_row(table_name, row):
@@ -258,7 +289,7 @@ def load_db():
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             for table_name in TABLE_NAMES:
                 config = TABLES[table_name]
-                order_column = "id" if "id" in config["columns"] else "nric"
+                order_column = _order_column(table_name)
                 cursor.execute(
                     f"SELECT * FROM {config['db_table']} ORDER BY {order_column}"
                 )
@@ -270,7 +301,7 @@ def fetch_table(table_name):
     ensure_tables()
     _, _, RealDictCursor = _driver()
     config = TABLES[table_name]
-    order_column = "id" if "id" in config["columns"] else "nric"
+    order_column = _order_column(table_name)
     with _connect() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(f"SELECT * FROM {config['db_table']} ORDER BY {order_column}")
@@ -352,7 +383,7 @@ def delete_rows(table_name, predicate):
     deleted = 0
     for row in rows:
         if predicate(row):
-            key_column = "id" if "id" in TABLES[table_name]["columns"] else "nric"
+            key_column = _order_column(table_name)
             deleted += delete_row(table_name, key_column, row.get(key_column))
     return deleted
 
@@ -379,10 +410,13 @@ def save_db(data):
 def initialize_database(schema_steps):
     ensure_tables()
     db = load_db()
-    if any(db[table] for table in TABLE_NAMES):
+    seed_tables = [table for table in TABLE_NAMES if table != "app_setting"]
+    if any(db[table] for table in seed_tables):
         return
 
+    existing_settings = db.get("app_setting", [])
     db = _load_seed_data()
+    db["app_setting"] = existing_settings
     for step in schema_steps:
         step(db)
     save_db(db)

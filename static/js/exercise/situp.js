@@ -44,7 +44,8 @@
         MIN_BODY_SPAN: 0.12,
         MIN_REP_DURATION_MS: 250,
         REP_COOLDOWN_MS: 250,
-        STABLE_FRAMES_REQUIRED: 2
+        STABLE_FRAMES_REQUIRED: 2,
+        GRAPH_SAMPLE_EVERY_FRAMES: 2
     };
 
     const tracker = {
@@ -319,11 +320,24 @@
     function sampleMetrics(metrics, helpers, validation) {
         if (!helpers.isRecording || !metrics) return;
         metrics.frames_sampled++;
-        if (metrics.frames_sampled % 5 !== 0) return;
 
         if (!validation.ok) return;
 
         const hipAngle = validation.metrics.hipAngle;
+        if (metrics.frames_sampled % CONFIG.GRAPH_SAMPLE_EVERY_FRAMES === 0) {
+            const downAngle = tracker.downHipAngle || CONFIG.DOWN_HIP_ANGLE_MIN;
+            const torsoLift = Math.max(0, downAngle - hipAngle) / 180;
+            metrics.movement_samples.push({
+                time: helpers.sessionElapsedSeconds(),
+                value: Number(torsoLift.toFixed(4)),
+                hip_angle: Math.round(hipAngle)
+            });
+            if (metrics.movement_samples.length > 900) {
+                metrics.movement_samples.shift();
+            }
+        }
+
+        if (metrics.frames_sampled % 5 !== 0) return;
         if (hipAngle >= CONFIG.DOWN_HIP_ANGLE_MIN) metrics.hip_down_angles.push(Math.round(hipAngle));
         if (hipAngle <= CONFIG.UP_HIP_ANGLE_MAX) metrics.hip_up_angles.push(Math.round(hipAngle));
         if (hipAngle < CONFIG.DOWN_HIP_ANGLE_MIN && hipAngle > CONFIG.UP_HIP_ANGLE_MAX) {

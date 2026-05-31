@@ -66,7 +66,7 @@ def save_ai_recommendation(db, session_id, nric, recommendation):
 
     updated = False
     for log in fetch_table("performance_log"):
-        if log.get("id") == session_id and log.get("nric") == nric:
+        if int(log.get("session_id") or 0) == int(session_id) and log.get("nric") == nric:
             update_row("performance_log", "id", log["id"], {"ai_recommendation": ai_data})
             updated = True
 

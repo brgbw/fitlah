@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'strava_sync.html' import dashboard_strava_sync_mockup %}
+{% from 'strava_sync.html' import dashboard_strava_sync_panel %}
 {% block content %}
 
 <style>
@@ -230,10 +230,10 @@
         gap: 12px;
     }
 
-    .strava-preview-brand svg {
+    .strava-preview-brand img {
         width: 30px;
         height: 30px;
-        fill: #FC4C02;
+        object-fit: contain;
     }
 
     .strava-preview-brand h3 {
@@ -642,7 +642,7 @@
 
             <p>
                 Manage your IPPT training sessions, sync outdoor runs,
-                and review recent activity from a clean central workspace.
+                and review recent activities
             </p>
         </div>
 
@@ -671,13 +671,12 @@
 
                         <p>
                             Begin a live webcam session for push-up and sit-up
-                            detection with automated rep validation.
                         </p>
                     </div>
 
                     <div class="action-meta">
                         <span class="action-dot"></span>
-                        Live motion tracking enabled
+                        Camera Enabled
                     </div>
 
                     <button class="primary-btn" onclick="triggerWebcamStation()">
@@ -687,27 +686,26 @@
 
                 <div class="action-card">
                     <div>
-                        <h3>2.4km run integration</h3>
+                        <h3>2.4km Run</h3>
 
                         <p>
-                            Connect recent outdoor run data to maintain a unified
-                            overview of your IPPT performance metrics.
+                            Connect recent outdoor run data 
                         </p>
                     </div>
 
                     <div class="action-meta">
                         <span class="action-dot strava"></span>
-                        Strava synchronization available
+                        Strava Integration
                     </div>
 
                     <button class="primary-btn strava" onclick="triggerStravaModal()">
-                        Sync Strava
+                        {{ 'Import Runs' if strava_connected else 'Sync Strava' }}
                     </button>
                 </div>
 
             </div>
 
-            {{ dashboard_strava_sync_mockup() }}
+            {{ dashboard_strava_sync_panel(strava_connected, strava_authorize_url) }}
 
         </section>
 
@@ -715,7 +713,7 @@
             <section class="panel ippt-panel">
                 <div class="ippt-title-row">
                     <div>
-                        <h3>Your IPPT Readiness</h3>
+                        <h3>Potential IPPT Score</h3>
                         <p>
                             Personal bests from your latest training records.
                         </p>
@@ -827,8 +825,19 @@
     }
 
     function triggerStravaModal() {
+        const connected = "{{ 'true' if strava_connected else 'false' }}" === "true";
+        const authorizeUrl = "{{ strava_authorize_url }}";
+
+        if (!connected) {
+            window.location.href = authorizeUrl || "{{ url_for('strava_sync') }}";
+            return;
+        }
+
         const preview = document.querySelector('.strava-sync-preview');
-        if (!preview) return;
+        if (!preview) {
+            window.location.href = "{{ url_for('strava_sync') }}";
+            return;
+        }
         preview.classList.add('visible');
         preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -847,6 +856,35 @@
             ? `Next focus: ${ai.focus_areas.join(' · ')}`
             : '';
         card.style.display = 'block';
+    }
+
+    function renderStravaMessage(title, message, actionLabel, actionUrl) {
+        const list = document.getElementById('stravaRunChoices');
+        if (!list) return;
+
+        list.innerHTML = '';
+        const row = document.createElement('div');
+        row.className = 'strava-preview-run';
+
+        const copy = document.createElement('div');
+        const strong = document.createElement('strong');
+        const span = document.createElement('span');
+        strong.textContent = title;
+        span.textContent = message;
+        copy.append(strong, span);
+        row.append(copy);
+
+        if (actionLabel && actionUrl) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = actionLabel;
+            button.addEventListener('click', () => {
+                window.location.href = actionUrl;
+            });
+            row.append(button);
+        }
+
+        list.append(row);
     }
 
     async function refreshIpptScore() {
@@ -874,7 +912,63 @@
         scoreHero.className = `score-hero award-${score.award.code}`;
     }
 
-    async function importMockStravaRun(runId, button) {
+    function renderStravaActivities(activities) {
+        const list = document.getElementById('stravaRunChoices');
+        if (!list) return;
+
+        if (!activities.length) {
+            renderStravaMessage(
+                'No recent runs found',
+                'Strava returned no running activities for this account.'
+            );
+            return;
+        }
+
+        list.innerHTML = '';
+        activities.forEach(activity => {
+            const row = document.createElement('div');
+            row.className = 'strava-preview-run';
+            row.dataset.activityId = activity.id;
+
+            const details = document.createElement('div');
+            const name = document.createElement('strong');
+            const meta = document.createElement('span');
+            name.textContent = activity.name;
+            meta.textContent = `${activity.distance_km.toFixed(2)} km · ${activity.time} · ${activity.pace} · ${activity.date}`;
+            details.append(name, meta);
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = 'Import';
+            button.addEventListener('click', () => importStravaRun(activity.id, button));
+
+            row.append(details, button);
+            list.append(row);
+        });
+    }
+
+    async function loadStravaActivities() {
+        const list = document.getElementById('stravaRunChoices');
+        if (!list || "{{ 'true' if strava_connected else 'false' }}" !== "true") return;
+
+        try {
+            const response = await fetch('/api/strava/activities');
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Could not fetch Strava activities.');
+            }
+            renderStravaActivities(data.activities || []);
+        } catch (error) {
+            renderStravaMessage(
+                'Strava sync needs attention',
+                error.message,
+                "{{ 'Reconnect' if strava_authorize_url else '' }}",
+                "{{ strava_authorize_url }}"
+            );
+        }
+    }
+
+    async function importStravaRun(activityId, button) {
         const result = document.getElementById('stravaImportResult');
         const status = document.getElementById('stravaImportStatus');
         const allRuns = document.querySelectorAll('.strava-preview-run');
@@ -887,10 +981,10 @@
         allButtons.forEach(btn => btn.disabled = true);
 
         try {
-            const response = await fetch('/api/mock-strava-import', {
+            const response = await fetch('/api/strava/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ run_id: runId })
+                body: JSON.stringify({ activity_id: activityId })
             });
             const data = await response.json();
 
@@ -898,7 +992,7 @@
                 throw new Error(data.error || 'Could not import Strava run.');
             }
 
-            allRuns.forEach(row => row.classList.toggle('selected', row.dataset.runId === runId));
+            allRuns.forEach(row => row.classList.toggle('selected', row.dataset.activityId === String(activityId)));
             status.textContent = `${data.log.name} imported to Calendar and performance log.`;
             renderStravaAi(data.ai_recommendation || {});
             refreshIpptScore();
@@ -912,6 +1006,8 @@
             });
         }
     }
+
+    document.addEventListener('DOMContentLoaded', loadStravaActivities);
 
 </script>
 

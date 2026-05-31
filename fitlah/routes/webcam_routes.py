@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 
@@ -9,6 +10,7 @@ from ..config import BASE_DIR
 from ..db import delete_row, delete_rows, fetch_table, insert_row, next_id, query_db, update_row
 from ..helpers import get_personal_best, save_ai_recommendation, update_personal_best
 from ..ippt_scoring import age_profile_from_nric
+from ..temp_analysis import load_temp_analysis_logs, save_temp_analysis
 
 
 def _exercise_labels(exercise_type):
@@ -87,6 +89,7 @@ def register_webcam_routes(app):
         user = current_user()
         nric = user.get("nric")
         raw_ids = request.args.get("session_ids", "")
+        raw_analysis_ids = request.args.get("analysis_ids", "")
         session_ids = []
         for item in raw_ids.split(","):
             try:
@@ -94,18 +97,36 @@ def register_webcam_routes(app):
             except (TypeError, ValueError):
                 continue
 
-        logs = [
+        temp_logs = load_temp_analysis_logs(raw_analysis_ids, nric)
+
+        ai_logs = [
             log for log in fetch_table("performance_log")
             if log.get("nric") == nric and log.get("ai_recommendation")
         ]
         if session_ids:
             allowed = set(session_ids)
-            logs = [log for log in logs if int(log.get("session_id") or 0) in allowed]
+            ai_logs = [log for log in ai_logs if int(log.get("session_id") or 0) in allowed]
             order = {session_id: index for index, session_id in enumerate(session_ids)}
-            logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
+            ai_logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
+            temp_logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
         else:
-            logs.sort(key=lambda log: (log.get("date") or "", log.get("time") or ""), reverse=True)
-            logs = logs[:3]
+            ai_logs.sort(key=lambda log: (log.get("date") or "", log.get("time") or ""), reverse=True)
+            ai_logs = ai_logs[:3]
+
+        ai_by_session = {int(log.get("session_id") or 0): log.get("ai_recommendation") for log in ai_logs}
+        logs = []
+        used_sessions = set()
+        for log in temp_logs:
+            session_id = int(log.get("session_id") or 0)
+            if session_id in ai_by_session:
+                log["ai_recommendation"] = ai_by_session[session_id]
+            logs.append(log)
+            used_sessions.add(session_id)
+
+        logs.extend([
+            log for log in ai_logs
+            if int(log.get("session_id") or 0) not in used_sessions
+        ])
 
         return render_template("ai_recommendations.html", recommendations=logs)
 
@@ -162,6 +183,13 @@ def register_webcam_routes(app):
         duration_seconds = min(int(request.form.get("duration_seconds", 60) or 60), 120)
         started_at = request.form.get("started_at", "")
         ended_at = request.form.get("ended_at", datetime.now().isoformat())
+        movement_analysis = None
+        raw_movement_analysis = request.form.get("movement_analysis", "")
+        if raw_movement_analysis:
+            try:
+                movement_analysis = json.loads(raw_movement_analysis)
+            except (TypeError, ValueError):
+                movement_analysis = None
 
         if file.filename == "":
             return jsonify({"success": False, "error": "No selected file"}), 400
@@ -203,7 +231,7 @@ def register_webcam_routes(app):
         insert_row("workout_sessions", session_record)
 
         log_id = next_id("performance_log")
-        insert_row("performance_log", {
+        performance_log = {
             "id": log_id,
             "nric": nric,
             "event": f"Webcam {label}",
@@ -223,6 +251,12 @@ def register_webcam_routes(app):
             "video_path": session_record["video_path"],
             "session_id": session_id,
             "ai_recommendation": None,
+        }
+        insert_row("performance_log", performance_log)
+
+        analysis_id = save_temp_analysis(nric, {
+            **performance_log,
+            "movement_analysis": movement_analysis,
         })
         return jsonify({
             "success": True,
@@ -231,6 +265,7 @@ def register_webcam_routes(app):
             "valid_reps": valid_reps,
             "invalid_reps": invalid_reps,
             "session_id": session_id,
+            "analysis_id": analysis_id,
             "personal_best": int(best.get(pb_field) or 0),
         })
 

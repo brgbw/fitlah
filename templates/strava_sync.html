@@ -1,39 +1,22 @@
-{% macro dashboard_strava_sync_mockup() %}
-<section class="strava-sync-preview" aria-label="Strava sync preview">
+{% macro dashboard_strava_sync_panel(strava_connected, strava_authorize_url) %}
+{% if strava_connected %}
+<section class="strava-sync-preview" aria-label="Strava sync">
     <div class="strava-preview-header">
         <div class="strava-preview-brand">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.456l2.82 5.57H14.35l-3.066-6.053L5.131 14h3.066l3.07-5.512z"/>
-            </svg>
+            <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="" aria-hidden="true">
             <div>
-                <h3>Choose Strava Run</h3>
-                <span>Select one synced run to import into your calendar</span>
+                <h3>Strava Runs</h3>
+                <span>Import real synced runs into your performance log</span>
             </div>
         </div>
-        <span class="strava-preview-status">Connected</span>
     </div>
 
     <div class="strava-preview-list" id="stravaRunChoices">
-        <div class="strava-preview-run" data-run-id="evening-24">
+        <div class="strava-preview-run">
             <div>
-                <strong>Evening 2.4km Time Trial</strong>
-                <span>2.41 km · 11:48 · 4:54/km · Today</span>
+                <strong>Loading Strava activities...</strong>
+                <span>Fetching your latest runs from Strava</span>
             </div>
-            <button type="button" onclick="importMockStravaRun('evening-24', this)">Import</button>
-        </div>
-        <div class="strava-preview-run" data-run-id="camp-loop">
-            <div>
-                <strong>Camp Loop Intervals</strong>
-                <span>5.02 km · 24:16 · 4:50/km · Yesterday</span>
-            </div>
-            <button type="button" onclick="importMockStravaRun('camp-loop', this)">Import</button>
-        </div>
-        <div class="strava-preview-run" data-run-id="recovery-run">
-            <div>
-                <strong>Recovery Run</strong>
-                <span>3.20 km · 18:40 · 5:50/km · 2 days ago</span>
-            </div>
-            <button type="button" onclick="importMockStravaRun('recovery-run', this)">Import</button>
         </div>
     </div>
 
@@ -56,6 +39,7 @@
         </div>
     </div>
 </section>
+{% endif %}
 {% endmacro %}
 
 {% extends 'base.html' %}
@@ -85,10 +69,10 @@
         margin-bottom: 32px;
     }
 
-    .strava-header svg {
+    .strava-header img {
         width: 32px;
         height: 32px;
-        fill: #FC4C02;
+        object-fit: contain;
     }
 
     .strava-header h1 {
@@ -145,10 +129,10 @@
         box-shadow: 0 8px 18px rgba(252, 76, 2, 0.25);
     }
 
-    .auth-button svg {
+    .auth-button img {
         width: 18px;
         height: 18px;
-        fill: currentColor;
+        object-fit: contain;
     }
 
     .activities-section {
@@ -299,9 +283,7 @@
     <div class="strava-container">
 
         <div class="strava-header">
-            <svg viewBox="0 0 24 24">
-                <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.456l2.82 5.57H14.35l-3.066-6.053L5.131 14h3.066l3.07-5.512z"/>
-            </svg>
+            <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="Strava">
             <h1>Strava Sync</h1>
         </div>
 
@@ -314,10 +296,8 @@
 
         <div class="auth-section">
             <h3>Authorize Strava Access</h3>
-            <a href="#" class="auth-button" id="stravaAuthButton">
-                <svg viewBox="0 0 24 24">
-                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.456l2.82 5.57H14.35l-3.066-6.053L5.131 14h3.066l3.07-5.512z"/>
-                </svg>
+            <a href="{{ strava_authorize_url or '#' }}" class="auth-button" id="stravaAuthButton">
+                <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="" aria-hidden="true">
                 Connect with Strava
             </a>
         </div>
@@ -343,18 +323,12 @@
         return urlParams.get(name);
     }
 
-    // Initialize Strava OAuth button
     function initializeStravaAuth() {
-        const clientId = "{{ strava_client_id }}";
-        const redirectUri = "{{ strava_redirect_uri }}";
-        
-        if (!clientId) {
-            showError("Strava Client ID not configured. Contact administrator.");
-            return;
-        }
-
         const authButton = document.getElementById("stravaAuthButton");
-        authButton.href = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&approval_prompt=force&scope=activity:read_all`;
+        if (!authButton.getAttribute("href") || authButton.getAttribute("href") === "#") {
+            showError("Strava Client ID not configured. Contact administrator.");
+            authButton.setAttribute("aria-disabled", "true");
+        }
     }
 
     // Show error message
@@ -436,37 +410,72 @@
             return;
         }
 
-        list.innerHTML = activities.map(act => `
-            <div class="activity-item">
-                <div class="activity-name">${act.name}</div>
-                <div class="activity-details">
-                    <div class="activity-detail-item">
-                        <span class="activity-detail-label">Distance</span>
-                        <span class="activity-detail-value">${act.distance} km</span>
-                    </div>
-                    <div class="activity-detail-item">
-                        <span class="activity-detail-label">Duration</span>
-                        <span class="activity-detail-value">${formatTime(act.moving_time)}</span>
-                    </div>
-                    <div class="activity-detail-item">
-                        <span class="activity-detail-label">Date</span>
-                        <span class="activity-detail-value">${act.date}</span>
-                    </div>
-                </div>
-            </div>
-        `).join("");
+        list.innerHTML = "";
+        activities.forEach(activity => {
+            const item = document.createElement("div");
+            item.className = "activity-item";
+
+            const name = document.createElement("div");
+            name.className = "activity-name";
+            name.textContent = activity.name;
+
+            const details = document.createElement("div");
+            details.className = "activity-details";
+            details.append(
+                activityDetail("Distance", `${activity.distance_km.toFixed(2)} km`),
+                activityDetail("Duration", activity.time),
+                activityDetail("Date", activity.date)
+            );
+
+            const importButton = document.createElement("button");
+            importButton.className = "back-button";
+            importButton.type = "button";
+            importButton.textContent = "Import";
+            importButton.addEventListener("click", () => importStravaActivity(activity.id, importButton));
+
+            item.append(name, details, importButton);
+            list.append(item);
+        });
     }
 
-    // Format seconds to HH:MM:SS
-    function formatTime(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        
-        if (hours > 0) {
-            return `${hours}h ${minutes}m`;
+    function activityDetail(label, value) {
+        const item = document.createElement("div");
+        item.className = "activity-detail-item";
+        const labelEl = document.createElement("span");
+        labelEl.className = "activity-detail-label";
+        labelEl.textContent = label;
+        const valueEl = document.createElement("span");
+        valueEl.className = "activity-detail-value";
+        valueEl.textContent = value;
+        item.append(labelEl, valueEl);
+        return item;
+    }
+
+    function renderImportedRecommendation(ai) {
+        if (!ai || !ai.summary) return "";
+        return ` ${ai.summary}`;
+    }
+
+    async function importStravaActivity(activityId, button) {
+        button.disabled = true;
+        button.textContent = "Importing...";
+        try {
+            const response = await fetch("/api/strava/import", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activity_id: activityId })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "Could not import Strava activity.");
+            }
+            button.textContent = "Imported";
+            showSuccess(`${data.log.name} imported.${renderImportedRecommendation(data.ai_recommendation)}`);
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = "Import";
+            showError(error.message);
         }
-        return `${minutes}m ${secs}s`;
     }
 
     // Send message to parent window (dashboard)

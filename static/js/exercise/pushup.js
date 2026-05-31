@@ -39,6 +39,7 @@
         MIN_REP_DURATION_MS: 300,
         REP_COOLDOWN_MS: 300,
         STABLE_FRAMES_REQUIRED: 2,
+        GRAPH_SAMPLE_EVERY_FRAMES: 2,
         // Full-body validation thresholds are normalized by body length so they scale with camera distance.
         BODY_STRAIGHTNESS_TOLERANCE: 0.35,
         HEAD_ALIGNMENT_TOLERANCE: 0.55,
@@ -370,6 +371,16 @@
         if (!helpers.isRecording || !metrics || !validation.ok) return;
         const elbowAngle = validation.metrics.elbowAngle;
         metrics.frames_sampled++;
+        if (metrics.frames_sampled % CONFIG.GRAPH_SAMPLE_EVERY_FRAMES === 0) {
+            metrics.movement_samples.push({
+                time: helpers.sessionElapsedSeconds(),
+                value: Number((validation.metrics.shoulderDrop || 0).toFixed(4)),
+                elbow_angle: Math.round(elbowAngle)
+            });
+            if (metrics.movement_samples.length > 900) {
+                metrics.movement_samples.shift();
+            }
+        }
         if (metrics.frames_sampled % 5 !== 0) return;
         if (elbowAngle <= CONFIG.DOWN_ELBOW_MAX_ANGLE) metrics.elbow_down_angles.push(Math.round(elbowAngle));
         if (elbowAngle >= CONFIG.UP_ELBOW_MIN_ANGLE) metrics.elbow_up_angles.push(Math.round(elbowAngle));

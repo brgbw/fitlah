@@ -4,7 +4,8 @@ let currentMode = 'pushup';
     let stream = null;
     let pose = null;
     let detectLoopRunning = false;
-    const POSE_TARGET_FPS = 18;
+    const POSE_TARGET_FPS = 20;
+    const MOVEMENT_GRAPH_MAX_POINTS = 220;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
     let poseLoopRequestId = null;
     let poseInFlight = false;
@@ -290,6 +291,7 @@ let currentMode = 'pushup';
                 return cvMetrics;
             },
             noteFormFlag,
+            sessionElapsedSeconds,
             get sessionStarted() {
                 return sessionStarted;
             },
@@ -397,6 +399,7 @@ let currentMode = 'pushup';
             elbow_up_angles: [],
             hip_down_angles: [],
             hip_up_angles: [],
+            movement_samples: [],
             shallow_rep_signals: 0,
             form_flags: []
         };
@@ -412,6 +415,61 @@ let currentMode = 'pushup';
     function avgAngle(arr) {
         if (!arr || !arr.length) return null;
         return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+    }
+
+    function sessionElapsedSeconds() {
+        if (attachedVideoFile && isReplayMode) {
+            return Math.max(0, Number(playbackVideo.currentTime || 0));
+        }
+        if (!sessionStartedAt) return 0;
+        return Math.max(0, (Date.now() - Date.parse(sessionStartedAt)) / 1000);
+    }
+
+    function smoothMovementSamples(samples) {
+        return samples.map((sample, index) => {
+            const previous = samples[Math.max(0, index - 1)];
+            const next = samples[Math.min(samples.length - 1, index + 1)];
+            return {
+                ...sample,
+                value: Number(((previous.value + sample.value * 2 + next.value) / 4).toFixed(4))
+            };
+        });
+    }
+
+    function compactMovementSamples(samples, maxPoints = MOVEMENT_GRAPH_MAX_POINTS) {
+        const validSamples = (samples || [])
+            .filter(sample => Number.isFinite(sample.time) && Number.isFinite(sample.value))
+            .map(sample => ({
+                time: Number(sample.time.toFixed(2)),
+                value: Number(sample.value.toFixed(4)),
+                elbow_angle: Number.isFinite(sample.elbow_angle) ? sample.elbow_angle : null
+            }));
+        if (validSamples.length <= maxPoints) return smoothMovementSamples(validSamples);
+
+        const step = Math.ceil(validSamples.length / maxPoints);
+        return smoothMovementSamples(validSamples.filter((_, index) => index % step === 0).slice(0, maxPoints));
+    }
+
+    function buildMovementAnalysis(metrics, duration) {
+        const samples = compactMovementSamples(metrics.movement_samples);
+        if (!samples.length) return null;
+
+        const values = samples.map(sample => sample.value);
+        const maxValue = Math.max(...values);
+        const minValue = Math.min(...values);
+        const range = maxValue - minValue;
+
+        return {
+            type: currentMode === 'pushup' ? 'shoulder_drop' : 'torso_lift',
+            label: currentMode === 'pushup' ? 'Shoulder drop' : 'Torso lift',
+            unit: 'body scale',
+            duration_seconds: duration,
+            samples,
+            stats: {
+                peak: Number(maxValue.toFixed(3)),
+                range: Number(range.toFixed(3))
+            }
+        };
     }
 
     function finalizeSessionMetrics() {
@@ -433,6 +491,7 @@ let currentMode = 'pushup';
         } else {
             FitLahSitupExercise.enrichMetrics(payload, m, avgAngle);
         }
+        payload.movement_analysis = buildMovementAnalysis(m, duration);
         return payload;
     }
 
@@ -567,13 +626,14 @@ let currentMode = 'pushup';
         aiRecoStatus.textContent = message;
     }
 
-    async function fetchAiRecommendation(metrics, force = false) {
+    async function fetchAiRecommendation(metrics, force = false, sessionIdOverride = null) {
         if (!metrics || (aiRecoLoading && !force)) return;
         const label = metrics.exercise === 'pushup' ? 'push-up' : 'sit-up';
         setAiRecoLoading(label);
         const payload = { ...metrics };
-        if (lastSessionId) {
-            payload.session_id = lastSessionId;
+        const targetSessionId = sessionIdOverride || payload.session_id || lastSessionId;
+        if (targetSessionId) {
+            payload.session_id = targetSessionId;
         }
         try {
             const response = await fetch('/api/ai-recommendation', {
@@ -1000,6 +1060,9 @@ let currentMode = 'pushup';
         formData.append('valid_reps', validReps);
         formData.append('invalid_reps', invalidReps);
         formData.append('duration_seconds', lastSessionMetrics?.duration_seconds || sessionDurationSeconds());
+        if (lastSessionMetrics?.movement_analysis) {
+            formData.append('movement_analysis', JSON.stringify(lastSessionMetrics.movement_analysis));
+        }
         if (sessionStartedAt) {
             formData.append('started_at', sessionStartedAt);
             formData.append('ended_at', new Date().toISOString());
@@ -1022,14 +1085,24 @@ let currentMode = 'pushup';
                     lastSavedSessionId = result.session_id;
                     lastSavedExercise = currentMode;
                     savedSessionIds = savedSessionIds.filter(item => item.exercise !== currentMode);
-                    savedSessionIds.push({ id: result.session_id, exercise: currentMode });
+                    savedSessionIds.push({
+                        id: result.session_id,
+                        exercise: currentMode,
+                        analysisId: result.analysis_id || null
+                    });
                 }
-                if (lastSessionMetrics) {
-                    lastSessionMetrics.valid_reps = result.valid_reps;
-                    lastSessionMetrics.invalid_reps = result.invalid_reps;
+                const metricsForAi = lastSessionMetrics
+                    ? {
+                        ...lastSessionMetrics,
+                        valid_reps: result.valid_reps,
+                        invalid_reps: result.invalid_reps,
+                        session_id: result.session_id
+                    }
+                    : null;
+                if (metricsForAi) {
                     aiRecoPending = aiRecoPending
                         .catch(() => {})
-                        .then(() => fetchAiRecommendation(lastSessionMetrics, true));
+                        .then(() => fetchAiRecommendation(metricsForAi, true, result.session_id));
                 }
                 const label = currentMode === 'pushup' ? 'Push-up' : 'Sit-up';
                 setWarning(`${label} saved. ${result.valid_reps} reps logged. Record another exercise or tap Done.`);
@@ -1078,15 +1151,17 @@ let currentMode = 'pushup';
             alert('Please complete and upload at least one exercise session first.');
             return;
         }
-        completeBtn.textContent = 'Preparing notes...';
+        completeBtn.textContent = 'Opening analysis...';
         completeBtn.style.pointerEvents = 'none';
-        await aiRecoPending.catch(() => {});
         stopPoseLoop();
         if (stream) stream.getTracks().forEach(t => t.stop());
         const ids = savedSessionIds.map(item => item.id).join(',');
-        window.location.href = ids
-            ? `/ai-recommendations?session_ids=${encodeURIComponent(ids)}`
-            : "/ai-recommendations";
+        const analysisIds = savedSessionIds.map(item => item.analysisId).filter(Boolean).join(',');
+        const params = new URLSearchParams();
+        if (ids) params.set('session_ids', ids);
+        if (analysisIds) params.set('analysis_ids', analysisIds);
+        const query = params.toString();
+        window.location.href = query ? `/ai-recommendations?${query}` : "/ai-recommendations";
     }
 
     function toggleReviewPlayback() {
