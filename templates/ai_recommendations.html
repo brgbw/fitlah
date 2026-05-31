@@ -45,6 +45,7 @@
         padding: 10px 14px;
         font-size: 13px;
         font-weight: 500;
+        cursor: pointer;
     }
 
     .notes-btn.primary {
@@ -222,7 +223,7 @@
         </div>
         <div class="notes-actions">
             <a class="notes-btn" href="{{ url_for('webcam') }}">Record again</a>
-            <a class="notes-btn primary" href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a class="notes-btn primary" href="{{ url_for('dashboard', cleanup_session_analysis=1) }}">Dashboard</a>
         </div>
     </div>
 

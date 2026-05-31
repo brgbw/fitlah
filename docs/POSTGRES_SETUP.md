@@ -70,21 +70,38 @@ DATABASE_URL=postgresql://postgres:your_password@localhost:5432/fitlah
 
 Replace `your_password` with your local `postgres` password.
 
-## 5. Install Python dependencies
+## 5. Create and activate the Python venv
 
 From the project root:
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+## 6. Install Python dependencies
+
+From the project root:
+
+```powershell
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## 6. Start the app
+## 7. Start the app
 
 ```powershell
 python app.py
 ```
 
-On first startup, the app creates the required PostgreSQL tables. If the tables are empty, it imports the JSON files in `seeddata/` once as seed data.
+On first startup, the app creates the required PostgreSQL tables.
 
 ## Useful psql commands
 
@@ -92,7 +109,7 @@ On first startup, the app creates the required PostgreSQL tables. If the tables 
 \l
 \c fitlah
 \dt
-SELECT * FROM auth_user;
-SELECT * FROM user;
+SELECT id, nric, name FROM users;
+SELECT id, title, source, logged_at FROM activity_records ORDER BY id DESC LIMIT 10;
 \q
 ```

@@ -1,26 +1,33 @@
-Fitlah App Launch Instructions
+FitLah App Launch Instructions
 
-1. Open a terminal in the project folder:
+1. Open PowerShell in the project folder:
 
-   C:\Users\brand\OneDrive\Documents\Hackathon\CODE_EXP_FITLAH_2026
+   cd "C:\Users\brand\OneDrive\Documents\Hackathon\CODE_EXP_FITLAH_2026"
 
 2. Create and activate a Python virtual environment:
-
+Consider deativating antivirus software as it will interfere with the function
    python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+
+   If PowerShell blocks activation, run:
+
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    .\.venv\Scripts\Activate.ps1
 
 3. Install the required Python packages:
 
+   python -m pip install --upgrade pip
    pip install -r requirements.txt
 
 4. Set up PostgreSQL before launching the app.
 
-   Follow POSTGRES_SETUP.md to download PostgreSQL, start the PostgreSQL service,
-   create the fitlah database, and configure DATABASE_URL in the .env file.
+   Follow docs\POSTGRES_SETUP.md to install PostgreSQL, start the PostgreSQL
+   service, create the fitlah database, and configure DATABASE_URL in .env.
 
-   Example .env value:
+   Example .env:
 
    DATABASE_URL=postgresql://postgres:your_password@localhost:5432/fitlah
+   FITLAH_SECRET_KEY=replace-with-a-random-secret
 
 5. Start the app:
 
@@ -30,12 +37,17 @@ Fitlah App Launch Instructions
 
    http://127.0.0.1:5000
 
+7. Login and click bottom left of the user icon, go to settings page and key in your strava client id and secret key.
+
+
+
 Notes:
 
 - Keep the terminal running while using the app.
 - On first startup, the app creates the required PostgreSQL tables.
-- If the tables are empty, the app imports the JSON files in seeddata/ once as seed data.
-- If PowerShell blocks virtual environment activation, run:
 
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-   .\.venv\Scripts\Activate.ps1
+- Use the same FitLah account that connected Strava when checking imported runs in Calendar.
+- AI coaching is optional. Without OPENROUTER_API_KEY, the app still runs and Strava analysis still shows time, status, points, and fallback coaching.
+- Stop the app with Ctrl+C. Leave the virtual environment with:
+
+   deactivate

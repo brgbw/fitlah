@@ -205,33 +205,18 @@
 
         <section class="settings-section">
             <div class="section-title">
-                <h2>Strava</h2>
-                <span>Save Strava user details and OAuth credentials in the database.</span>
+                <h2><img src="{{ url_for('static', filename='icon/strava.png') }}" alt="Strava" style="height:20px;vertical-align:middle;margin-right:8px">Strava</h2>
+                <span>OAuth credentials are server-controlled; connect your account from the Strava page.</span>
             </div>
 
             <div class="field-row">
-                <label for="strava_client_id">Client ID</label>
-                <input id="strava_client_id" name="strava_client_id" type="text" value="{{ strava_config.strava_client_id or '' }}" inputmode="numeric" autocomplete="off" required>
+                <label for="strava_client_id">Strava ID</label>
+                <input id="strava_client_id" name="strava_client_id" type="text" value="{{ strava_config.strava_client_id or strava_connection.athlete_id or '' }}" inputmode="numeric" autocomplete="off" {% if not can_update_strava_settings %}disabled{% endif %}>
             </div>
 
             <div class="field-row">
-                <label for="strava_client_secret">Client secret</label>
-                <input id="strava_client_secret" name="strava_client_secret" type="password" placeholder="{% if has_strava_client_secret %}Saved{% endif %}" autocomplete="off">
-            </div>
-
-            <div class="field-row">
-                <label for="strava_redirect_uri">Redirect URI</label>
-                <input id="strava_redirect_uri" name="strava_redirect_uri" type="url" value="{{ strava_config.strava_redirect_uri or '' }}" autocomplete="off" required>
-            </div>
-
-            <div class="field-row">
-                <label for="strava_user_id">User ID</label>
-                <input id="strava_user_id" name="strava_user_id" type="text" value="{{ strava_connection.athlete_id or '' }}" inputmode="numeric" autocomplete="off">
-            </div>
-
-            <div class="field-row">
-                <label for="strava_api_key">API key</label>
-                <input id="strava_api_key" name="strava_api_key" type="password" value="{{ strava_connection.access_token or '' }}" autocomplete="off">
+                <label for="strava_client_secret">Client secret / API key</label>
+                <input id="strava_client_secret" name="strava_client_secret" type="password" placeholder="{% if has_strava_client_secret %}Saved{% endif %}" autocomplete="off" {% if not can_update_strava_settings %}disabled{% endif %}>
             </div>
         </section>
 

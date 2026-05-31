@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from math import atan2, cos, radians, sin, sqrt
+import logging
 
 import requests
 
@@ -18,6 +19,7 @@ IPPT_RUN_MIN_KM = 2.35
 IPPT_RUN_MAX_KM = 2.55
 IPPT_DISTANCE_M = 2400
 IPPT_SPLIT_MARKS_M = (400, 800, 1200, 1600, 2000, 2400)
+logger = logging.getLogger(__name__)
 
 
 class StravaApiError(Exception):
@@ -308,7 +310,8 @@ def _request_token(payload):
             timeout=10,
         )
     except requests.RequestException as error:
-        raise StravaApiError(f"Could not reach Strava: {error}", 502) from error
+        logger.warning("Strava token request failed", exc_info=True)
+        raise StravaApiError("Could not reach Strava.", 502) from error
 
     if not response.ok:
         raise StravaApiError(_strava_error_message(response, "Strava authentication failed."), response.status_code)
@@ -324,7 +327,8 @@ def _get(path, access_token, params=None):
             timeout=10,
         )
     except requests.RequestException as error:
-        raise StravaApiError(f"Could not reach Strava: {error}", 502) from error
+        logger.warning("Strava API request failed", exc_info=True)
+        raise StravaApiError("Could not reach Strava.", 502) from error
 
     if not response.ok:
         raise StravaApiError(_strava_error_message(response, "Strava request failed."), response.status_code)

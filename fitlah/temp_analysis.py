@@ -17,7 +17,7 @@ def temp_analysis_dir():
 
 def temp_analysis_path(analysis_id):
     safe_id = os.path.basename(str(analysis_id or "")).replace(".json", "")
-    if not safe_id:
+    if not safe_id or len(safe_id) != 32 or any(char not in "0123456789abcdef" for char in safe_id.lower()):
         return None
     return os.path.join(temp_analysis_dir(), f"{safe_id}.json")
 

@@ -75,6 +75,8 @@ def _source(value, exercise=None):
 
 def next_id(table):
     ensure_tables()
+    if table not in {"users", "workouts", "fitness_groups", "group_members", "group_invites", "activity_records", "strava_ippt_results"}:
+        raise ValueError("Unsupported table.")
     with session_scope() as conn:
         return conn.execute(text(f"SELECT nextval(pg_get_serial_sequence('{table}', 'id'))")).scalar_one()
 
@@ -391,6 +393,25 @@ def update_strava_ippt_recommendation(nric, activity_id, recommendation):
     return _strava_ippt_view(row)
 
 
+def link_strava_ippt_activity_record(nric, activity_id, activity_record_id):
+    ensure_tables()
+    user = get_user(nric)
+    if not user or not activity_record_id:
+        return None
+    with session_scope() as conn:
+        row = _one(conn, """
+            UPDATE strava_ippt_results
+            SET activity_record_id = :activity_record_id
+            WHERE user_id = :user_id AND strava_activity_id = :activity_id
+            RETURNING *
+        """, {
+            "user_id": user["id"],
+            "activity_id": str(activity_id),
+            "activity_record_id": activity_record_id,
+        })
+    return _strava_ippt_view(row)
+
+
 def strava_activity_record(nric, activity_id):
     ensure_tables()
     with session_scope() as conn:
@@ -595,3 +616,15 @@ def save_strava_connection(data):
             "expires_at": expires_at,
             "scope": data.get("scope"),
         })
+
+
+def delete_strava_connection(nric):
+    user = get_user(nric)
+    if not user:
+        return 0
+    with session_scope() as conn:
+        result = conn.execute(
+            text("DELETE FROM strava_connections WHERE user_id = :user_id"),
+            {"user_id": user["id"]},
+        )
+        return result.rowcount or 0

@@ -1,8 +1,9 @@
 import json
 import os
+import uuid
 from datetime import datetime
 
-from flask import jsonify, render_template, request
+from flask import jsonify, redirect, render_template, request, url_for
 
 from ..ai_coach import generate_exercise_recommendation
 from ..auth import current_user, login_required
@@ -16,7 +17,16 @@ from ..repositories import (
     personal_best as repo_personal_best,
     save_personal_best,
 )
+from ..security import bounded_int, json_too_large, limit_structure, rate_limit
+from ..session_cleanup import clear_session_analysis_files
 from ..temp_analysis import load_temp_analysis_logs, save_temp_analysis
+
+
+ALLOWED_VIDEO_MIMES = {
+    "video/webm": ".webm",
+    "video/mp4": ".mp4",
+    "video/quicktime": ".mov",
+}
 
 
 def _exercise_labels(exercise_type):
@@ -130,6 +140,13 @@ def register_webcam_routes(app):
 
         return render_template("ai_recommendations.html", recommendations=logs)
 
+    @app.route("/ai-recommendations/dashboard", methods=["POST"])
+    @login_required
+    @rate_limit("ai-recommendations-cleanup", 20, 300)
+    def ai_recommendations_dashboard():
+        clear_session_analysis_files()
+        return redirect(url_for("dashboard"))
+
     @app.route("/api/workout-session/<int:session_id>", methods=["DELETE"])
     @login_required
     def delete_workout_session(session_id):
@@ -165,6 +182,7 @@ def register_webcam_routes(app):
 
     @app.route("/api/upload-video", methods=["POST"])
     @login_required
+    @rate_limit("upload-video", 12, 300)
     def upload_video():
         if "video" not in request.files:
             return jsonify({"success": False, "error": "No video file provided"}), 400
@@ -174,27 +192,36 @@ def register_webcam_routes(app):
         if exercise_type not in {"pushup", "situp"}:
             return jsonify({"success": False, "error": "Invalid exercise type"}), 400
 
-        valid_reps = min(int(request.form.get("valid_reps", 0) or 0), 120)
-        invalid_reps = min(int(request.form.get("invalid_reps", 0) or 0), 120)
-        duration_seconds = min(int(request.form.get("duration_seconds", 60) or 60), 120)
+        valid_reps = bounded_int(request.form.get("valid_reps"), 0, 0, 120)
+        invalid_reps = bounded_int(request.form.get("invalid_reps"), 0, 0, 120)
+        duration_seconds = bounded_int(request.form.get("duration_seconds"), 60, 1, 120)
         started_at = request.form.get("started_at", "")
         ended_at = request.form.get("ended_at", datetime.now().isoformat())
         movement_analysis = None
         raw_movement_analysis = request.form.get("movement_analysis", "")
         if raw_movement_analysis:
+            if len(raw_movement_analysis) > 100000:
+                return jsonify({"success": False, "error": "Movement analysis payload is too large"}), 413
             try:
-                movement_analysis = json.loads(raw_movement_analysis)
+                movement_analysis = limit_structure(json.loads(raw_movement_analysis), max_depth=5, max_items=250)
             except (TypeError, ValueError):
                 movement_analysis = None
 
         if file.filename == "":
             return jsonify({"success": False, "error": "No selected file"}), 400
+        extension = ALLOWED_VIDEO_MIMES.get((file.mimetype or "").lower())
+        if not extension:
+            return jsonify({"success": False, "error": "Unsupported video file type"}), 400
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{exercise_type}_{timestamp}.webm"
+        filename = f"{exercise_type}_{timestamp}_{uuid.uuid4().hex[:12]}{extension}"
         pb_field, label, folder = _exercise_labels(exercise_type)
         relative_video_path = os.path.join("userdata", folder, filename)
         save_path = os.path.join(BASE_DIR, relative_video_path)
+        userdata_root = os.path.abspath(os.path.join(BASE_DIR, "userdata"))
+        save_path = os.path.abspath(save_path)
+        if not save_path.startswith(userdata_root + os.sep):
+            return jsonify({"success": False, "error": "Invalid upload path"}), 400
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         file.save(save_path)
@@ -240,7 +267,6 @@ def register_webcam_routes(app):
         return jsonify({
             "success": True,
             "filename": filename,
-            "path": save_path,
             "valid_reps": valid_reps,
             "invalid_reps": invalid_reps,
             "session_id": session_id,
@@ -250,14 +276,17 @@ def register_webcam_routes(app):
 
     @app.route("/api/ai-recommendation", methods=["POST"])
     @login_required
+    @rate_limit("ai-recommendation", 20, 300)
     def api_ai_recommendation():
+        if json_too_large(120000):
+            return jsonify({"success": False, "error": "Session metrics payload is too large."}), 413
         metrics = request.get_json(silent=True)
         if not metrics:
             return jsonify({"success": False, "error": "No session metrics provided."}), 400
 
         user = current_user()
         nric = user.get("nric")
-        metrics = dict(metrics)
+        metrics = limit_structure(dict(metrics), max_depth=5, max_items=250)
         session_id = metrics.pop("session_id", None)
         if session_id is not None:
             try:

@@ -8,8 +8,10 @@
   };
 
   let today = new Date();
-  let currentYear = today.getFullYear();
-  let currentMonth = today.getMonth();
+  const requestedDate = new URLSearchParams(window.location.search).get('date');
+  const requestedDateMatch = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') ? requestedDate : null;
+  let currentYear = requestedDateMatch ? Number(requestedDateMatch.slice(0, 4)) : today.getFullYear();
+  let currentMonth = requestedDateMatch ? Number(requestedDateMatch.slice(5, 7)) - 1 : today.getMonth();
   let selectedDate = null;
   let entries = {};
 
@@ -141,20 +143,20 @@
           <div class="agenda-details">
             <div style="display:flex;align-items:center;">
               <div>
-                <div class="agenda-date">${friendlyDate(key)} &middot; ${typeName(entry.type)}</div>
-                <div class="agenda-name">${entry.name}</div>
+                <div class="agenda-date">${friendlyDate(key)} &middot; ${escapeHtml(typeName(entry.type))}</div>
+                <div class="agenda-name">${escapeHtml(entry.name)}</div>
               </div>
               <button class="delete-btn" title="Delete entry" onclick="deleteEntry(${entry.id})">&#x2715;</button>
             </div>
             <div class="recording-metric-container">
               ${entry.score ? `<div class="metric-block-large">
                 <div class="metric-label-small">Score / Reps</div>
-                <div class="metric-value-huge">${entry.score}</div>
+                <div class="metric-value-huge">${escapeHtml(entry.score)}</div>
               </div>` : ''}
               ${entry.score && entry.time ? '<div class="metric-divider-line"></div>' : ''}
               ${entry.time ? `<div class="metric-block-large">
                 <div class="metric-label-small">Time</div>
-                <div class="metric-value-huge">${entry.time}</div>
+                <div class="metric-value-huge">${escapeHtml(entry.time)}</div>
               </div>` : ''}
               ${entry.notes ? `${(entry.score || entry.time) ? '<div class="metric-divider-line"></div>' : ''}<div class="metric-block-large" style="flex:1;">
                 <div class="metric-label-small">Notes</div>
@@ -194,9 +196,10 @@
 
     if (!ai.summary) return '';
 
-    const dos = (ai.dos || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
-    const donts = (ai.donts || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
-    const focus = (ai.focus_areas || []).join(' · ');
+    const dos = (ai.dos || ai.recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const dontItems = ai.donts || [ai.weakness].filter(Boolean);
+    const donts = dontItems.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const focus = ai.safetyNote || (ai.focus_areas || []).join(' · ');
     return `
       <div class="ai-coach-block">
         <h5>✦ AI Personalised Coach</h5>
@@ -205,7 +208,7 @@
           ${dos ? `<div class="ai-coach-list dos"><h6>What to do</h6><ul>${dos}</ul></div>` : ''}
           ${donts ? `<div class="ai-coach-list donts"><h6>What to avoid</h6><ul>${donts}</ul></div>` : ''}
         </div>
-        ${focus ? `<div class="ai-coach-focus"><strong>Next focus:</strong> ${escapeHtml(focus)}</div>` : ''}
+        ${focus ? `<div class="ai-coach-focus"><strong>${ai.safetyNote ? 'Safety' : 'Next focus'}:</strong> ${escapeHtml(focus)}</div>` : ''}
       </div>`;
   }
 
@@ -229,7 +232,7 @@
     renderCalendar();
   }
 
-  selectedDate = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  selectedDate = requestedDateMatch || dateKey(today.getFullYear(), today.getMonth(), today.getDate());
   renderCalendar();
   renderDetails();
   loadEntries();

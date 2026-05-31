@@ -8,11 +8,13 @@ from ..constants import SIGNUP_RANKS
 from ..ippt_scoring import age_profile_from_nric
 from ..profile_age import sync_age_for_nric
 from ..repositories import get_user, save_personal_best, save_user, update_last_login
+from ..security import clean_text, rate_limit
 from ..validators import nric_check
 
 
 def register_auth_routes(app):
     @app.route("/login", methods=["GET", "POST"])
+    @rate_limit("login", 10, 300)
     def login():
         if current_user():
             return redirect(url_for("dashboard"))
@@ -21,9 +23,10 @@ def register_auth_routes(app):
         if request.method == "POST":
             nric = request.form.get("nric", "").strip().upper()
             password = request.form.get("password", "")
-            user = get_user(nric)
+            user = get_user(nric) if nric_check(nric) else None
 
             if user and check_password_hash(user.get("password_hash", ""), password):
+                session.clear()
                 session["user_nric"] = user["nric"]
                 sync_age_for_nric(user["nric"])
                 update_last_login(user["nric"])
@@ -34,6 +37,7 @@ def register_auth_routes(app):
         return render_template("auth.html", mode="login", error=error)
 
     @app.route("/signup", methods=["GET", "POST"])
+    @rate_limit("signup", 6, 300)
     def signup():
         if current_user():
             return redirect(url_for("dashboard"))
@@ -48,6 +52,8 @@ def register_auth_routes(app):
             rank = request.form.get("rank", "").strip().upper()
             selected_rank = rank
             unit = request.form.get("unit", "").strip().upper() or "UNASSIGNED"
+            name = clean_text(name, 80)
+            unit = clean_text(unit, 80)
 
             if not nric_check(nric):
                 error = "Enter a valid NRIC."

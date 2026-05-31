@@ -10,14 +10,16 @@ from sqlalchemy import create_engine, text
 
 from .config import BASE_DIR
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/fitlah"
 _ENGINE = None
 _SCHEMA_READY = False
 
 
 def database_url():
     load_dotenv(os.path.join(BASE_DIR, ".env"))
-    return os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
+    value = (os.environ.get("DATABASE_URL") or "").strip()
+    if not value:
+        raise RuntimeError("DATABASE_URL must be set in .env or the environment.")
+    return value
 
 
 def engine():
@@ -45,7 +47,10 @@ def encryption():
             return Fernet(key.encode())
         except (TypeError, ValueError):
             pass
-    seed = os.environ.get("FITLAH_SECRET_KEY", "fitlah-dev-secret-key").encode()
+    seed = os.environ.get("FITLAH_SECRET_KEY")
+    if not seed:
+        raise RuntimeError("Set FIELD_ENCRYPTION_KEY or FITLAH_SECRET_KEY before encrypting secrets.")
+    seed = seed.encode()
     return Fernet(base64.urlsafe_b64encode(hashlib.sha256(seed).digest()))
 
 
@@ -61,7 +66,7 @@ def decrypt_value(value):
     try:
         return encryption().decrypt(str(value).encode()).decode()
     except (InvalidToken, TypeError, ValueError):
-        return value
+        return ""
 
 
 def ensure_tables():
@@ -208,9 +213,10 @@ SCHEMA = [
     "CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_group_invites_recipient_status ON group_invites(recipient_user_id, status)",
     "CREATE INDEX IF NOT EXISTS idx_strava_ippt_user_created ON strava_ippt_results(user_id, created_at DESC)",
+    "DROP INDEX IF EXISTS uq_activity_source_external",
     """
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_activity_source_external
-    ON activity_records(source, source_external_id)
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_activity_user_source_external
+    ON activity_records(user_id, source, source_external_id)
     WHERE source_external_id IS NOT NULL AND source_external_id <> ''
     """,
 ]

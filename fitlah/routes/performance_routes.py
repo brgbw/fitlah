@@ -7,6 +7,7 @@ from ..repositories import (
     create_activity as create_activity_record,
     delete_activity as delete_activity_record,
 )
+from ..security import clean_text, json_too_large, rate_limit
 
 
 def register_performance_routes(app):
@@ -40,10 +41,13 @@ def register_performance_routes(app):
 
     @app.route("/api/activity-records", methods=["POST"])
     @login_required
+    @rate_limit("activity-records-create", 30, 300)
     def api_create_activity_record():
+        if json_too_large(20000):
+            return jsonify({"success": False, "error": "Request body is too large"}), 413
         data = request.get_json() or {}
-        name = (data.get("name") or "").strip()
-        date = (data.get("date") or "").strip()
+        name = clean_text(data.get("name"), 120)
+        date = clean_text(data.get("date"), 20)
 
         if not name or not date:
             return jsonify({"success": False, "error": "Event name and date are required"}), 400
@@ -54,16 +58,17 @@ def register_performance_routes(app):
             "name": name,
             "title": name,
             "type": data.get("type") or "logged",
-            "score": (data.get("score") or "").strip(),
-            "time": (data.get("time") or "").strip(),
+            "score": clean_text(data.get("score"), 80),
+            "time": clean_text(data.get("time"), 40),
             "date": date,
-            "notes": (data.get("notes") or "").strip(),
+            "notes": clean_text(data.get("notes"), 500),
             "source": "manual",
         })
         return jsonify({"success": True, "log": new_log}), 201
 
     @app.route("/api/activity-records/<int:log_id>", methods=["DELETE"])
     @login_required
+    @rate_limit("activity-records-delete", 60, 300)
     def api_delete_activity_record(log_id):
         user = current_user()
         deleted = delete_activity_record(log_id, user.get("nric"))

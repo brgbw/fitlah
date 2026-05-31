@@ -4,13 +4,17 @@ from ..auth import current_user, login_required
 from ..helpers import get_personal_best
 from ..ippt_scoring import AGE_GROUPS, DEFAULT_AGE_GROUP, calculate_from_personal_best
 from ..repositories import activity_records as activity_records_for_nric, list_workouts
+from ..session_cleanup import clear_session_analysis_files
 from .strava_routes import strava_connection_context
 
 
 def register_dashboard_routes(app):
+    @app.route("/dashboard")
     @app.route("/")
     @login_required
     def dashboard():
+        if request.args.get("cleanup_session_analysis") == "1":
+            clear_session_analysis_files()
         user = current_user()
         selected_age_group = request.args.get("age_group") or user.get("age_group") or DEFAULT_AGE_GROUP
         personal_best = get_personal_best(user.get("nric"))

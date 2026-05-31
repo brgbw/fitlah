@@ -1,11 +1,11 @@
 """OpenRouter exercise coaching from computer-vision session metrics."""
 
 import json
+import logging
 import os
 import re
 
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 try:
     import certifi
@@ -14,6 +14,8 @@ except ImportError:
 
 DEFAULT_MODEL = "openai/gpt-4o-mini"
 OPENROUTER_CHAT_COMPLETIONS_API = "https://openrouter.ai/api/v1/chat/completions"
+MAX_PROMPT_CHARS = 12000
+logger = logging.getLogger(__name__)
 
 
 def _verify_setting():
@@ -24,14 +26,14 @@ def _verify_setting():
 
 
 def _should_retry_without_ssl_verify():
-    return os.environ.get("FITLAH_INSECURE_SSL", "").lower() not in {"0", "false", "no"}
+    return os.environ.get("FITLAH_INSECURE_SSL", "").lower() in {"1", "true", "yes"}
 
 
 def _request_timeout():
     try:
-        return int(os.environ.get("OPENROUTER_TIMEOUT_SECONDS", "120"))
+        return int(os.environ.get("OPENROUTER_TIMEOUT_SECONDS", "30"))
     except ValueError:
-        return 120
+        return 30
 
 
 def get_openrouter_config():
@@ -88,8 +90,9 @@ def _call_openrouter(system_prompt, user_prompt):
         body = response.json()
     except requests.exceptions.SSLError as exc:
         if not _should_retry_without_ssl_verify():
-            return {"success": False, "error": f"Could not reach OpenRouter API: {exc}"}
-        requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+            logger.warning("OpenRouter SSL error", exc_info=True)
+            return {"success": False, "error": "Could not reach OpenRouter API securely."}
+        requests.packages.urllib3.disable_warnings()
         try:
             response = requests.post(
                 OPENROUTER_CHAT_COMPLETIONS_API,
@@ -101,7 +104,8 @@ def _call_openrouter(system_prompt, user_prompt):
             response.raise_for_status()
             body = response.json()
         except requests.RequestException as retry_exc:
-            return {"success": False, "error": f"Could not reach OpenRouter API: {retry_exc}"}
+            logger.warning("OpenRouter retry failed", exc_info=True)
+            return {"success": False, "error": "Could not reach OpenRouter API."}
         except ValueError:
             return {"success": False, "error": "OpenRouter API returned a non-JSON response."}
     except requests.HTTPError as exc:
@@ -109,9 +113,11 @@ def _call_openrouter(system_prompt, user_prompt):
         hint = ""
         if response.status_code == 404 and "model" in detail.lower():
             hint = f" Check OPENROUTER_MODEL in .env (current: {config['model']})."
-        return {"success": False, "error": f"OpenRouter API error ({response.status_code}): {detail[:280]}{hint}"}
+        logger.warning("OpenRouter HTTP error %s: %s", response.status_code, detail[:500])
+        return {"success": False, "error": f"OpenRouter API error ({response.status_code}).{hint}"}
     except requests.RequestException as exc:
-        return {"success": False, "error": f"Could not reach OpenRouter API: {exc}"}
+        logger.warning("OpenRouter request failed", exc_info=True)
+        return {"success": False, "error": "Could not reach OpenRouter API."}
     except ValueError:
         return {"success": False, "error": "OpenRouter API returned a non-JSON response."}
 
@@ -215,7 +221,7 @@ def _build_system_prompt():
 def _build_user_prompt(metrics):
     exercise = metrics.get("exercise", "exercise")
     label = "push-up" if exercise == "pushup" else "sit-up"
-    return (
+    prompt = (
         f"Analyse this 1-minute {label} session and return personalised coaching.\n\n"
         f"Session metrics (JSON):\n{json.dumps(metrics, indent=2)}\n\n"
         "Return JSON exactly in this shape:\n"
@@ -227,6 +233,7 @@ def _build_user_prompt(metrics):
         "}\n"
         "Use fragments, not sentences. No conversational words. No em dashes."
     )
+    return prompt[:MAX_PROMPT_CHARS]
 
 
 def generate_exercise_recommendation(metrics):
@@ -265,7 +272,7 @@ def generate_ippt_run_recommendation(run_summary):
         '  "safetyNote": "one practical safety note"\n'
         "}\n"
         "Do not include official timing calculations or validity judgements."
-    )
+    )[:MAX_PROMPT_CHARS]
     result = _call_openrouter(system_prompt, user_prompt)
     if not result.get("success"):
         return result

@@ -14,7 +14,9 @@ def current_user():
 
     user = get_user(nric)
     if user:
-        g._current_user = enrich_age_fields(user)
+        safe_user = dict(user)
+        safe_user.pop("password_hash", None)
+        g._current_user = enrich_age_fields(safe_user)
         return g._current_user
     g._current_user = None
     return None

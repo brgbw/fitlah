@@ -1,2 +1,10 @@
 __pycache__
+.cursor
+.venv
+.vscode
+venv
 .env
+.env.*
+!.env.example
+userdata/
+*.pyc
