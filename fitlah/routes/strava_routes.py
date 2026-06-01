@@ -1,12 +1,12 @@
+import os
 import time
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from flask import jsonify, render_template, request, url_for
 
 from ..ai_coach import generate_ippt_run_recommendation
 from ..auth import current_user, login_required
-from ..helpers import update_run_personal_best
 from ..ippt_scoring import age_profile_from_nric, run_station_points
 from ..repositories import (
     create_activity as create_activity_record,
@@ -14,12 +14,16 @@ from ..repositories import (
     get_setting,
     get_settings,
     link_strava_ippt_activity_record,
+    personal_best as repo_personal_best,
+    recalculate_personal_best,
     save_strava_connection,
     save_strava_ippt_result,
     strava_activity_record,
     strava_connection,
     strava_ippt_result,
     update_activity,
+    update_strava_activity_ippt_result,
+    update_strava_activity_record,
     update_strava_ippt_recommendation,
 )
 from ..security import json_too_large, limit_structure, rate_limit
@@ -115,6 +119,7 @@ def register_strava_routes(app):
             imported = _import_strava_activity(
                 current_user().get("nric"),
                 activity_id,
+                ai_recommendation=data.get("ai_recommendation"),
             )
         except StravaApiError as error:
             return _error(str(error), error.status_code)
@@ -160,10 +165,16 @@ def register_strava_routes(app):
         result["activity_record_id"] = imported["log"].get("id")
         result["ai_recommendation"] = None
 
+        previous_best = repo_personal_best(nric)
         saved_result = save_strava_ippt_result(nric, result)
+        updated_log = update_strava_activity_ippt_result(nric, activity_id, saved_result)
+        if updated_log:
+            imported["log"] = updated_log
         personal_best_updated = False
-        if result["status"] == "verified":
-            personal_best_updated = update_run_personal_best(nric, result["official_time"])
+        personal_best = previous_best
+        if result["status"] != "invalid":
+            personal_best = recalculate_personal_best(nric)
+            personal_best_updated = (previous_best or {}).get("run_time") != (personal_best or {}).get("run_time")
 
         return jsonify({
             "success": True,
@@ -171,6 +182,7 @@ def register_strava_routes(app):
             "log": imported["log"],
             "created": imported["created"],
             "personal_best_updated": personal_best_updated,
+            "personal_best": personal_best,
         })
     @app.route("/api/strava/ippt-24/preview", methods=["POST"])
     @login_required
@@ -255,7 +267,36 @@ def _strava_authorize_url():
 
 
 def _strava_redirect_uri():
-    return get_setting("strava_redirect_uri") or url_for("strava_sync", _external=True)
+    explicit_uri = (os.environ.get("FITLAH_STRAVA_REDIRECT_URI") or "").strip().rstrip("/")
+    if explicit_uri:
+        return explicit_uri
+
+    public_base_url = (os.environ.get("FITLAH_PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if public_base_url.lower() == "auto":
+        public_base_url = ""
+    if public_base_url:
+        return f"{public_base_url}{url_for('strava_sync')}"
+
+    stored_uri = (get_setting("strava_redirect_uri") or "").strip().rstrip("/")
+    if stored_uri and "127.0.0.1" not in stored_uri and "localhost" not in stored_uri:
+        return stored_uri
+
+    return f"{_external_base_url()}{url_for('strava_sync')}"
+
+
+def _external_base_url():
+    forwarded_host = (request.headers.get("X-Forwarded-Host") or "").split(",")[0].strip()
+    forwarded_proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip()
+    host = forwarded_host or request.host
+    scheme = forwarded_proto or request.scheme
+
+    origin = (request.headers.get("Origin") or "").strip().rstrip("/")
+    parsed_origin = urlparse(origin)
+    if parsed_origin.scheme and parsed_origin.netloc:
+        scheme = parsed_origin.scheme
+        host = parsed_origin.netloc
+
+    return f"{scheme}://{host}".rstrip("/")
 
 
 def _strava_credentials():
@@ -318,6 +359,11 @@ def _store_token_data(token_data):
 def _import_strava_activity(nric, activity_id, ai_recommendation=None, activity=None):
     imported_log = strava_activity_record(nric, activity_id)
     if imported_log:
+        if activity:
+            payload = build_activity_record(activity, nric)
+            if ai_recommendation:
+                payload["ai_recommendation"] = limit_structure(ai_recommendation, max_depth=4, max_items=20)
+            imported_log = update_strava_activity_record(nric, activity_id, payload) or imported_log
         if ai_recommendation:
             ai_recommendation = limit_structure(ai_recommendation, max_depth=4, max_items=20)
             update_activity(imported_log["id"], nric, {"ai_recommendation": ai_recommendation})
@@ -336,14 +382,10 @@ def _import_strava_activity(nric, activity_id, ai_recommendation=None, activity=
 
     log = create_activity_record(payload)
     link_strava_ippt_activity_record(nric, activity_id, log.get("id"))
-    personal_best_updated = False
-    if activity["is_ippt_distance"]:
-        personal_best_updated = update_run_personal_best(nric, activity["time"])
-
     return {
         "log": log,
         "created": True,
-        "personal_best_updated": personal_best_updated,
+        "personal_best_updated": False,
     }
 
 
@@ -399,6 +441,9 @@ def _fallback_ippt_recommendation(result):
         "weakness": weakness,
         "recommendations": actions,
         "safetyNote": "Stop hard efforts if chest pain, dizziness, or unusual breathlessness appears.",
+        "dos": actions,
+        "donts": [weakness],
+        "focus_areas": [],
     }
 
 

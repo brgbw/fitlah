@@ -5,6 +5,7 @@ import secrets
 import time
 from collections import defaultdict, deque
 from functools import wraps
+from fnmatch import fnmatch
 from urllib.parse import urlparse
 
 from flask import jsonify, request, session
@@ -49,7 +50,7 @@ def configure_security(app):
         origin = request.headers.get("Origin")
         referer = request.headers.get("Referer")
         source = origin or _origin_from_url(referer)
-        if source and source not in allowed:
+        if source and not _origin_allowed(source, allowed):
             return jsonify({"success": False, "error": "Request origin is not allowed."}), 403
         return None
 
@@ -59,10 +60,15 @@ def configure_security(app):
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         origin = request.headers.get("Origin")
-        if origin and origin in _allowed_origins():
+        if origin and _origin_allowed(origin, _allowed_origins()):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Vary"] = "Origin"
             response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS, POST, PUT, PATCH, DELETE"
+            response.headers["Access-Control-Allow-Headers"] = request.headers.get(
+                "Access-Control-Request-Headers",
+                "Content-Type, Authorization",
+            )
         return response
 
     @app.errorhandler(413)
@@ -86,6 +92,52 @@ def _allowed_origins():
     origins = {item.strip().rstrip("/") for item in configured.split(",") if item.strip()}
     origins.update({"http://localhost:5000", "http://127.0.0.1:5000"})
     return origins
+
+
+def _origin_allowed(source, allowed):
+    normalized = source.strip().rstrip("/")
+    if not normalized:
+        return False
+    if normalized in allowed or _matches_allowed_pattern(normalized, allowed):
+        return True
+    return _is_same_request_origin(normalized)
+
+
+def _matches_allowed_pattern(source, allowed):
+    parsed = urlparse(source)
+    if not parsed.scheme or not parsed.netloc:
+        return False
+    for pattern in allowed:
+        if "*" not in pattern:
+            continue
+        candidate = pattern.strip().rstrip("/")
+        if fnmatch(source, candidate):
+            return True
+        parsed_pattern = urlparse(candidate)
+        if parsed_pattern.scheme and parsed_pattern.scheme != parsed.scheme:
+            continue
+        if parsed_pattern.netloc and fnmatch(parsed.netloc, parsed_pattern.netloc):
+            return True
+    return False
+
+
+def _is_same_request_origin(source):
+    parsed = urlparse(source)
+    if not parsed.scheme or not parsed.netloc:
+        return False
+
+    forwarded_host = (request.headers.get("X-Forwarded-Host") or "").split(",")[0].strip()
+    request_hosts = {request.host}
+    if forwarded_host:
+        request_hosts.add(forwarded_host)
+    if parsed.netloc not in request_hosts:
+        return False
+
+    forwarded_proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip()
+    request_schemes = {request.scheme}
+    if forwarded_proto:
+        request_schemes.add(forwarded_proto)
+    return parsed.scheme in request_schemes
 
 
 def _origin_from_url(value):

@@ -165,12 +165,21 @@ def _parse_coach_json(text):
                 "focus_areas": [_limit_words(item, 2) for item in _as_list(data.get("focus_areas"))[:1]],
             }
             if any(key in data for key in ("strength", "weakness", "recommendations", "safetyNote", "safety_note")):
+                weakness = _clean_text(data.get("weakness", ""))
+                recommendations = [
+                    _clean_text(item)
+                    for item in _as_list(data.get("recommendations"))[:5]
+                    if _clean_text(item)
+                ]
                 parsed.update({
                     "summary": _clean_text(data.get("summary", "")),
                     "strength": _clean_text(data.get("strength", "")),
-                    "weakness": _clean_text(data.get("weakness", "")),
-                    "recommendations": [_clean_text(item) for item in _as_list(data.get("recommendations"))[:5]],
+                    "weakness": weakness,
+                    "recommendations": recommendations,
                     "safetyNote": _clean_text(data.get("safetyNote") or data.get("safety_note", "")),
+                    "dos": recommendations,
+                    "donts": [weakness] if weakness else [],
+                    "focus_areas": [],
                 })
             return parsed
     return None
@@ -245,7 +254,69 @@ def generate_exercise_recommendation(metrics):
     if exercise not in {"pushup", "situp"}:
         return {"success": False, "error": "Invalid exercise type in metrics."}
 
-    return _call_openrouter(_build_system_prompt(), _build_user_prompt(metrics))
+    if not get_openrouter_config()["api_key"]:
+        return _fallback_exercise_recommendation(metrics)
+
+    result = _call_openrouter(_build_system_prompt(), _build_user_prompt(metrics))
+    if not result.get("success") and os.environ.get("FITLAH_AI_FALLBACK", "1").lower() in {"1", "true", "yes"}:
+        return _fallback_exercise_recommendation(metrics)
+    return result
+
+
+def _fallback_exercise_recommendation(metrics):
+    """Return deterministic mock coaching when live AI is unavailable."""
+    exercise = metrics.get("exercise")
+    flags = " ".join(_as_list(metrics.get("form_flags"))).lower()
+    invalid_rate = int(metrics.get("invalid_rep_rate_pct") or 0)
+    shallow_signals = int(metrics.get("shallow_rep_signals") or 0)
+
+    if exercise == "pushup":
+        if "depth" in flags or shallow_signals >= 2:
+            summary = "Push-up depth needs work"
+            dos = ["Lower chest with control"]
+            donts = ["Avoid half reps"]
+            focus = ["Depth"]
+        elif "hips" in flags or "plank" in flags:
+            summary = "Body line needs control"
+            dos = ["Lock hips and ribs"]
+            donts = ["Avoid hip sag"]
+            focus = ["Alignment"]
+        elif invalid_rate >= 20:
+            summary = "Rep quality needs tightening"
+            dos = ["Slow each full rep"]
+            donts = ["Avoid rushed reps"]
+            focus = ["Control"]
+        else:
+            summary = "Solid push-up rhythm"
+            dos = ["Keep steady full range"]
+            donts = ["Avoid speeding up"]
+            focus = ["Pacing"]
+    else:
+        if "partial" in flags or "height" in flags:
+            summary = "Sit-up height needs work"
+            dos = ["Reach full upright height"]
+            donts = ["Avoid partial reps"]
+            focus = ["Height"]
+        elif "hands" in flags or invalid_rate >= 20:
+            summary = "Technique needs cleaner control"
+            dos = ["Keep hands on ears"]
+            donts = ["Avoid arm swing"]
+            focus = ["Form"]
+        else:
+            summary = "Solid sit-up rhythm"
+            dos = ["Keep reps smooth"]
+            donts = ["Avoid neck pulling"]
+            focus = ["Control"]
+
+    return {
+        "success": True,
+        "summary": summary,
+        "dos": dos,
+        "donts": donts,
+        "focus_areas": focus,
+        "mock": True,
+        "source": "fallback",
+    }
 
 
 def generate_ippt_run_recommendation(run_summary):
@@ -281,15 +352,20 @@ def generate_ippt_run_recommendation(run_summary):
 
 
 def _normalise_ippt_run_response(data):
+    weakness = _clean_text(data.get("weakness", "")) or _clean_text((data.get("donts") or [""])[0])
+    recommendations = [
+        _clean_text(item)
+        for item in _as_list(data.get("recommendations") or data.get("focus_areas"))[:5]
+        if _clean_text(item)
+    ]
     return {
         "success": True,
         "summary": _clean_text(data.get("summary", "")),
         "strength": _clean_text(data.get("strength", "")) or _clean_text((data.get("dos") or [""])[0]),
-        "weakness": _clean_text(data.get("weakness", "")) or _clean_text((data.get("donts") or [""])[0]),
-        "recommendations": [
-            _clean_text(item)
-            for item in _as_list(data.get("recommendations") or data.get("focus_areas"))[:5]
-            if _clean_text(item)
-        ],
+        "weakness": weakness,
+        "recommendations": recommendations,
         "safetyNote": _clean_text(data.get("safetyNote") or data.get("safety_note", "")),
+        "dos": recommendations,
+        "donts": [weakness] if weakness else [],
+        "focus_areas": [],
     }

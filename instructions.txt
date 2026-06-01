@@ -1,53 +1,254 @@
-FitLah App Launch Instructions
+FitLah Friend Setup and Launch Guide
 
-1. Open PowerShell in the project folder:
+This guide is for running FitLah locally on a laptop for the hackathon.
+It covers Python, PostgreSQL, Strava API setup, optional Cloudflare tunnel
+testing, and launching the app.
 
-   cd "C:\Users\brand\OneDrive\Documents\Hackathon\CODE_EXP_FITLAH_2026"
+Recommended versions:
+- Python 3.11 or newer
+- PostgreSQL 16, 17, or 18
+- Windows PowerShell
 
-2. Create and activate a Python virtual environment:
-Consider deativating antivirus software as it will interfere with the function
+1. Get the project folder
+
+Open PowerShell and go to wherever you placed the project.
+
+Example:
+
+   cd "C:\Users\YOUR_NAME\Documents\CODE_EXP_FITLAH_2026"
+
+2. Install Python dependencies
+
+Create a virtual environment:
+
    python -m venv .venv
+
+Activate it:
+
    .\.venv\Scripts\Activate.ps1
 
-   If PowerShell blocks activation, run:
+If PowerShell blocks activation, run this once in the same terminal:
 
    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    .\.venv\Scripts\Activate.ps1
 
-3. Install the required Python packages:
+Install packages:
 
    python -m pip install --upgrade pip
    pip install -r requirements.txt
 
-4. Set up PostgreSQL before launching the app.
+3. Install and start PostgreSQL
 
-   Follow docs\POSTGRES_SETUP.md to install PostgreSQL, start the PostgreSQL
-   service, create the fitlah database, and configure DATABASE_URL in .env.
+Download PostgreSQL from:
 
-   Example .env:
+   https://www.postgresql.org/download/
 
-   DATABASE_URL=postgresql://postgres:your_password@localhost:5432/fitlah
-   FITLAH_SECRET_KEY=replace-with-a-random-secret
+For Windows, use the EnterpriseDB installer. Keep the default components:
+- PostgreSQL Server
+- pgAdmin 4
+- Command Line Tools
 
-5. Start the app:
+During installation:
+- Remember the password you set for the postgres user.
+- Keep the default port as 5432 unless your laptop already uses it.
+
+PostgreSQL normally starts automatically. To check:
+
+   Get-Service *postgres*
+
+If the service is stopped, start it from Windows Services or PowerShell.
+The service name may differ by version:
+
+   Start-Service postgresql-x64-18
+
+4. Create the database
+
+Go to the PostgreSQL bin folder. Change 18 if your installed version is
+different.
+
+   cd "C:\Program Files\PostgreSQL\18\bin"
+   .\psql.exe -U postgres
+
+Enter your postgres password, then run:
+
+   CREATE DATABASE fitlah;
+   \c fitlah
+   SELECT current_database();
+   \q
+
+5. Create the .env file
+
+In the project root, copy .env.example to .env:
+
+   Copy-Item .env.example .env
+
+Open .env and fill in your PostgreSQL password:
+
+   DATABASE_URL=postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5432/fitlah
+
+Also set a secret key. Any long random text is fine for local testing:
+
+   FITLAH_SECRET_KEY=replace-with-a-long-random-secret
+
+For hackathon Cloudflare tunnel testing, keep:
+
+   FITLAH_PUBLIC_BASE_URL=auto
+   FITLAH_ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000,https://*.trycloudflare.com
+
+6. Set up Strava API
+
+Go to:
+
+   https://www.strava.com/settings/api
+
+Create an API application if you do not already have one.
+
+Use these values:
+- Application Name: FitLah
+- Category: Training
+- Website: http://127.0.0.1:5000
+- Authorization Callback Domain:
+    - For local-only testing: 127.0.0.1
+    - For Cloudflare tunnel testing: trycloudflare.com
+
+Important:
+- Strava wants only the domain in Authorization Callback Domain.
+- Do not enter https://.
+- Do not enter /strava-sync.
+- Do not enter a trailing slash.
+
+After saving, Strava will show:
+- Client ID
+- Client Secret
+
+Keep both ready.
+
+7. Launch the app locally
+
+Go back to the project folder:
+
+   cd "C:\Users\YOUR_NAME\Documents\CODE_EXP_FITLAH_2026"
+
+Make sure the virtual environment is active:
+
+   .\.venv\Scripts\Activate.ps1
+
+Start the app:
 
    python app.py
 
-6. Open the app in your browser:
+Open:
 
    http://127.0.0.1:5000
 
-7. Login and click bottom left of the user icon, go to settings page and key in your strava client id and secret key.
+Keep this terminal running while using the app.
 
+8. Add Strava credentials inside FitLah
 
+In the FitLah app:
 
-Notes:
+1. Create an account or log in.
+2. Click the user/settings area at the bottom-left.
+3. Open Settings.
+4. Paste the Strava Client ID.
+5. Paste the Strava Client Secret.
+6. Save.
+7. Go back to the dashboard or Strava sync page.
+8. Click Connect with Strava.
 
-- Keep the terminal running while using the app.
-- On first startup, the app creates the required PostgreSQL tables.
+9. Optional: expose the app with Cloudflare Tunnel
 
-- Use the same FitLah account that connected Strava when checking imported runs in Calendar.
-- AI coaching is optional. Without OPENROUTER_API_KEY, the app still runs and Strava analysis still shows time, status, points, and fallback coaching.
-- Stop the app with Ctrl+C. Leave the virtual environment with:
+This lets another person open your local app from their laptop or phone.
+
+Install cloudflared:
+
+   https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+
+With Flask still running on port 5000, open a second PowerShell terminal:
+
+   cloudflared tunnel --url http://127.0.0.1:5000
+
+Cloudflare will print a URL like:
+
+   https://something-random.trycloudflare.com
+
+Open that URL in the browser.
+
+Because .env uses FITLAH_PUBLIC_BASE_URL=auto, FitLah will generate Strava
+redirect URLs using the current Cloudflare tunnel host automatically.
+
+If Strava says redirect_uri is invalid:
+- Confirm the Strava Authorization Callback Domain is trycloudflare.com.
+- Restart python app.py after changing .env.
+- Make sure you opened the app through the Cloudflare URL before clicking
+  Connect with Strava.
+
+10. Optional: OpenRouter AI coaching
+
+The app still works without OpenRouter. Strava analysis will show the run
+time, status, points, and fallback coaching.
+
+To enable live AI coaching, add these to .env:
+
+   OPENROUTER_API_KEY=your_openrouter_key
+   OPENROUTER_MODEL=openai/gpt-4o-mini
+   OPENROUTER_TIMEOUT_SECONDS=30
+   OPENROUTER_SITE_URL=http://127.0.0.1:5000
+   OPENROUTER_APP_NAME=FitLah
+
+Restart the app after changing .env.
+
+11. Useful commands
+
+Stop Flask:
+
+   Ctrl+C
+
+Leave the virtual environment:
 
    deactivate
+
+Check PostgreSQL tables:
+
+   cd "C:\Program Files\PostgreSQL\18\bin"
+   .\psql.exe -U postgres -d fitlah
+   \dt
+   SELECT id, nric, name FROM users;
+   \q
+
+12. Troubleshooting
+
+python is not found:
+- Install Python 3.11 or newer.
+- Tick "Add Python to PATH" during installation.
+
+pip install fails:
+- Confirm the virtual environment is active.
+- Run python -m pip install --upgrade pip again.
+
+Database connection fails:
+- Confirm PostgreSQL is running.
+- Confirm the database is named fitlah.
+- Confirm DATABASE_URL has the correct password.
+- If your password has special characters, URL-encode them or use a simpler
+  local password for the hackathon.
+
+Port 5000 is already in use:
+- Stop the other Flask process, or set another port before launch:
+
+   $env:FLASK_RUN_PORT=5001
+   python app.py
+
+Strava redirects to 127.0.0.1 while using Cloudflare:
+- Make sure FITLAH_PUBLIC_BASE_URL=auto is in .env.
+- Restart python app.py.
+- Open the Cloudflare URL first, then click Connect with Strava.
+
+Browser says Request origin is not allowed:
+- Add the current public URL to FITLAH_ALLOWED_ORIGINS, or keep:
+
+   https://*.trycloudflare.com
+
+Antivirus slows webcam/video features:
+- Temporarily allow the project folder and Python process in antivirus settings
+  during the demo.

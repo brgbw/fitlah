@@ -35,6 +35,21 @@
             width: 100%;
         }
 
+        .sidebar-rail {
+            width: 16px;
+            min-height: 100vh;
+            flex: 0 0 16px;
+            transition: width 0.2s ease, flex-basis 0.2s ease;
+            position: relative;
+            z-index: 50;
+        }
+
+        .sidebar-rail:hover,
+        .sidebar-rail:focus-within {
+            width: 240px;
+            flex-basis: 240px;
+        }
+
         /* Sidebar */
         .sidebar {
             width: 240px;
@@ -44,18 +59,37 @@
             flex-direction: column;
             padding: 36px 24px;
             height: 100vh;
-            position: fixed;
+            position: sticky;
             left: 0;
             top: 0;
             overflow-y: auto;
+            z-index: 50;
+            transition: transform 0.2s ease;
+            transform: translateX(calc(-100% + 16px));
 
             /* subtle depth */
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
         }
 
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 16px;
+            height: 100vh;
+            background: transparent;
+        }
+
+        .sidebar:hover,
+        .sidebar:focus-within {
+            transform: translateX(0);
+        }
+
         .logo {
             font-size: 36px;
             font-weight: 800;
+            line-height: 1;
             margin-bottom: 48px;
         }
 
@@ -158,7 +192,7 @@
         /* Main */
         .main-workspace {
             flex: 1;
-            margin-left: 240px;
+            min-width: 0;
             display: flex;
         }
 
@@ -177,6 +211,27 @@
             font-size: 14px;
             color: var(--text-muted);
         }
+
+        @media (max-width: 760px) {
+            .sidebar-rail,
+            .sidebar-rail:hover,
+            .sidebar-rail:focus-within {
+                width: 16px;
+                flex-basis: 16px;
+            }
+
+            .sidebar {
+                width: min(280px, 86vw);
+            }
+
+            .main-workspace {
+                margin-left: 0;
+            }
+
+            .main-content {
+                padding: 74px 18px 28px;
+            }
+        }
     </style>
 </head>
 
@@ -184,6 +239,7 @@
 <div class="app-container">
 
     <!-- Sidebar -->
+    <div class="sidebar-rail">
     <aside class="sidebar">
 
         <div class="logo">Fit<span>Lah</span></div>
@@ -230,6 +286,7 @@
         </a>
 
     </aside>
+    </div>
 
     <!-- Main -->
     <div class="main-workspace">

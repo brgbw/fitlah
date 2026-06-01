@@ -5,8 +5,8 @@
         <div class="strava-preview-brand">
             <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="" aria-hidden="true">
             <div>
-                <h3>Strava Runs</h3>
-                <span>Recent runs from your Strava account — preview route and import to activity logs</span>
+                <h3>Strava</h3>
+                <span>Recent runs from Strava</span>
             </div>
         </div>
     </div>
@@ -456,17 +456,19 @@
     }
 
     .strava-coach-card h5 {
-        color: #0F172A;
-        font-size: 12px;
-        font-weight: 700;
-        margin-bottom: 8px;
+        color: #2563EB;
+        font-size: 18px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        margin-bottom: 10px;
     }
 
     .strava-coach-summary {
         color: #334155;
-        font-size: 13px;
-        line-height: 1.55;
-        margin-bottom: 10px;
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 12px;
     }
 
     .strava-coach-grid {
@@ -477,24 +479,34 @@
 
     .strava-coach-list h6 {
         color: #64748B;
-        font-size: 11px;
-        font-weight: 700;
-        margin-bottom: 5px;
+        font-size: 16px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        margin-bottom: 8px;
+    }
+
+    .strava-coach-list.dos h6 {
+        color: #15803D;
+    }
+
+    .strava-coach-list.donts h6 {
+        color: #DC2626;
     }
 
     .strava-coach-list ul {
         margin: 0;
         padding-left: 18px;
         color: #475569;
-        font-size: 12px;
-        line-height: 1.45;
+        font-size: 16px;
+        line-height: 1.55;
     }
 
     .strava-coach-focus {
         margin-top: 10px;
-        color: #475569;
-        font-size: 12px;
-        line-height: 1.45;
+        color: #64748B;
+        font-size: 16px;
+        line-height: 1.5;
     }
 
     @media (max-width: 720px) {
@@ -739,23 +751,23 @@
 
         return `
             <div class="strava-coach-card">
-                <h5>AI Personalised Coach</h5>
+                <h5>AI PERSONALISED COACH</h5>
                 ${rec.summary ? `<div class="strava-coach-summary">${escapeHtml(rec.summary)}</div>` : ''}
                 <div class="strava-coach-grid">
                     ${recommendations.length ? `
                         <div class="strava-coach-list dos">
-                            <h6>What to do</h6>
+                            <h6>RECOMMENDED ACTIONS</h6>
                             <ul>${recommendations.slice(0, 3).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
                         </div>
                     ` : ''}
                     ${avoid.length ? `
                         <div class="strava-coach-list donts">
-                            <h6>What to avoid</h6>
+                            <h6>AVOID NEXT</h6>
                             <ul>${avoid.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
                         </div>
                     ` : ''}
                 </div>
-                ${focus ? `<div class="strava-coach-focus"><strong>Safety:</strong> ${escapeHtml(focus)}</div>` : ''}
+                ${focus ? `<div class="strava-coach-focus"><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${escapeHtml(focus)}</div>` : ''}
             </div>
         `;
     }
@@ -836,7 +848,7 @@
                 <div class="strava-preview-footer">
                     <button id="previewBackBtn" class="back-button" type="button">Back</button>
                     <button id="analyzeBtn" class="analyze-button" type="button">Analyse</button>
-                    <button id="saveBtn" class="save-button" type="button" disabled>Save session</button>
+                    <button id="saveBtn" class="save-button" type="button" disabled style="display:none">Save session</button>
                 </div>
             </div>
         `;
@@ -929,8 +941,17 @@
                 </div>
             `;
 
-            document.getElementById('saveBtn').disabled = false;
+            const saveBtn = document.getElementById('saveBtn');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.style.display = '';
+            }
         } catch (err) {
+            const saveBtn = document.getElementById('saveBtn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.style.display = 'none';
+            }
             area.innerHTML = `<div style="padding:10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
         }
     }

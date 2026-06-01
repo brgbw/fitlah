@@ -49,23 +49,23 @@ function renderRunCoachCard(rec) {
 
     return `
         <div class="strava-coach-card">
-            <h5>AI Personalised Coach</h5>
+            <h5>AI PERSONALISED COACH</h5>
             ${rec.summary ? `<div class="strava-coach-summary">${escapeHtml(rec.summary)}</div>` : ''}
             <div class="strava-coach-grid">
                 ${recommendations.length ? `
                     <div class="strava-coach-list dos">
-                        <h6>What to do</h6>
+                        <h6>RECOMMENDED ACTIONS</h6>
                         <ul>${recommendations.slice(0, 3).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
                 ${avoid.length ? `
                     <div class="strava-coach-list donts">
-                        <h6>What to avoid</h6>
+                        <h6>AVOID NEXT</h6>
                             <ul>${avoid.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
             </div>
-            ${focus ? `<div class="strava-coach-focus"><strong>Safety:</strong> ${escapeHtml(focus)}</div>` : ''}
+            ${focus ? `<div class="strava-coach-focus"><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${escapeHtml(focus)}</div>` : ''}
         </div>
     `;
 }
@@ -190,7 +190,7 @@ async function previewActivityDashboard(activityId, activityMeta) {
                 <div class="strava-preview-footer">
                     <button id="dashboardPreviewBackBtn" class="strava-btn strava-btn-ghost" type="button">Back</button>
                     <button id="dashboardAnalyzeBtn" class="strava-btn strava-btn-secondary" type="button">Analyse</button>
-                    <button id="dashboardSaveBtn" class="strava-btn strava-btn-primary" type="button" disabled>Save session</button>
+                    <button id="dashboardSaveBtn" class="strava-btn strava-btn-primary" type="button" disabled style="display:none">Save session</button>
                 </div>
             </div>
         `;
@@ -246,8 +246,17 @@ async function analyzeIpptPreviewDashboard(activityId) {
                 ${renderRunCoachCard(rec)}
             </div>
         `;
-        document.getElementById('dashboardSaveBtn').disabled = false;
+        const saveBtn = document.getElementById('dashboardSaveBtn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.style.display = '';
+        }
     } catch (err) {
+        const saveBtn = document.getElementById('dashboardSaveBtn');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.style.display = 'none';
+        }
         area.innerHTML = `<div style="padding:10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
     }
 }
@@ -271,6 +280,7 @@ async function saveSessionDashboard(activityId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ activity_id: activityId, ai_recommendation: aiRecommendation })
         });
+        await refreshIpptScore();
         // show simple success
         const preview = document.getElementById('dashboardStravaPreview');
         preview.innerHTML = `

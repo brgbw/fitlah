@@ -6,6 +6,7 @@ from ..repositories import (
     activity_records as activity_records_for_nric,
     create_activity as create_activity_record,
     delete_activity as delete_activity_record,
+    recalculate_personal_best,
 )
 from ..security import clean_text, json_too_large, rate_limit
 
@@ -64,15 +65,18 @@ def register_performance_routes(app):
             "notes": clean_text(data.get("notes"), 500),
             "source": "manual",
         })
-        return jsonify({"success": True, "log": new_log}), 201
+        personal_best = recalculate_personal_best(current_user().get("nric"))
+        return jsonify({"success": True, "log": new_log, "personal_best": personal_best}), 201
 
     @app.route("/api/activity-records/<int:log_id>", methods=["DELETE"])
     @login_required
     @rate_limit("activity-records-delete", 60, 300)
     def api_delete_activity_record(log_id):
         user = current_user()
-        deleted = delete_activity_record(log_id, user.get("nric"))
+        nric = user.get("nric")
+        deleted = delete_activity_record(log_id, nric)
         if not deleted:
             return jsonify({"success": False, "error": "Log not found"}), 404
 
-        return jsonify({"success": True})
+        personal_best = recalculate_personal_best(nric)
+        return jsonify({"success": True, "personal_best": personal_best})

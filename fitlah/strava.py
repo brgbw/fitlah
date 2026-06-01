@@ -100,6 +100,7 @@ def fetch_activity_streams(access_token, activity_id):
 
 
 def build_activity_record(activity, user_nric):
+    started_at = activity.get("start_date_local") or activity.get("start_date") or ""
     return {
         "nric": user_nric,
         "event": activity["name"],
@@ -108,7 +109,7 @@ def build_activity_record(activity, user_nric):
         "type": "run",
         "score": activity["score"],
         "time": activity["time"],
-        "date": activity["date"],
+        "date": _date_part(started_at) if started_at else activity["date"],
         "notes": activity["notes"],
         "exercise": "run",
         "source": "strava",
@@ -117,6 +118,8 @@ def build_activity_record(activity, user_nric):
         "moving_time": activity["moving_time"],
         "elapsed_time": activity["elapsed_time"],
         "pace": activity["pace"],
+        "started_at": started_at or None,
+        "logged_at": started_at or activity["date"],
         "start_date": activity["start_date"],
         "start_date_local": activity["start_date_local"],
         "ai_recommendation": build_run_recommendation(activity),

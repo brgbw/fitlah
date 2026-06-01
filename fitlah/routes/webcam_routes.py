@@ -8,13 +8,14 @@ from flask import jsonify, redirect, render_template, request, url_for
 from ..ai_coach import generate_exercise_recommendation
 from ..auth import current_user, login_required
 from ..config import BASE_DIR
-from ..helpers import get_personal_best, save_ai_recommendation, update_personal_best
+from ..helpers import save_ai_recommendation
 from ..ippt_scoring import age_profile_from_nric
 from ..repositories import (
     activity_records as activity_records_for_nric,
     create_activity as create_activity_record,
     delete_activity as delete_activity_record,
     personal_best as repo_personal_best,
+    recalculate_personal_best,
     save_personal_best,
 )
 from ..security import bounded_int, json_too_large, limit_structure, rate_limit
@@ -169,9 +170,7 @@ def register_webcam_routes(app):
 
         delete_activity_record(session_id, nric)
 
-        personal_best = None
-        if exercise_type in {"pushup", "situp"}:
-            personal_best = recalculate_exercise_best(None, nric, exercise_type)
+        personal_best = recalculate_personal_best(nric) if exercise_type in {"pushup", "situp"} else None
 
         return jsonify({
             "success": True,
@@ -227,8 +226,6 @@ def register_webcam_routes(app):
         file.save(save_path)
         user = current_user()
         nric = user.get("nric")
-        update_personal_best(nric, exercise_type, valid_reps)
-        best = get_personal_best(nric)
         session_date = datetime.now().strftime("%Y-%m-%d")
         session_time = datetime.now().strftime("%H:%M:%S")
 
@@ -253,10 +250,10 @@ def register_webcam_routes(app):
             "ended_at": ended_at,
             "video_file": filename,
             "video_path": relative_video_path.replace("\\", "/"),
-            "personal_best": int(best.get(pb_field) or 0),
             "source": "webcam",
             "ai_recommendation": None,
         })
+        best = recalculate_personal_best(nric)
         session_id = session_record["id"]
         session_record["session_id"] = session_id
 
@@ -271,6 +268,7 @@ def register_webcam_routes(app):
             "invalid_reps": invalid_reps,
             "session_id": session_id,
             "analysis_id": analysis_id,
+            "personal_best_record": best,
             "personal_best": int(best.get(pb_field) or 0),
         })
 

@@ -412,9 +412,10 @@
     }
 
     .ai-reco-header h3 {
-        font-size: 15px;
-        font-weight: 500;
-        color: #0F172A;
+        font-size: 18px;
+        font-weight: 800;
+        color: #2563EB;
+        text-transform: uppercase;
         letter-spacing: 0;
     }
 
@@ -432,9 +433,9 @@
     }
 
     .ai-reco-status {
-        font-size: 12px;
+        font-size: 16px;
         color: var(--text-muted);
-        line-height: 1.4;
+        line-height: 1.5;
         margin-bottom: 10px;
     }
 
@@ -448,10 +449,10 @@
     }
 
     .ai-reco-summary {
-        font-size: 15px;
+        font-size: 17px;
         font-weight: 600;
         color: #0F172A;
-        line-height: 1.35;
+        line-height: 1.5;
         margin-bottom: 12px;
         padding: 11px 12px;
         background: #F8FAFC;
@@ -472,15 +473,15 @@
     }
 
     .ai-reco-block h4 {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: none;
-        letter-spacing: 0.5px;
+        font-size: 16px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0;
         margin-bottom: 8px;
     }
 
-    .ai-reco-block.dos h4 { color: #0F766E; }
-    .ai-reco-block.donts h4 { color: #92400E; }
+    .ai-reco-block.dos h4 { color: #15803D; }
+    .ai-reco-block.donts h4 { color: #DC2626; }
 
     .ai-reco-block ul {
         list-style: none;
@@ -489,9 +490,9 @@
     }
 
     .ai-reco-block li {
-        font-size: 13px;
+        font-size: 16px;
         font-weight: 500;
-        line-height: 1.35;
+        line-height: 1.5;
         color: #1E293B;
         padding: 8px 10px 8px 28px;
         margin-bottom: 6px;
@@ -509,13 +510,13 @@
     }
 
     .ai-reco-block.dos li {
-        background: #F0FDFA;
-        border: 1px solid #99F6E4;
+        background: #F0FDF4;
+        border: 1px solid #BBF7D0;
     }
 
     .ai-reco-block.donts li {
-        background: #FFFBEB;
-        border: 1px solid #FDE68A;
+        background: #FEF2F2;
+        border: 1px solid #FECACA;
     }
 
     .ai-reco-focus {
@@ -525,11 +526,11 @@
     }
 
     .ai-reco-focus h4 {
-        font-size: 11px;
-        font-weight: 600;
-        color: #1D4ED8;
+        font-size: 16px;
+        font-weight: 800;
+        color: #64748B;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0;
         margin-bottom: 8px;
     }
 
@@ -543,12 +544,12 @@
     }
 
     .ai-reco-focus li {
-        font-size: 13px;
+        font-size: 16px;
         font-weight: 500;
-        color: #1D4ED8;
-        line-height: 1.25;
-        background: #EFF6FF;
-        border: 1px solid #BFDBFE;
+        color: #475569;
+        line-height: 1.45;
+        background: #F8FAFC;
+        border: 1px solid #CBD5E1;
         border-radius: 999px;
         padding: 7px 10px;
     }
@@ -624,25 +625,25 @@
         <!-- AI personalised coach (text metrics only, no video sent) -->
         <section class="ai-reco-panel" id="aiRecoPanel" style="display: none;">
             <div class="ai-reco-header">
-                <h3>AI Coach Notes</h3>
+                <h3>AI PERSONALISED COACH</h3>
                 <span class="ai-reco-icon">AI</span>
             </div>
             <p class="ai-reco-status" id="aiRecoStatus">
-                Complete a session to get short, direct form notes.
+                Complete a session to get personalised coaching.
             </p>
             <div id="aiRecoSummary" class="ai-reco-summary" style="display: none;"></div>
             <div class="ai-reco-columns" id="aiRecoColumns" style="display: none;">
                 <div class="ai-reco-block dos">
-                    <h4>Do</h4>
+                    <h4>RECOMMENDED ACTIONS</h4>
                     <ul id="aiRecoDos"></ul>
                 </div>
                 <div class="ai-reco-block donts">
-                    <h4>Avoid</h4>
+                    <h4>AVOID NEXT</h4>
                     <ul id="aiRecoDonts"></ul>
                 </div>
             </div>
             <div class="ai-reco-focus" id="aiRecoFocus" style="display: none;">
-                <h4>Focus</h4>
+                <h4>Focus area</h4>
                 <ul id="aiRecoFocusText"></ul>
             </div>
         </section>

@@ -12,7 +12,7 @@
   const requestedDateMatch = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') ? requestedDate : null;
   let currentYear = requestedDateMatch ? Number(requestedDateMatch.slice(0, 4)) : today.getFullYear();
   let currentMonth = requestedDateMatch ? Number(requestedDateMatch.slice(5, 7)) - 1 : today.getMonth();
-  let selectedDate = null;
+  let selectedDate = requestedDateMatch;
   let entries = {};
 
   function setEntriesFromLogs(logs) {
@@ -26,7 +26,13 @@
         type: log.type || 'logged',
         score: log.score || '',
         time: log.time || '',
-        notes: log.notes || '',
+        distance_km: log.distance_km || '',
+        moving_time: log.moving_time || '',
+        run_time_seconds: log.run_time_seconds || '',
+        official_time: log.official_time || '',
+        calendar_run_time: log.calendar_run_time || '',
+        run_points: log.run_points || '',
+        run_status: log.run_status || '',
         ai_recommendation: log.ai_recommendation || null
       });
     });
@@ -135,6 +141,7 @@
     }
 
     dayEntries.forEach((entry) => {
+      const metricsHtml = renderEntryMetrics(entry);
       const card = document.createElement('div');
       card.className = 'agenda-card';
       card.innerHTML = `
@@ -149,25 +156,81 @@
               <button class="delete-btn" title="Delete entry" onclick="deleteEntry(${entry.id})">&#x2715;</button>
             </div>
             <div class="recording-metric-container">
-              ${entry.score ? `<div class="metric-block-large">
-                <div class="metric-label-small">Score / Reps</div>
-                <div class="metric-value-huge">${escapeHtml(entry.score)}</div>
-              </div>` : ''}
-              ${entry.score && entry.time ? '<div class="metric-divider-line"></div>' : ''}
-              ${entry.time ? `<div class="metric-block-large">
-                <div class="metric-label-small">Time</div>
-                <div class="metric-value-huge">${escapeHtml(entry.time)}</div>
-              </div>` : ''}
-              ${entry.notes ? `${(entry.score || entry.time) ? '<div class="metric-divider-line"></div>' : ''}<div class="metric-block-large" style="flex:1;">
-                <div class="metric-label-small">Notes</div>
-                <div style="font-size:13.5px;color:#334155;line-height:1.5;">${escapeHtml(entry.notes)}</div>
-              </div>` : ''}
+              ${metricsHtml}
             </div>
             ${renderAiCoachBlock(entry.ai_recommendation)}
           </div>
         </div>`;
       panel.appendChild(card);
     });
+  }
+
+  function metricBlock(label, value) {
+    if (!value) return '';
+    return `
+      <div class="metric-block-large">
+        <div class="metric-label-small">${escapeHtml(label)}</div>
+        <div class="metric-value-huge">${escapeHtml(value)}</div>
+      </div>`;
+  }
+
+  function metricDivider(previousHtml, nextHtml) {
+    return previousHtml && nextHtml ? '<div class="metric-divider-line"></div>' : '';
+  }
+
+  function parseDurationSeconds(value) {
+    if (value === null || value === undefined || value === '') return 0;
+    if (Number.isFinite(Number(value))) return Number(value);
+    const match = String(value).trim().match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?/);
+    if (!match) return 0;
+    const first = Number(match[1]);
+    const second = Number(match[2]);
+    const third = match[3] === undefined ? null : Number(match[3]);
+    return third === null
+      ? first * 60 + second
+      : first * 3600 + second * 60 + third;
+  }
+
+  function formatDuration(seconds) {
+    const total = Math.round(Number(seconds) || 0);
+    if (!total) return '';
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+    if (hours) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function parseDistanceKm(entry) {
+    const direct = Number(entry.distance_km || 0);
+    if (direct > 0) return direct;
+    const scoreMatch = String(entry.score || '').match(/(\d+(?:\.\d+)?)\s*km/i);
+    return scoreMatch ? Number(scoreMatch[1]) : 0;
+  }
+
+  function estimated24Time(entry) {
+    const distanceKm = parseDistanceKm(entry);
+    const seconds = parseDurationSeconds(entry.run_time_seconds || entry.moving_time || entry.time);
+    if (distanceKm < 2.4 || !seconds) return '';
+    return formatDuration(seconds * (2.4 / distanceKm));
+  }
+
+  function renderEntryMetrics(entry) {
+    if (entry.type === 'run') {
+      const runTime = entry.calendar_run_time || entry.official_time || estimated24Time(entry);
+      const points = entry.run_points !== '' && entry.run_points !== null && entry.run_points !== undefined
+        ? `${entry.run_points} pts`
+        : '';
+      const officialHtml = metricBlock('2.4km Time', runTime || '--:--');
+      const pointsHtml = metricBlock('Run Points', points);
+      return `${officialHtml}${metricDivider(officialHtml, pointsHtml)}${pointsHtml}`;
+    }
+
+    const scoreHtml = metricBlock('Score / Reps', entry.score);
+    const timeHtml = metricBlock('Time', entry.time);
+    return `${scoreHtml}${metricDivider(scoreHtml, timeHtml)}${timeHtml}`;
   }
 
   function typeName(t) {
@@ -189,7 +252,7 @@
     if (typeof ai === 'string') {
       return `
         <div class="ai-coach-block">
-          <h5>✦ AI Personalised Coach</h5>
+          <h5>AI PERSONALISED COACH</h5>
           <div class="ai-coach-summary">${escapeHtml(ai)}</div>
         </div>`;
     }
@@ -202,13 +265,13 @@
     const focus = ai.safetyNote || (ai.focus_areas || []).join(' · ');
     return `
       <div class="ai-coach-block">
-        <h5>✦ AI Personalised Coach</h5>
+        <h5>AI PERSONALISED COACH</h5>
         <div class="ai-coach-summary">${escapeHtml(ai.summary)}</div>
         <div class="ai-coach-grid">
-          ${dos ? `<div class="ai-coach-list dos"><h6>What to do</h6><ul>${dos}</ul></div>` : ''}
-          ${donts ? `<div class="ai-coach-list donts"><h6>What to avoid</h6><ul>${donts}</ul></div>` : ''}
+          ${dos ? `<div class="ai-coach-list dos"><h6>RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}
+          ${donts ? `<div class="ai-coach-list donts"><h6>AVOID NEXT</h6><ul>${donts}</ul></div>` : ''}
         </div>
-        ${focus ? `<div class="ai-coach-focus"><strong>${ai.safetyNote ? 'Safety' : 'Next focus'}:</strong> ${escapeHtml(focus)}</div>` : ''}
+        ${focus ? `<div class="ai-coach-focus"><strong>${ai.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${escapeHtml(focus)}</div>` : ''}
       </div>`;
   }
 

@@ -37,6 +37,17 @@ def _run_time(seconds):
     return format_run_time(seconds) if seconds else "--:--"
 
 
+def _estimated_24_time(row):
+    try:
+        distance_km = float(row.get("distance_km") or 0)
+        run_seconds = int(row.get("run_time_seconds") or row.get("moving_time") or 0)
+    except (TypeError, ValueError):
+        return ""
+    if distance_km < 2.4 or run_seconds <= 0:
+        return ""
+    return format_run_time(round(run_seconds * (2.4 / distance_km)))
+
+
 def _date(value):
     if not value:
         return datetime.now().strftime("%Y-%m-%d")
@@ -226,13 +237,82 @@ def save_personal_best(nric, updates):
         })
 
 
+def recalculate_personal_best(nric):
+    """Rebuild one user's personal bests from saved station records."""
+    ensure_tables()
+    user = get_user(nric)
+    if not user:
+        return None
+
+    with session_scope() as conn:
+        row = _one(conn, """
+            SELECT
+                COALESCE((
+                    SELECT MAX(valid_reps)
+                    FROM activity_records
+                    WHERE user_id = :user_id AND exercise = 'pushup'
+                ), 0) AS pushups,
+                COALESCE((
+                    SELECT MAX(valid_reps)
+                    FROM activity_records
+                    WHERE user_id = :user_id AND exercise = 'situp'
+                ), 0) AS situps,
+                LEAST(
+                    COALESCE((
+                        SELECT MIN(official_time_seconds)
+                        FROM strava_ippt_results
+                        WHERE user_id = :user_id
+                          AND status IS DISTINCT FROM 'invalid'
+                    ), 2147483647),
+                    COALESCE((
+                        SELECT MIN(run_time_seconds)
+                        FROM activity_records
+                        WHERE user_id = :user_id
+                          AND exercise = 'run'
+                          AND source <> 'strava'
+                          AND run_time_seconds IS NOT NULL
+                    ), 2147483647)
+                ) AS run_time_seconds
+        """, {"user_id": user["id"]})
+        run_time_seconds = (row or {}).get("run_time_seconds")
+        if run_time_seconds == 2147483647:
+            run_time_seconds = None
+
+        conn.execute(text("""
+            INSERT INTO personal_bests (user_id, pushups, situps, run_time_seconds, updated_at)
+            VALUES (:user_id, :pushups, :situps, :run_time_seconds, now())
+            ON CONFLICT (user_id) DO UPDATE SET
+                pushups = EXCLUDED.pushups,
+                situps = EXCLUDED.situps,
+                run_time_seconds = EXCLUDED.run_time_seconds,
+                updated_at = now()
+        """), {
+            "user_id": user["id"],
+            "pushups": int((row or {}).get("pushups") or 0),
+            "situps": int((row or {}).get("situps") or 0),
+            "run_time_seconds": run_time_seconds,
+        })
+
+    return personal_best(nric)
+
+
 def activity_records(nric):
     ensure_tables()
     with session_scope() as conn:
         rows = _all(conn.execute(text("""
-            SELECT ar.*, u.nric
+            SELECT ar.*, u.nric,
+                   sir.official_time AS strava_official_time,
+                   sir.official_time_seconds AS strava_official_time_seconds,
+                   sir.run_points AS strava_run_points,
+                   sir.status AS strava_status
             FROM activity_records ar
             JOIN users u ON u.id = ar.user_id
+            LEFT JOIN strava_ippt_results sir
+              ON sir.user_id = ar.user_id
+             AND (
+                sir.activity_record_id = ar.id
+                OR sir.strava_activity_id = ar.source_external_id
+             )
             WHERE u.nric = :nric
             ORDER BY ar.id
         """), {"nric": nric}))
@@ -242,10 +322,12 @@ def activity_records(nric):
 def _activity_view(row):
     exercise = row.get("exercise")
     time_value = ""
+    official_time = row.get("strava_official_time")
     if exercise == "run":
         time_value = _run_time(row.get("run_time_seconds"))
     elif row.get("duration_seconds") is not None:
         time_value = f"{int(row['duration_seconds']) // 60}:{int(row['duration_seconds']) % 60:02d} min"
+    calendar_run_time = official_time or (_estimated_24_time(row) if exercise == "run" else "")
     return {
         **row,
         "event": row["title"],
@@ -253,6 +335,11 @@ def _activity_view(row):
         "type": exercise,
         "date": _date(row.get("logged_at")),
         "time": time_value,
+        "official_time": official_time,
+        "official_time_seconds": row.get("strava_official_time_seconds"),
+        "calendar_run_time": calendar_run_time,
+        "run_points": row.get("strava_run_points"),
+        "run_status": row.get("strava_status"),
     }
 
 
@@ -264,6 +351,8 @@ def create_activity(record):
     exercise = _exercise(record.get("exercise") or record.get("type"))
     source = _source(record.get("source"), exercise)
     run_time_seconds = record.get("run_time_seconds") or (_run_seconds(record.get("time")) if exercise == "run" else None)
+    activity_started_at = record.get("started_at") or (record.get("start_date_local") if source == "strava" else None)
+    activity_logged_at = record.get("logged_at") or (record.get("start_date_local") if source == "strava" else None) or record.get("date")
     with session_scope() as conn:
         record["id"] = conn.execute(text("""
             INSERT INTO activity_records (
@@ -293,9 +382,9 @@ def create_activity(record):
             "moving_time": record.get("moving_time"),
             "elapsed_time": record.get("elapsed_time"),
             "pace": record.get("pace"),
-            "started_at": record.get("started_at") or None,
+            "started_at": activity_started_at or None,
             "ended_at": record.get("ended_at") or None,
-            "logged_at": _timestamp(record.get("date"), None),
+            "logged_at": _timestamp(activity_logged_at, None),
             "video_file": record.get("video_file"),
             "video_path": record.get("video_path"),
             "is_personal_best": bool(record.get("is_personal_best")),
@@ -304,6 +393,77 @@ def create_activity(record):
             "ai_recommendation": json.dumps(record.get("ai_recommendation")) if record.get("ai_recommendation") else None,
         }).scalar_one()
     return record
+
+
+def update_strava_activity_record(nric, activity_id, record):
+    ensure_tables()
+    user = get_user(nric)
+    if not user:
+        return None
+    run_time_seconds = record.get("run_time_seconds") or _run_seconds(record.get("time"))
+    started_at = record.get("started_at") or record.get("start_date_local") or record.get("start_date")
+    logged_at = record.get("logged_at") or record.get("start_date_local") or record.get("date")
+    with session_scope() as conn:
+        row = _one(conn, """
+            UPDATE activity_records
+            SET title = :title,
+                score = :score,
+                run_time_seconds = :run_time_seconds,
+                distance_km = :distance_km,
+                moving_time = :moving_time,
+                elapsed_time = :elapsed_time,
+                pace = :pace,
+                started_at = :started_at,
+                logged_at = :logged_at,
+                notes = :notes,
+                ai_recommendation = COALESCE(CAST(:ai_recommendation AS JSONB), ai_recommendation)
+            WHERE user_id = :user_id
+              AND source = 'strava'
+              AND source_external_id = :activity_id
+            RETURNING *
+        """, {
+            "user_id": user["id"],
+            "activity_id": str(activity_id),
+            "title": record.get("title") or record.get("name") or record.get("event") or "Strava Run",
+            "score": record.get("score"),
+            "run_time_seconds": run_time_seconds,
+            "distance_km": record.get("distance_km"),
+            "moving_time": record.get("moving_time"),
+            "elapsed_time": record.get("elapsed_time"),
+            "pace": record.get("pace"),
+            "started_at": started_at or None,
+            "logged_at": _timestamp(logged_at, None),
+            "notes": record.get("notes"),
+            "ai_recommendation": json.dumps(record.get("ai_recommendation")) if record.get("ai_recommendation") else None,
+        })
+    return _activity_view(row) if row else None
+
+
+def update_strava_activity_ippt_result(nric, activity_id, result):
+    ensure_tables()
+    user = get_user(nric)
+    if not user:
+        return None
+    official_seconds = int(result.get("official_time_seconds") or 0)
+    official_time = result.get("official_time") or _run_time(official_seconds)
+    if not official_seconds:
+        return None
+    with session_scope() as conn:
+        row = _one(conn, """
+            UPDATE activity_records
+            SET run_time_seconds = :run_time_seconds,
+                score = :score
+            WHERE user_id = :user_id
+              AND source = 'strava'
+              AND source_external_id = :activity_id
+            RETURNING *
+        """, {
+            "user_id": user["id"],
+            "activity_id": str(activity_id),
+            "run_time_seconds": official_seconds,
+            "score": official_time,
+        })
+    return _activity_view(row) if row else None
 
 
 def save_strava_ippt_result(nric, result):
