@@ -12,6 +12,31 @@ async function fetchJson(url, opts) {
     return data;
 }
 
+const stravaPreviewCache = new Map();
+const stravaAnalysisCache = new Map();
+
+function postActivityJson(url, activityId) {
+    return fetchJson(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity_id: activityId })
+    });
+}
+
+async function getActivityPreview(activityId) {
+    if (!stravaPreviewCache.has(activityId)) {
+        stravaPreviewCache.set(activityId, postActivityJson('/api/strava/activity-preview', activityId));
+    }
+    return stravaPreviewCache.get(activityId);
+}
+
+async function getIpptAnalysis(activityId) {
+    if (!stravaAnalysisCache.has(activityId)) {
+        stravaAnalysisCache.set(activityId, postActivityJson('/api/strava/ippt-24/preview', activityId));
+    }
+    return stravaAnalysisCache.get(activityId);
+}
+
 function el(tag, cls) {
     const d = document.createElement(tag);
     if (cls) d.className = cls;
@@ -49,6 +74,70 @@ function setWebcamLaunchCardHidden(hidden) {
     card.style.display = hidden ? 'none' : '';
     const actionStack = card.closest('.action-stack.single-action');
     if (actionStack) actionStack.style.display = hidden ? 'none' : '';
+}
+
+function setTemporaryDisplay(element, hidden) {
+    if (!element) return;
+    if (hidden) {
+        if (!element.dataset.previousDisplay) {
+            element.dataset.previousDisplay = element.style.display || '__empty__';
+        }
+        element.style.setProperty('display', 'none', 'important');
+        return;
+    }
+
+    if (element.dataset.previousDisplay) {
+        const previous = element.dataset.previousDisplay;
+        element.style.removeProperty('display');
+        if (previous !== '__empty__') element.style.display = previous;
+        delete element.dataset.previousDisplay;
+    } else {
+        element.style.removeProperty('display');
+    }
+}
+
+function setDashboardRunReviewMode(active) {
+    const grid = document.querySelector('.dashboard-grid');
+    const sideStack = document.querySelector('.side-stack');
+    const previewPanel = document.querySelector('.strava-sync-preview');
+    const trainingPanel = document.querySelector('.training-panel');
+    const actionStack = document.querySelector('.training-panel .action-stack');
+    const ipptPanel = document.querySelector('.ippt-panel');
+    const recentPanel = document.querySelector('.recent-panel');
+
+    if (grid) grid.classList.toggle('strava-review-active', active);
+    if (sideStack) sideStack.classList.toggle('dashboard-review-hidden', active);
+    if (grid) {
+        if (active) {
+            if (!grid.dataset.previousGridTemplateColumns) {
+                grid.dataset.previousGridTemplateColumns = grid.style.gridTemplateColumns || '__empty__';
+            }
+            grid.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important');
+        } else if (grid.dataset.previousGridTemplateColumns) {
+            const previous = grid.dataset.previousGridTemplateColumns;
+            grid.style.removeProperty('grid-template-columns');
+            if (previous !== '__empty__') grid.style.gridTemplateColumns = previous;
+            delete grid.dataset.previousGridTemplateColumns;
+        }
+    }
+    if (trainingPanel) {
+        trainingPanel.classList.toggle('strava-review-focused', active);
+    }
+
+    setTemporaryDisplay(sideStack, active);
+    setTemporaryDisplay(ipptPanel, active);
+    setTemporaryDisplay(recentPanel, active);
+    setTemporaryDisplay(actionStack, active);
+    if (trainingPanel && previewPanel) {
+        Array.from(trainingPanel.children).forEach(child => {
+            if (child !== previewPanel) setTemporaryDisplay(child, active);
+        });
+    }
+
+    if (previewPanel && active) {
+        previewPanel.classList.add('visible');
+        previewPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function renderRunCoachCard(rec) {
@@ -101,6 +190,121 @@ function renderMiniRoute(svgEl, latlng) {
     svgEl.innerHTML = `\n        <path d="${pathD}" stroke="#FC4C02" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>\n    `;
 }
 
+function createRunnerIcon() {
+    return L.divIcon({
+        className: 'strava-runner-marker',
+        html: '<span class="strava-runner-head"></span><span class="strava-runner-body"></span><span class="strava-runner-leg front"></span><span class="strava-runner-leg back"></span>',
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+    });
+}
+
+function createRouteAnimator(map, coords) {
+    if (!map || !coords || coords.length < 2 || typeof L === 'undefined') {
+        return { stop() {} };
+    }
+
+    const segmentDistances = [];
+    const cumulativeDistances = [0];
+    let totalDistance = 0;
+
+    for (let i = 1; i < coords.length; i++) {
+        const from = L.latLng(coords[i - 1]);
+        const to = L.latLng(coords[i]);
+        const distance = from.distanceTo(to);
+        segmentDistances.push(distance);
+        totalDistance += distance;
+        cumulativeDistances.push(totalDistance);
+    }
+
+    if (!totalDistance) return { stop() {} };
+
+    const runner = L.marker(coords[0], {
+        icon: createRunnerIcon(),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 1000
+    }).addTo(map);
+    const travelled = L.polyline([coords[0]], {
+        color: '#0F172A',
+        weight: 5,
+        opacity: 0.85,
+        lineCap: 'round',
+        lineJoin: 'round'
+    }).addTo(map);
+
+    let frameId = null;
+    let previousElapsed = 0;
+    const startedAt = performance.now();
+    const durationMs = Math.max(4500, Math.min(14000, coords.length * 70));
+
+    function pointAt(distanceAlongRoute) {
+        if (distanceAlongRoute <= 0) return coords[0];
+        if (distanceAlongRoute >= totalDistance) return coords[coords.length - 1];
+
+        let lo = 0;
+        let hi = cumulativeDistances.length - 1;
+        while (lo < hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            if (cumulativeDistances[mid] < distanceAlongRoute) lo = mid + 1;
+            else hi = mid;
+        }
+
+        const index = Math.max(1, lo);
+        const segmentStart = cumulativeDistances[index - 1];
+        const segmentLength = segmentDistances[index - 1] || 1;
+        const ratio = Math.max(0, Math.min(1, (distanceAlongRoute - segmentStart) / segmentLength));
+        const from = coords[index - 1];
+        const to = coords[index];
+
+        return [
+            from[0] + (to[0] - from[0]) * ratio,
+            from[1] + (to[1] - from[1]) * ratio
+        ];
+    }
+
+    function travelledPath(distanceAlongRoute) {
+        const path = [];
+        for (let i = 0; i < coords.length && cumulativeDistances[i] <= distanceAlongRoute; i++) {
+            path.push(coords[i]);
+        }
+        const current = pointAt(distanceAlongRoute);
+        if (!path.length || path[path.length - 1][0] !== current[0] || path[path.length - 1][1] !== current[1]) {
+            path.push(current);
+        }
+        return path;
+    }
+
+    function tick(now) {
+        const elapsed = (now - startedAt) % durationMs;
+        if (elapsed < previousElapsed) travelled.setLatLngs([coords[0]]);
+        previousElapsed = elapsed;
+
+        const progress = elapsed / durationMs;
+        const eased = progress < 0.5
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        const distanceAlongRoute = totalDistance * eased;
+
+        runner.setLatLng(pointAt(distanceAlongRoute));
+        travelled.setLatLngs(travelledPath(distanceAlongRoute));
+        frameId = requestAnimationFrame(tick);
+    }
+
+    frameId = requestAnimationFrame(tick);
+
+    return {
+        stop() {
+            if (frameId !== null) {
+                cancelAnimationFrame(frameId);
+                frameId = null;
+            }
+            try { map.removeLayer(runner); } catch (e) {}
+            try { map.removeLayer(travelled); } catch (e) {}
+        }
+    };
+}
+
 function makeMiniCard(activity) {
     const id = activity.id;
     const card = el('div', 'strava-preview-run');
@@ -149,16 +353,6 @@ async function loadDashboardStrava() {
         for (const activity of activities) {
             const card = makeMiniCard(activity);
             list.append(card);
-            // fetch streams for mini-map
-            (async () => {
-                try {
-                    const pv = await fetchJson('/api/strava/activity-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activity.id }) });
-                    const svg = document.getElementById(`routeMini-${activity.id}`);
-                    renderMiniRoute(svg, pv.streams.latlng || []);
-                } catch (e) {
-                    // ignore mini-map errors
-                }
-            })();
         }
     } catch (err) {
         list.innerHTML = `<div class="strava-preview-run"><div><strong style="color:#991B1B">Error</strong><span>${escapeHtml(err.message)}</span></div></div>`;
@@ -170,10 +364,13 @@ async function previewActivityDashboard(activityId, activityMeta) {
     const list = document.getElementById('dashboardStravaList');
     if (list) list.style.display = 'none';
     setWebcamLaunchCardHidden(true);
+    setDashboardRunReviewMode(true);
+    if (preview._routeAnimator) { try { preview._routeAnimator.stop(); } catch (e) {} preview._routeAnimator = null; }
+    if (preview._leafletMap) { try { preview._leafletMap.remove(); } catch (e) {} preview._leafletMap = null; }
     preview.style.display = 'block';
     preview.innerHTML = `<div style="padding:12px;border:1px solid #E2E8F0;border-radius:8px;background:#fff">Loading preview...</div>`;
     try {
-        const data = await fetchJson('/api/strava/activity-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
+        const data = await getActivityPreview(activityId);
         const activity = data.activity;
         const streams = data.streams || {};
         const latlng = streams.latlng || [];
@@ -221,35 +418,44 @@ async function previewActivityDashboard(activityId, activityMeta) {
                 L.circleMarker(coords[0], { radius: 5, color: '#10B981', fillColor: '#10B981' }).addTo(map);
                 L.circleMarker(coords[coords.length - 1], { radius: 5, color: '#2563EB', fillColor: '#2563EB' }).addTo(map);
                 preview._leafletMap = map;
+                preview._routeAnimator = createRouteAnimator(map, coords);
             } catch (e) {
                 // fallback
             }
         }
         const backBtn = document.getElementById('dashboardPreviewBackBtn');
         if (backBtn) backBtn.addEventListener('click', () => {
+            if (preview._routeAnimator) { try { preview._routeAnimator.stop(); } catch (e) {} preview._routeAnimator = null; }
             if (preview._leafletMap) { try { preview._leafletMap.remove(); } catch (e) {} preview._leafletMap = null; }
             preview.innerHTML = '';
             preview.style.display = 'none';
             setWebcamLaunchCardHidden(false);
+            setDashboardRunReviewMode(false);
             if (list) list.style.display = '';
         });
-        document.getElementById('dashboardAnalyzeBtn').addEventListener('click', async () => {
-            await analyzeIpptPreviewDashboard(activityId);
+        document.getElementById('dashboardAnalyzeBtn').addEventListener('click', async (event) => {
+            await analyzeIpptPreviewDashboard(activityId, event.currentTarget);
         });
         document.getElementById('dashboardSaveBtn').addEventListener('click', async () => {
             await saveSessionDashboard(activityId);
         });
     } catch (err) {
         setWebcamLaunchCardHidden(false);
+        setDashboardRunReviewMode(false);
+        if (list) list.style.display = '';
         preview.innerHTML = `<div style="padding:12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
     }
 }
 
-async function analyzeIpptPreviewDashboard(activityId) {
+async function analyzeIpptPreviewDashboard(activityId, button) {
     const area = document.getElementById('dashboardIpptArea');
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Analysing...';
+    }
     area.innerHTML = '<div class="loading-spinner active"><div class="spinner"></div><p>Analysing 2.4km...</p></div>';
     try {
-        const data = await fetchJson('/api/strava/ippt-24/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
+        const data = await getIpptAnalysis(activityId);
         const r = data.result;
         const rec = data.recommendation || {};
         area.innerHTML = `
@@ -267,11 +473,18 @@ async function analyzeIpptPreviewDashboard(activityId) {
             saveBtn.disabled = false;
             saveBtn.style.display = '';
         }
+        if (button) {
+            button.textContent = 'Analysed';
+        }
     } catch (err) {
         const saveBtn = document.getElementById('dashboardSaveBtn');
         if (saveBtn) {
             saveBtn.disabled = true;
             saveBtn.style.display = 'none';
+        }
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Analyse';
         }
         area.innerHTML = `<div style="padding:10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
     }
@@ -283,26 +496,15 @@ async function saveSessionDashboard(activityId) {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
     try {
-        await fetchJson('/api/strava/ippt-24', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
-        let aiRecommendation = null;
-        try {
-            const recData = await fetchJson('/api/strava/ippt-24/recommendation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
-            aiRecommendation = recData.ai_recommendation || null;
-        } catch (recommendationError) {
-            console.warn('Saved Strava run without AI recommendation:', recommendationError);
-        }
-        const importData = await fetchJson('/api/strava/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activity_id: activityId, ai_recommendation: aiRecommendation })
-        });
+        const importData = await postActivityJson('/api/strava/ippt-24', activityId);
         await refreshIpptScore();
         // show simple success
         const preview = document.getElementById('dashboardStravaPreview');
+        if (preview._routeAnimator) { try { preview._routeAnimator.stop(); } catch (e) {} preview._routeAnimator = null; }
+        if (preview._leafletMap) { try { preview._leafletMap.remove(); } catch (e) {} preview._leafletMap = null; }
         preview.innerHTML = `
-            <div class="strava-import-status">
-                Saved session: ${escapeHtml(importData.log.name)}
-                <a href="${calendarLinkFor(importData.log)}" style="margin-left:8px;color:inherit;text-decoration:underline">View in Calendar</a>
+            <div class="strava-import-status strava-import-status-saved">
+                <a class="strava-calendar-btn" href="${calendarLinkFor(importData.log)}">View In Calendar</a>
             </div>
         `;
         saveBtn.textContent = 'Saved';

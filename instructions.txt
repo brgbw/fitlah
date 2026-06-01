@@ -1,5 +1,5 @@
 FitLah Friend Setup and Launch Guide
-Version 0.1.4
+Version 0.1.8
 
 This guide is for running FitLah locally on a laptop for the hackathon.
 It covers Python, PostgreSQL, Strava API setup, optional Cloudflare tunnel
@@ -157,7 +157,16 @@ In the FitLah app:
 7. Go back to the dashboard or Strava sync page.
 8. Click Connect with Strava.
 
-9. Webcam push-up and sit-up counting
+9. Strava run preview
+
+The dashboard Strava review panel shows the GPS route with a moving runner
+marker. The runner loops from the start of the route to the end continuously,
+so the preview stays active during demos instead of stopping on a static map.
+When a run is opened for review, FitLah hides the Potential IPPT Score,
+Recent Activity, training action cards, and surrounding training header so the
+route preview can use the full dashboard width.
+
+10. Webcam push-up and sit-up counting
 
 FitLah uses browser-based MediaPipe Pose detection for push-up and sit-up
 sessions.
@@ -178,7 +187,14 @@ The first valid rep becomes the session benchmark:
 This means users do not need perfect textbook angles for every rep, as long as
 their later reps are reasonably close to their own first valid rep.
 
-10. Optional: expose the app with Cloudflare Tunnel
+Push-up leg-floor checks are soft on purpose:
+- If the user's knees or legs look close to the floor for several frames,
+  FitLah warns them to lift slightly.
+- If they correct it, the warning counter clears.
+- If the issue continues across a few counted reps, FitLah stops the recording
+  and proceeds to analysis instead of repeatedly frustrating the user.
+
+11. Optional: expose the app with Cloudflare Tunnel
 
 This lets another person open your local app from their laptop or phone.
 
@@ -205,7 +221,7 @@ If Strava says redirect_uri is invalid:
 - Make sure you opened the app through the Cloudflare URL before clicking
   Connect with Strava.
 
-11. Optional: OpenRouter AI coaching
+12. Optional: OpenRouter AI coaching
 
 The app still works without OpenRouter. Strava analysis will show the run
 time, status, points, and fallback coaching.
@@ -220,7 +236,7 @@ To enable live AI coaching, add these to .env:
 
 Restart the app after changing .env.
 
-12. GitHub publishing checklist
+13. GitHub publishing checklist
 
 Before publishing the project to GitHub:
 - Do not commit .env.
@@ -236,7 +252,7 @@ Before publishing the project to GitHub:
 Only source code, templates, static assets, docs, requirements, and safe sample
 configuration should be published.
 
-13. Useful commands
+14. Useful commands
 
 Stop Flask:
 
@@ -254,7 +270,7 @@ Check PostgreSQL tables:
    SELECT id, nric, name FROM users;
    \q
 
-14. Troubleshooting
+15. Troubleshooting
 
 python is not found:
 - Install Python 3.11 or newer.

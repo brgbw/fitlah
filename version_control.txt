@@ -1,12 +1,12 @@
-Version 0.1.4
+Version 0.1.8
 
-GitHub-ready documentation and friend handoff update
+Redo focused Strava review UI update
 
-- Documented adaptive webcam rep counting for push-ups and sit-ups.
-- Added publishing checklist so .env, API keys, videos, virtual environments,
-  and local runtime data stay out of GitHub.
-- Clarified that IPPT lookup JSON files are static reference data.
-- Previous update: refactored code/UI and removed serverdata JSON completely.
+- Strava run review now directly hides the Potential IPPT Score, Recent
+  Activity, training action cards, and surrounding training header.
+- The route preview forces the dashboard to one full-width column and restores
+  the previous layout on Back or load failure.
+- Previous update: focused Strava review UI update.
 
 
 

@@ -70,6 +70,17 @@
         }
     }
 
+    function speakWarning(message) {
+        if (!message || !window.speechSynthesis) return;
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = 1.05;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        window.speechSynthesis.speak(utterance);
+    }
+
     function playSessionStartSound() {
         // Three ascending tones for session start
         playTone(600, 80);
@@ -98,6 +109,7 @@
         playSessionStartSound,
         playSessionEndSound,
         playCountdownWarning,
+        speakWarning,
         playTone
     };
 })();

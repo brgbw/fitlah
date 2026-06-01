@@ -23,7 +23,7 @@
 
     const CONFIG = {
         // The first rep is armed after a brief stable lying/down setup hold.
-        READY_HOLD_MS: 350,
+        READY_HOLD_MS: 300,
         // MediaPipe visibility can flicker during floor exercises; low-confidence frames do not move states.
         POSE_CONFIDENCE_MIN: 0.2,
         // EMA smoothing reduces small landmark jitter while keeping transitions responsive.
@@ -34,10 +34,12 @@
         KNEE_COLLAPSE_MAX_RATIO: 1.4,
         // Hip angle is used for torso ascent/descent: large means lying/down, small means seated/up.
         DOWN_HIP_ANGLE_MIN: 78,
-        UP_HIP_ANGLE_MAX: 135,
-        MIN_ASCENT_DELTA: 6,
-        BENCHMARK_UP_HIP_MARGIN: 10,
-        BENCHMARK_ASCENT_RATIO: 0.75,
+        UP_HIP_ANGLE_MAX: 140,
+        MIN_ASCENT_DELTA: 5,
+        BENCHMARK_UP_HIP_MARGIN: 45,
+        BENCHMARK_ASCENT_RATIO: 0.55,
+        BENCHMARK_BLEND_ALPHA: 0.2,
+        MIN_BENCHMARK_ASCENT_DELTA: 10,
         // Feet should remain near their calibrated down-position height; large upward movement is rejected.
         FOOT_LIFT_TOLERANCE: 0.24,
         // Side-on analysis expects overlapping shoulders/hips; wide spans imply twisting or camera distortion.
@@ -47,6 +49,7 @@
         MIN_REP_DURATION_MS: 250,
         REP_COOLDOWN_MS: 250,
         STABLE_FRAMES_REQUIRED: 2,
+        INVALID_POSE_GRACE_FRAMES: 5,
         GRAPH_SAMPLE_EVERY_FRAMES: 2
     };
 
@@ -61,6 +64,9 @@
         lastCountedAt: 0,
         minHipAngleThisRep: 180,
         firstRepBenchmark: null,
+        rollingBenchmark: null,
+        acceptedRepCount: 0,
+        invalidPostureFrames: 0,
         downFrames: 0,
         upFrames: 0,
         ascendingFrames: 0,
@@ -78,6 +84,9 @@
         tracker.lastCountedAt = 0;
         tracker.minHipAngleThisRep = 180;
         tracker.firstRepBenchmark = null;
+        tracker.rollingBenchmark = null;
+        tracker.acceptedRepCount = 0;
+        tracker.invalidPostureFrames = 0;
         tracker.downFrames = 0;
         tracker.upFrames = 0;
         tracker.ascendingFrames = 0;
@@ -301,8 +310,12 @@
         tracker.descendingFrames = isDescending ? tracker.descendingFrames + 1 : 0;
     }
 
+    function activeBenchmark() {
+        return tracker.rollingBenchmark || tracker.firstRepBenchmark;
+    }
+
     function benchmarkedUpThresholds(downAngle) {
-        const benchmark = tracker.firstRepBenchmark;
+        const benchmark = activeBenchmark();
         if (!benchmark) {
             return {
                 upHipMax: CONFIG.UP_HIP_ANGLE_MAX,
@@ -310,10 +323,12 @@
             };
         }
 
-        const benchmarkDelta = Math.max(CONFIG.MIN_ASCENT_DELTA, benchmark.downHipAngle - benchmark.upHipAngle);
+        const first = tracker.firstRepBenchmark || benchmark;
+        const benchmarkDelta = Math.max(CONFIG.MIN_BENCHMARK_ASCENT_DELTA, benchmark.downHipAngle - benchmark.upHipAngle);
+        const firstAnchoredUpAngle = Math.min(benchmark.upHipAngle, first.upHipAngle + 18);
         return {
-            upHipMax: Math.min(155, Math.max(CONFIG.UP_HIP_ANGLE_MAX, benchmark.upHipAngle + CONFIG.BENCHMARK_UP_HIP_MARGIN)),
-            minAscentDelta: Math.max(CONFIG.MIN_ASCENT_DELTA, Math.min(downAngle * 0.15, benchmarkDelta * CONFIG.BENCHMARK_ASCENT_RATIO))
+            upHipMax: Math.min(CONFIG.UP_HIP_ANGLE_MAX, firstAnchoredUpAngle + CONFIG.BENCHMARK_UP_HIP_MARGIN),
+            minAscentDelta: Math.max(CONFIG.MIN_ASCENT_DELTA, Math.min(24, benchmarkDelta * CONFIG.BENCHMARK_ASCENT_RATIO, downAngle * 0.2))
         };
     }
 
@@ -332,17 +347,39 @@
         tracker.upFrames = 0;
         tracker.ascendingFrames = 0;
         tracker.descendingFrames = 0;
+        tracker.invalidPostureFrames = 0;
         helpers.setPositionReady(false);
         helpers.setStage(STATE.INVALID_FORM);
         helpers.markInvalid(message);
     }
 
-    function captureFirstRepBenchmark(downAngle) {
-        if (tracker.firstRepBenchmark) return;
-        tracker.firstRepBenchmark = {
+    function repSnapshot(downAngle) {
+        return {
             downHipAngle: downAngle,
             upHipAngle: tracker.minHipAngleThisRep
         };
+    }
+
+    function captureOrUpdateBenchmark(downAngle) {
+        const snapshot = repSnapshot(downAngle);
+        if (!Number.isFinite(snapshot.upHipAngle) || snapshot.upHipAngle >= 180) return;
+
+        if (!tracker.firstRepBenchmark) {
+            tracker.firstRepBenchmark = snapshot;
+            tracker.rollingBenchmark = { ...snapshot };
+            tracker.acceptedRepCount = 1;
+            return;
+        }
+
+        const alpha = CONFIG.BENCHMARK_BLEND_ALPHA;
+        const blendedDown = tracker.rollingBenchmark.downHipAngle * (1 - alpha) + snapshot.downHipAngle * alpha;
+        const blendedUp = tracker.rollingBenchmark.upHipAngle * (1 - alpha) + snapshot.upHipAngle * alpha;
+
+        tracker.rollingBenchmark = {
+            downHipAngle: Math.max(blendedDown, tracker.firstRepBenchmark.downHipAngle * 0.9),
+            upHipAngle: Math.min(blendedUp, tracker.firstRepBenchmark.upHipAngle + 18)
+        };
+        tracker.acceptedRepCount++;
     }
 
     function sampleMetrics(metrics, helpers, validation) {
@@ -395,10 +432,15 @@
         }
 
         if (!posture.ok) {
-            invalidateRep(helpers, posture.reason);
+            tracker.invalidPostureFrames++;
+            helpers.setWarning(posture.reason);
+            if (tracker.invalidPostureFrames >= CONFIG.INVALID_POSE_GRACE_FRAMES) {
+                invalidateRep(helpers, posture.reason);
+            }
             sampleMetrics(helpers.metrics, helpers, posture);
             return;
         }
+        tracker.invalidPostureFrames = 0;
 
         const hipAngle = posture.metrics.hipAngle;
         const downAngle = tracker.downHipAngle || CONFIG.DOWN_HIP_ANGLE_MIN;
@@ -445,7 +487,7 @@
             if (tracker.downFrames >= CONFIG.STABLE_FRAMES_REQUIRED) {
                 const repDuration = now - tracker.repStartedAt;
                 if (repDuration >= CONFIG.MIN_REP_DURATION_MS) {
-                    captureFirstRepBenchmark(downAngle);
+                    captureOrUpdateBenchmark(Math.max(downAngle, hipAngle));
                     tracker.lastCountedAt = now;
                     tracker.state = STATE.REP_COUNTED;
                     tracker.downHipAngle = hipAngle;

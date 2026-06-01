@@ -1,6 +1,6 @@
 # FitLah
 
-Current project version: 0.1.4
+Current project version: 0.1.8
 
 FitLah is a web app for Singapore IPPT training. It helps users track push-ups, sit-ups, and runs, import real running data from Strava, analyse 2.4km efforts, and get training recommendations from their saved activity history.
 
@@ -34,9 +34,11 @@ FitLah solves this by combining exercise capture, run import, scoring context, a
 - Dashboard with personal bests and recent activity.
 - Webcam push-up and sit-up session logging with MediaPipe pose detection.
 - Forgiving rep counting for demos and real users: the first valid rep becomes a per-session benchmark for later push-up depth or sit-up height.
+- Push-up lower-body floor contact is treated as a soft form warning first; repeated unresolved contact can end the recording and move straight to analysis.
 - Calendar-based activity history.
 - Strava OAuth connection and recent run import.
 - 2.4km/IPPT-style run validation from Strava activity streams.
+- Animated Strava run preview with a looping route runner and focused full-width review mode.
 - Group and invite flows for shared training.
 - Optional AI coaching through OpenRouter.
 - Cloudflare Tunnel support for temporary public demos.
@@ -74,9 +76,11 @@ The repository is intended to be publishable as source code plus static lookup d
 
 FitLah uses MediaPipe Pose in the browser for push-up and sit-up sessions.
 
-Push-up counting checks a side-on body profile, arm position, body alignment, and movement depth. The thresholds are intentionally forgiving for hackathon demos and varied camera angles. After the first valid push-up, FitLah stores that rep's elbow depth and shoulder drop as the session benchmark, then accepts later reps that are close to the user's own range.
+Push-up counting checks a side-on body profile, arm position, body alignment, and movement depth. The thresholds are intentionally forgiving for hackathon demos and varied camera angles. After the first valid push-up, FitLah stores that rep's elbow depth and shoulder drop as the session benchmark, then accepts later reps that are close to the user's own range. The benchmark gently updates after accepted reps while staying anchored to the first rep, which helps users score consistently without letting tiny bounces count.
 
-Sit-up counting checks a side-on torso, hip angle, bent knees, and grounded feet. After the first valid sit-up, FitLah stores that rep's down and up hip-angle range, then uses it to make later reps easier to score for the same user and camera setup.
+Push-up lower-body floor contact is intentionally handled softly because floor detection from webcam landmarks can be noisy. Sustained knee or leg contact shows a warning and records a form flag; if the same issue continues across several counted reps, FitLah stops the recording and proceeds to the session analysis flow.
+
+Sit-up counting checks a side-on torso, hip angle, bent knees, and grounded feet. After the first valid sit-up, FitLah stores that rep's down and up hip-angle range, then uses it to make later reps easier to score for the same user and camera setup. Short pose-detection flickers are tolerated so users are not penalized for one noisy frame.
 
 ## Quick Start
 

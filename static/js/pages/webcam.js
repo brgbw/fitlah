@@ -3,10 +3,12 @@ let currentMode = 'pushup';
     let situpUploaded = false;
     let stream = null;
     let pose = null;
+    let poseInitPromise = null;
     let detectLoopRunning = false;
     const POSE_TARGET_FPS = 20;
     const MOVEMENT_GRAPH_MAX_POINTS = 220;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
+    const WARNING_VOICE_COOLDOWN_MS = 4500;
     let poseLoopRequestId = null;
     let poseInFlight = false;
     let lastPoseSentAt = 0;
@@ -47,6 +49,7 @@ let currentMode = 'pushup';
     let reviewController = null;
     let lastAnalyzedVideoTime = -1;
     let forceReplayFrame = false;
+    let lastWarningSpokenAt = 0;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -89,6 +92,13 @@ let currentMode = 'pushup';
         }
     }
 
+    function unlockEntryMode() {
+        startCamBtn.style.display = '';
+        startCamBtn.disabled = false;
+        startCamBtn.textContent = 'Start Camera';
+        attachVideoBtn.style.display = '';
+    }
+
     function setExerciseMode(mode) {
         if (isRecording || sessionStarted) return;
         currentMode = mode;
@@ -97,13 +107,13 @@ let currentMode = 'pushup';
         if (mode === 'pushup') {
             modePushupBtn.classList.add('mode-active');
             modeSitupBtn.classList.remove('mode-active');
-            handsBadge.style.display = 'none';
+            if (handsBadge) handsBadge.style.display = 'none';
             document.getElementById('stationHeader').innerText = 'Push-up Recording';
             setWarning('Place your camera side-on. Get into push-up position. Your first full rep will start the 1-minute timer.');
         } else {
             modeSitupBtn.classList.add('mode-active');
             modePushupBtn.classList.remove('mode-active');
-            handsBadge.style.display = 'none';
+            if (handsBadge) handsBadge.style.display = 'none';
             document.getElementById('stationHeader').innerText = 'Sit-up Recording';
             setWarning('Lie back, then sit up. Your first valid rep starts the 1-minute timer.');
         }
@@ -119,9 +129,14 @@ let currentMode = 'pushup';
     }
 
     async function startCamera() {
+        if (stream) return;
+        startCamBtn.disabled = true;
+        startCamBtn.textContent = 'Starting...';
         try {
             if (!window.Pose) {
                 alert('Pose model is still loading. Please try again in a moment.');
+                startCamBtn.disabled = false;
+                startCamBtn.textContent = 'Start Camera';
                 return;
             }
 
@@ -147,22 +162,34 @@ let currentMode = 'pushup';
             startPoseLoop();
         } catch (err) {
             alert('Could not access camera or pose model: ' + err.message);
+            startCamBtn.disabled = false;
+            startCamBtn.textContent = 'Start Camera';
         }
     }
 
     async function initPose() {
-        if (pose) return;
-        pose = new Pose({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        if (poseInitPromise) return poseInitPromise;
+
+        poseInitPromise = (async () => {
+            pose = new Pose({
+                locateFile: (file) => `/static/mediapipe/pose/${file}`
+            });
+            pose.setOptions({
+                modelComplexity: 0,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            pose.onResults(handlePoseResults);
+            await pose.initialize();
+        })().catch((err) => {
+            pose = null;
+            poseInitPromise = null;
+            throw err;
         });
-        pose.setOptions({
-            modelComplexity: 0,
-            smoothLandmarks: true,
-            enableSegmentation: false,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-        pose.onResults(handlePoseResults);
+
+        return poseInitPromise;
     }
 
     function startPoseLoop() {
@@ -299,7 +326,11 @@ let currentMode = 'pushup';
                 return cvMetrics;
             },
             noteFormFlag,
+            requestStopRecording,
             sessionElapsedSeconds,
+            get validReps() {
+                return validReps;
+            },
             get sessionStarted() {
                 return sessionStarted;
             },
@@ -385,9 +416,32 @@ let currentMode = 'pushup';
     }
 
     function setWarning(text) {
-        if (text === lastWarningText) return;
+        if (!text) return;
+
+        const now = performance.now();
+        if (text === lastWarningText && now - lastWarningSpokenAt < WARNING_VOICE_COOLDOWN_MS) return;
+        if (lastWarningSpokenAt && now - lastWarningSpokenAt < WARNING_VOICE_COOLDOWN_MS) {
+            lastWarningText = text;
+            return;
+        }
+
         lastWarningText = text;
-        document.getElementById('warningMessage').innerText = text;
+        lastWarningSpokenAt = now;
+        if (window.SoundManager && typeof SoundManager.speakWarning === 'function') {
+            SoundManager.speakWarning(text);
+        }
+    }
+
+    function requestStopRecording(message) {
+        if (message) setWarning(message);
+        if (!isRecording && !sessionStarted) return false;
+        if (attachedVideoFile && analyzeReplayMode && Number.isFinite(playbackVideo.duration)) {
+            playbackVideo.currentTime = Math.max(0, playbackVideo.duration - 0.1);
+            playbackVideo.play().catch(() => {});
+            return true;
+        }
+        setTimeout(() => stopRecording(), 0);
+        return true;
     }
 
     function initCvMetrics() {
@@ -724,6 +778,7 @@ let currentMode = 'pushup';
         }
         updateCounters();
         startRecBtn.style.display = 'inline-block';
+        startRecBtn.textContent = 'Stop Session';
         stopRecBtn.style.display = 'none';
         uploadBtn.style.display = 'none';
         timerDisplay.style.display = 'none';
@@ -844,8 +899,8 @@ let currentMode = 'pushup';
             playbackVideo.onloadeddata = playReplay;
         }
         setWarning(analyzeReplayMode
-            ? 'Analysing attached video with skeleton overlay. Use the timeline controls to review or skip.'
-            : 'Playback with skeleton overlay. Review your form, then upload to save.');
+            ? 'Analysing attached video. Use the timeline controls to review or skip.'
+            : 'Playback and review your form, then upload to save.');
 
         playbackVideo.onended = () => {
             const wasAnalyzingAttachment = analyzeReplayMode;
@@ -860,9 +915,9 @@ let currentMode = 'pushup';
             sessionArmed = false;
             if (wasAnalyzingAttachment) {
                 lastSessionMetrics = finalizeSessionMetrics();
-                setWarning('Attached video analysis complete. Save the session or adjust playback to review form.');
+                setWarning('Attached video analysis complete. Save the session.');
             } else {
-                setWarning('Review complete. Save session, or switch exercise mode.');
+                setWarning('Review complete');
             }
             if (reviewController) {
                 reviewController.refresh();
@@ -971,6 +1026,7 @@ let currentMode = 'pushup';
         sessionStarted = false;
         sessionArmed = false;
         isReplayMode = false;
+        attachedVideoFile = null;
         sessionStartedAt = null;
         timeLeft = 60;
         recordedChunks = [];
@@ -991,6 +1047,7 @@ let currentMode = 'pushup';
         stopRecBtn.style.display = 'none';
         uploadBtn.style.display = 'none';
         startRecBtn.style.display = stream ? 'inline-block' : 'none';
+        startRecBtn.textContent = 'Stop Session';
         timerDisplay.style.display = 'none';
         resetRepState();
         if (stream) {
@@ -998,13 +1055,15 @@ let currentMode = 'pushup';
             startPoseLoop();
         } else {
             stopPoseLoop();
+            unlockEntryMode();
+            cameraPlaceholder.style.display = 'block';
         }
         resetAiRecoPanel();
         setWarning(message || 'Session stopped. The current recording was deleted.');
     }
 
     async function deleteSavedSession(sessionId) {
-        const response = await fetch(`/api/activity-records/${sessionId}`, {
+        const response = await fetch(`/api/workout-session/${sessionId}`, {
             method: 'DELETE'
         });
         const result = await response.json();
@@ -1044,10 +1103,8 @@ let currentMode = 'pushup';
             } else {
                 clearCurrentRecordingUi('Session stopped. The current recording was deleted.');
             }
-            window.location.reload();
         } catch (err) {
             clearCurrentRecordingUi('Local session stopped. Saved session deletion failed: ' + err.message);
-            window.location.reload();
         }
     }
 
@@ -1071,11 +1128,7 @@ let currentMode = 'pushup';
         }
 
         try {
-            const response = await fetch('/api/upload-video', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
+            const result = await uploadVideoForm(formData);
             if (result.success) {
                 if (currentMode === 'pushup') {
                     pushupUploaded = true;
@@ -1134,6 +1187,45 @@ let currentMode = 'pushup';
             uploadBtn.innerText = 'Save Session';
             uploadBtn.style.pointerEvents = 'auto';
         }
+    }
+
+    function uploadVideoForm(formData) {
+        return new Promise((resolve, reject) => {
+            const request = new XMLHttpRequest();
+            request.open('POST', '/api/upload-video', true);
+            request.responseType = 'text';
+            request.timeout = 180000;
+
+            request.onload = () => {
+                let result = null;
+                try {
+                    result = request.responseText ? JSON.parse(request.responseText) : null;
+                } catch (err) {
+                    reject(new Error(`Upload returned an invalid response (${request.status}).`));
+                    return;
+                }
+
+                if (request.status >= 200 && request.status < 300 && result) {
+                    resolve(result);
+                    return;
+                }
+
+                const detail = result?.error || `Server returned ${request.status}`;
+                reject(new Error(detail));
+            };
+
+            request.onerror = () => {
+                reject(new Error('Upload connection failed. Check that the app server is still running and try again.'));
+            };
+            request.ontimeout = () => {
+                reject(new Error('Upload timed out. Try again with a shorter recording or a smaller attached video.'));
+            };
+            request.onabort = () => {
+                reject(new Error('Upload was cancelled before it finished.'));
+            };
+
+            request.send(formData);
+        });
     }
 
     function checkCompletion() {
@@ -1225,6 +1317,7 @@ let currentMode = 'pushup';
     });
 
     window.selectRecordedVideo = selectRecordedVideo;
+    window.startRecording = startRecording;
     window.toggleReviewPlayback = toggleReviewPlayback;
     window.stopReviewPlayback = stopReviewPlayback;
     window.skipReviewBy = skipReviewBy;

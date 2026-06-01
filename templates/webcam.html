@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="{{ asset_url('mediapipe/pose/pose.js') }}"></script>
 <style>
     /* Active Vision Layout Splitter */
     .vision-workspace {
@@ -123,24 +122,6 @@
         font-weight: 600;
         opacity: 0.7;
         letter-spacing: 0;
-    }
-
-    .form-status-alert {
-        background: #FFFFFF;
-        border-color: var(--border);
-        align-items: stretch;
-        justify-content: flex-start;
-        text-align: left;
-        flex: 1.25;
-        padding: 16px;
-    }
-
-    .status-msg-text {
-        font-size: 13px;
-        font-weight: 500;
-        color: #334155;
-        margin-top: 10px;
-        line-height: 1.5;
     }
 
     .stage-pill {
@@ -556,10 +537,6 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .form-status-alert {
-            grid-column: 1 / -1;
-            min-height: 120px;
-        }
     }
 
     @media (max-width: 620px) {
@@ -651,10 +628,7 @@
             <div class="hud-lbl">Invalid Reps</div>
             <div class="giant-counter" id="invalidRepCounter">0</div>
         </div>
-        <div class="metric-v-card form-status-alert">
-            <p class="status-msg-text" id="warningMessage">Keep spine rigid. Core deflection detected during extension phase.</p>
-            <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
-        </div>
+        <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
     </div>
 </div>
 

@@ -39,6 +39,9 @@ from ..integrations.strava_client import (
     refresh_access_token,
 )
 
+STRAVA_CACHE_TTL_SECONDS = 180
+_STRAVA_CACHE = {}
+
 
 def register_strava_routes(app):
     @app.route("/strava-sync")
@@ -78,8 +81,13 @@ def register_strava_routes(app):
     @login_required
     def api_strava_activities():
         try:
-            access_token = _valid_access_token()
-            activities = fetch_recent_run_activities(access_token)
+            user = current_user()
+            cache_key = ("activities", user.get("nric"))
+            activities = _cache_get(cache_key)
+            if activities is None:
+                access_token = _valid_access_token()
+                activities = fetch_recent_run_activities(access_token)
+                _cache_set(cache_key, activities)
         except StravaApiError as error:
             return _error(str(error), error.status_code)
 
@@ -96,9 +104,7 @@ def register_strava_routes(app):
             return _error("No Strava activity id provided.", 400)
 
         try:
-            access_token = _valid_access_token()
-            activity = fetch_activity(access_token, activity_id)
-            streams = fetch_activity_streams(access_token, activity_id)
+            activity, streams = _cached_activity_preview(current_user().get("nric"), activity_id)
         except StravaApiError as error:
             return _error(str(error), error.status_code)
 
@@ -147,11 +153,8 @@ def register_strava_routes(app):
         nric = user.get("nric")
 
         try:
-            access_token = _valid_access_token()
-            activity_for_log = fetch_activity(access_token, activity_id)
-            activity = fetch_activity_details(access_token, activity_id)
-            streams = fetch_activity_streams(access_token, activity_id)
-            result = process_ippt_24(activity, streams)
+            result = _cached_ippt_result(nric, activity_id, user)
+            activity_for_log, _ = _cached_activity_preview(nric, activity_id)
         except StravaApiError as error:
             return _error(str(error), error.status_code)
 
@@ -160,15 +163,19 @@ def register_strava_routes(app):
             activity_id,
             activity=activity_for_log,
         )
-        age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-        result["run_points"] = run_station_points(result["official_time_seconds"], age_group)
+        result = dict(result)
         result["activity_record_id"] = imported["log"].get("id")
-        result["ai_recommendation"] = None
+        result["ai_recommendation"] = _cache_get(("ippt_recommendation", nric, activity_id))
 
         previous_best = repo_personal_best(nric)
         saved_result = save_strava_ippt_result(nric, result)
+        if result.get("ai_recommendation") and imported["log"].get("id"):
+            update_activity(imported["log"]["id"], nric, {"ai_recommendation": result["ai_recommendation"]})
+            imported["log"]["ai_recommendation"] = result["ai_recommendation"]
         updated_log = update_strava_activity_ippt_result(nric, activity_id, saved_result)
         if updated_log:
+            if result.get("ai_recommendation"):
+                updated_log["ai_recommendation"] = result["ai_recommendation"]
             imported["log"] = updated_log
         personal_best_updated = False
         personal_best = previous_best
@@ -198,20 +205,13 @@ def register_strava_routes(app):
         nric = user.get("nric")
 
         try:
-            access_token = _valid_access_token()
-            activity = fetch_activity_details(access_token, activity_id)
-            streams = fetch_activity_streams(access_token, activity_id)
-            result = process_ippt_24(activity, streams)
+            result = _cached_ippt_result(nric, activity_id, user)
         except StravaApiError as error:
             return _error(str(error), error.status_code)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-        result["run_points"] = run_station_points(result["official_time_seconds"], age_group)
 
-        # Generate AI recommendation (preview only, do not persist)
-        recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group))
-        if not recommendation.get("success") or not recommendation.get("summary"):
-            recommendation = _fallback_ippt_recommendation(result)
+        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group)
 
         return jsonify({"success": True, "result": result, "recommendation": recommendation})
 
@@ -228,15 +228,22 @@ def register_strava_routes(app):
         user = current_user()
         nric = user.get("nric")
         result = strava_ippt_result(nric, activity_id)
-        if not result:
-            return _error("Calculate the 2.4km result before asking Coach.", 404)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-        recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group))
+        recommendation = _cache_get(("ippt_recommendation", nric, activity_id))
+        if recommendation is None and result:
+            recommendation = _build_ippt_recommendation(result, age_group)
+        elif recommendation is None:
+            try:
+                result = _cached_ippt_result(nric, activity_id, user)
+                recommendation = _build_ippt_recommendation(result, age_group)
+            except StravaApiError as error:
+                return _error(str(error), error.status_code)
         if not recommendation.get("success") or not recommendation.get("recommendations"):
             recommendation = _fallback_ippt_recommendation(result)
+        _cache_set(("ippt_recommendation", nric, activity_id), recommendation)
 
-        saved_result = update_strava_ippt_recommendation(nric, activity_id, recommendation)
+        saved_result = update_strava_ippt_recommendation(nric, activity_id, recommendation) if strava_ippt_result(nric, activity_id) else result
         return jsonify({
             "success": True,
             "result": saved_result,
@@ -249,6 +256,85 @@ def strava_connection_context():
         "strava_connected": bool(_usable_token_record()),
         "strava_authorize_url": _strava_authorize_url(),
     }
+
+
+def _cache_get(key):
+    cached = _STRAVA_CACHE.get(key)
+    if cached is None:
+        return None
+    expires_at, value = cached
+    if expires_at <= time.time():
+        _STRAVA_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key, value, ttl=STRAVA_CACHE_TTL_SECONDS):
+    _STRAVA_CACHE[key] = (time.time() + ttl, value)
+    if len(_STRAVA_CACHE) > 128:
+        now = time.time()
+        for item_key, (expires_at, _) in list(_STRAVA_CACHE.items()):
+            if expires_at <= now:
+                _STRAVA_CACHE.pop(item_key, None)
+    return value
+
+
+def _cached_activity_preview(nric, activity_id):
+    cache_key = ("activity_preview", nric, activity_id)
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    access_token = _valid_access_token()
+    activity = fetch_activity(access_token, activity_id)
+    streams = fetch_activity_streams(access_token, activity_id)
+    return _cache_set(cache_key, (activity, streams))
+
+
+def _cached_activity_details(nric, activity_id):
+    cache_key = ("activity_details", nric, activity_id)
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    preview = _cache_get(("activity_preview", nric, activity_id))
+    cached_streams = preview[1] if preview else None
+    access_token = _valid_access_token()
+    activity = fetch_activity_details(access_token, activity_id)
+    streams = cached_streams or fetch_activity_streams(access_token, activity_id)
+    return _cache_set(cache_key, (activity, streams))
+
+
+def _cached_ippt_result(nric, activity_id, user):
+    cache_key = ("ippt_result", nric, activity_id)
+    cached = _cache_get(cache_key)
+    if cached:
+        return dict(cached)
+
+    activity, streams = _cached_activity_details(nric, activity_id)
+    result = process_ippt_24(activity, streams)
+    age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
+    result["run_points"] = run_station_points(result["official_time_seconds"], age_group)
+    return dict(_cache_set(cache_key, result))
+
+
+def _cached_ippt_recommendation(nric, activity_id, result, age_group):
+    cache_key = ("ippt_recommendation", nric, activity_id)
+    recommendation = _cache_get(cache_key)
+    if recommendation is not None:
+        return recommendation
+
+    return _cache_set(cache_key, _build_ippt_recommendation(result, age_group))
+
+
+def _build_ippt_recommendation(result, age_group):
+    if os.environ.get("FITLAH_STRAVA_LIVE_AI", "").lower() not in {"1", "true", "yes"}:
+        return _fallback_ippt_recommendation(result)
+
+    recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group))
+    if not recommendation.get("success") or not recommendation.get("summary"):
+        return _fallback_ippt_recommendation(result)
+    return recommendation
 
 
 def _strava_authorize_url():
