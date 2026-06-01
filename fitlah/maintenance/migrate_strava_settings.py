@@ -8,13 +8,13 @@ This script will:
 
 Run with the project's Python environment (ensure env vars in .env are set):
 
-    python scripts/migrate_strava_settings.py
+    python -m fitlah.maintenance.migrate_strava_settings
 
 """
 from datetime import datetime
 
-from fitlah.db import ensure_tables
-from fitlah.repositories import get_settings, list_users, strava_connection, save_strava_connection
+from fitlah.data_access.database import ensure_tables
+from fitlah.data_access.repositories import get_settings, list_users, strava_connection, save_strava_connection
 
 
 def migrate():

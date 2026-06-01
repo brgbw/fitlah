@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import text
 
-from .db import decrypt_value, encrypt_value, ensure_tables, session_scope
-from .ippt_scoring import format_run_time, parse_run_time
+from .database import decrypt_value, encrypt_value, ensure_tables, session_scope
+from ..domain.ippt_scoring import format_run_time, parse_run_time
 
 
 def _clean(row):

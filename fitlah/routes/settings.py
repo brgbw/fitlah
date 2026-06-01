@@ -1,15 +1,15 @@
 from flask import render_template, request, redirect, url_for
 
-from ..auth import current_user, login_required
-from ..constants import SIGNUP_RANKS
-from ..repositories import (
+from ..core.auth import current_user, login_required
+from ..core.constants import SIGNUP_RANKS
+from ..data_access.repositories import (
     get_setting,
     get_settings,
     set_setting,
     strava_connection,
     update_user,
 )
-from ..security import clean_text, env_bool, rate_limit
+from ..core.web_security import clean_text, env_bool, rate_limit
 
 
 def register_settings_routes(app):

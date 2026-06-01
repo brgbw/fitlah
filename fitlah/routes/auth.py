@@ -3,13 +3,13 @@ from datetime import datetime
 from flask import redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ..auth import current_user
-from ..constants import SIGNUP_RANKS
-from ..ippt_scoring import age_profile_from_nric
-from ..profile_age import sync_age_for_nric
-from ..repositories import get_user, save_personal_best, save_user, update_last_login
-from ..security import clean_text, rate_limit
-from ..validators import nric_check
+from ..core.auth import current_user
+from ..core.constants import SIGNUP_RANKS
+from ..domain.ippt_scoring import age_profile_from_nric
+from ..domain.user_profile import sync_age_for_nric
+from ..data_access.repositories import get_user, save_personal_best, save_user, update_last_login
+from ..core.web_security import clean_text, rate_limit
+from ..core.validation import nric_check
 
 
 def register_auth_routes(app):

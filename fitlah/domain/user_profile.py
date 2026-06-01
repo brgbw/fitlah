@@ -1,7 +1,7 @@
 """Best-effort NRIC age enrichment for user profiles."""
 
 from .ippt_scoring import age_profile_from_nric
-from .repositories import update_user
+from ..data_access.repositories import update_user
 
 
 def enrich_age_fields(row):

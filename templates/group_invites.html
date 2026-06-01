@@ -5,14 +5,15 @@
         margin-bottom: 24px;
     }
     .header-section h1 {
-        font-size: 26px;
-        font-weight: 700;
-        color: #0F172A;
+        font-size: var(--page-title-size);
+        font-weight: var(--page-title-weight);
+        color: var(--text-main);
+        letter-spacing: -0.4px;
         margin-bottom: 6px;
     }
     .header-section p {
-        font-size: 14px;
-        color: #64748B;
+        font-size: var(--page-subtitle-size);
+        color: var(--text-muted);
     }
 
     /* Split Layout */
@@ -545,7 +546,7 @@
 
         <!-- Inline Add Member Form -->
         <div class="inline-add-member">
-            <input type="text" id="memberIdInput" class="form-input" placeholder="Enter buddy's identifier (e.g., SXXXX789A)" maxlength="9">
+            <input type="text" id="memberIdInput" class="form-input" placeholder="Enter NRIC" maxlength="9">
             <button onclick="addMemberToGroup()">Send Invite</button>
         </div>
 

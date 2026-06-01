@@ -71,8 +71,8 @@
 
     .metric-v-card {
         background-color: #FFFFFF;
-        border: 1px solid #D9E2EC;
-        border-radius: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
         padding: 18px 14px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         display: flex;
@@ -127,7 +127,7 @@
 
     .form-status-alert {
         background: #FFFFFF;
-        border-color: #D9E2EC;
+        border-color: var(--border);
         align-items: stretch;
         justify-content: flex-start;
         text-align: left;
@@ -198,15 +198,15 @@
     }
 
     .header-section h1 {
-        font-size: 26px;
-        color: #0F172A;
-        letter-spacing: 0;
-        font-weight: 600;
+        font-size: var(--page-title-size);
+        color: var(--text-main);
+        letter-spacing: -0.4px;
+        font-weight: var(--page-title-weight);
     }
 
     .header-section p {
-        font-size: 14px;
-        color: #64748B;
+        font-size: var(--page-subtitle-size);
+        color: var(--text-muted);
         margin-top: 6px;
         max-width: 520px;
         line-height: 1.5;
@@ -397,10 +397,10 @@
 
     .ai-reco-panel {
         background: #FFFFFF;
-        border: 1px solid #D9E2EC;
-        border-radius: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
         padding: 16px;
-        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        box-shadow: var(--card-shadow);
     }
 
     .ai-reco-header {
@@ -414,7 +414,7 @@
     .ai-reco-header h3 {
         font-size: 18px;
         font-weight: 800;
-        color: #2563EB;
+        color: var(--marker-situp);
         text-transform: uppercase;
         letter-spacing: 0;
     }
@@ -424,7 +424,7 @@
         height: 28px;
         border-radius: 8px;
         background: #EFF6FF;
-        color: #2563EB;
+        color: var(--marker-situp);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -440,7 +440,7 @@
     }
 
     .ai-reco-status.loading {
-        color: #2563EB;
+        color: var(--marker-situp);
         font-weight: 500;
     }
 
@@ -449,14 +449,15 @@
     }
 
     .ai-reco-summary {
-        font-size: 17px;
-        font-weight: 600;
-        color: #0F172A;
+        font-size: 16px;
+        font-weight: 400;
+        color: #334155;
         line-height: 1.5;
         margin-bottom: 12px;
         padding: 11px 12px;
         background: #F8FAFC;
-        border: 1px solid #D9E2EC;
+        border: 0;
+        border-left: 4px solid var(--marker-situp);
         border-radius: 8px;
     }
 
@@ -493,7 +494,7 @@
         font-size: 16px;
         font-weight: 500;
         line-height: 1.5;
-        color: #1E293B;
+        color: #475569;
         padding: 8px 10px 8px 28px;
         margin-bottom: 6px;
         border-radius: 8px;
@@ -528,7 +529,7 @@
     .ai-reco-focus h4 {
         font-size: 16px;
         font-weight: 800;
-        color: #64748B;
+        color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0;
         margin-bottom: 8px;
@@ -596,7 +597,7 @@
     <div class="vision-main-column">
         <!-- Live Target Video Capture Array Panel -->
         <div class="video-feed-card">
-            <div class="camera-placeholder" id="cameraPlaceholder">Camera and pose model idle</div>
+            <div class="camera-placeholder" id="cameraPlaceholder">Camera off</div>
             <video id="sourceVideo" autoplay muted playsinline></video>
             <canvas id="poseCanvas" width="640" height="360"></canvas>
             <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
@@ -681,7 +682,7 @@
     <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
 </div>
 
-<script src="{{ asset_url('js/soundManager.js') }}"></script>
+<script src="{{ asset_url('js/sound_manager.js') }}"></script>
 <script src="{{ asset_url('js/exercise/pushup.js') }}"></script>
 <script src="{{ asset_url('js/exercise/situp.js') }}"></script>
 <script src="{{ asset_url('js/pages/webcam_pose_drawing.js') }}"></script>

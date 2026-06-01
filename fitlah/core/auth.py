@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import g, session, redirect, url_for
-from .profile_age import enrich_age_fields
-from .repositories import get_user
+from ..domain.user_profile import enrich_age_fields
+from ..data_access.repositories import get_user
 
 def current_user():
     if hasattr(g, "_current_user"):

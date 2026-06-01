@@ -1,7 +1,7 @@
 from datetime import datetime
-from .auth import current_user
+from ..core.auth import current_user
 from .ippt_scoring import age_profile_from_nric, calculate_from_personal_best, format_run_time, parse_run_time
-from .repositories import (
+from ..data_access.repositories import (
     activity_records as activity_records_for_nric,
     add_group_member,
     create_invite,

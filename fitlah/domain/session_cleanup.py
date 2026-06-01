@@ -1,6 +1,6 @@
 import os
 
-from .config import BASE_DIR
+from ..core.config import BASE_DIR
 
 
 def _clear_directory_files(relative_dir, allowed_extensions=None):

@@ -5,12 +5,12 @@ from datetime import datetime
 
 from flask import jsonify, redirect, render_template, request, url_for
 
-from ..ai_coach import generate_exercise_recommendation
-from ..auth import current_user, login_required
-from ..config import BASE_DIR
-from ..helpers import save_ai_recommendation
-from ..ippt_scoring import age_profile_from_nric
-from ..repositories import (
+from ..integrations.ai_coach import generate_exercise_recommendation
+from ..core.auth import current_user, login_required
+from ..core.config import BASE_DIR
+from ..domain.activity_helpers import save_ai_recommendation
+from ..domain.ippt_scoring import age_profile_from_nric
+from ..data_access.repositories import (
     activity_records as activity_records_for_nric,
     create_activity as create_activity_record,
     delete_activity as delete_activity_record,
@@ -18,9 +18,9 @@ from ..repositories import (
     recalculate_personal_best,
     save_personal_best,
 )
-from ..security import bounded_int, json_too_large, limit_structure, rate_limit
-from ..session_cleanup import clear_session_analysis_files
-from ..temp_analysis import load_temp_analysis_logs, save_temp_analysis
+from ..core.web_security import bounded_int, json_too_large, limit_structure, rate_limit
+from ..domain.session_cleanup import clear_session_analysis_files
+from ..domain.session_analysis_store import load_temp_analysis_logs, save_temp_analysis
 
 
 ALLOWED_VIDEO_MIMES = {
@@ -89,10 +89,10 @@ def register_webcam_routes(app):
     def webcam():
         return render_template("webcam.html")
 
-    @app.route("/webcam-prep")
+    @app.route("/exercise-setup")
     @login_required
-    def webcam_prep():
-        return render_template("webcam_prep.html")
+    def exercise_setup():
+        return render_template("exercise_setup.html")
 
     @app.route("/ai-recommendations")
     @login_required

@@ -366,7 +366,7 @@
         renderChart(state.logs);
     }
 
-    async function refreshDashboardGraph() {
+    async function refreshAnalytics() {
         const tbody = document.getElementById('latestExerciseRows');
         tbody.innerHTML = '<tr><td colspan="5">Loading logs...</td></tr>';
 
@@ -392,7 +392,7 @@
     chartCanvas.addEventListener('mouseleave', handleChartMouseLeave);
 
     window.addEventListener('resize', () => renderChart(state.logs));
-    window.refreshDashboardGraph = refreshDashboardGraph;
+    window.refreshAnalytics = refreshAnalytics;
 
-    refreshDashboardGraph();
+    refreshAnalytics();
 })();

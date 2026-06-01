@@ -1,14 +1,14 @@
 from flask import jsonify, redirect, render_template, request, url_for
 
-from ..auth import current_user, login_required
-from ..helpers import attach_ai_to_activity_records
-from ..repositories import (
+from ..core.auth import current_user, login_required
+from ..domain.activity_helpers import attach_ai_to_activity_records
+from ..data_access.repositories import (
     activity_records as activity_records_for_nric,
     create_activity as create_activity_record,
     delete_activity as delete_activity_record,
     recalculate_personal_best,
 )
-from ..security import clean_text, json_too_large, rate_limit
+from ..core.web_security import clean_text, json_too_large, rate_limit
 
 
 def register_performance_routes(app):

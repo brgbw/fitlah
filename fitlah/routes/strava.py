@@ -5,10 +5,10 @@ from urllib.parse import urlencode, urlparse
 
 from flask import jsonify, render_template, request, url_for
 
-from ..ai_coach import generate_ippt_run_recommendation
-from ..auth import current_user, login_required
-from ..ippt_scoring import age_profile_from_nric, run_station_points
-from ..repositories import (
+from ..integrations.ai_coach import generate_ippt_run_recommendation
+from ..core.auth import current_user, login_required
+from ..domain.ippt_scoring import age_profile_from_nric, run_station_points
+from ..data_access.repositories import (
     create_activity as create_activity_record,
     delete_strava_connection,
     get_setting,
@@ -26,8 +26,8 @@ from ..repositories import (
     update_strava_activity_record,
     update_strava_ippt_recommendation,
 )
-from ..security import json_too_large, limit_structure, rate_limit
-from ..strava import (
+from ..core.web_security import json_too_large, limit_structure, rate_limit
+from ..integrations.strava_client import (
     StravaApiError,
     build_activity_record,
     exchange_authorization_code,

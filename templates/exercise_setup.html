@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% block title %}Exercise Setup | FitLah NSmen Portal{% endblock %}
+
+{% block content %}
+<style>
+    .exercise-setup-page {
+        width: 100%;
+        min-height: calc(100vh - 88px);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        color: var(--text-main);
+    }
+
+    .exercise-setup-shell {
+        width: 100%;
+        max-width: var(--page-max-width);
+    }
+
+    .exercise-setup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 28px;
+    }
+
+    .exercise-setup-header h1 {
+        font-size: var(--page-title-size);
+        font-weight: var(--page-title-weight);
+        letter-spacing: -0.4px;
+        margin: 0 0 10px;
+    }
+
+    .exercise-setup-header p {
+        color: var(--text-muted);
+        font-size: var(--page-subtitle-size);
+        line-height: 1.6;
+        max-width: 820px;
+        margin: 0;
+    }
+
+    .exercise-setup-layout {
+        min-height: auto;
+    }
+
+    .exercise-setup-panel {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: var(--card-radius);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        padding: 38px;
+        display: flex;
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 22px;
+    }
+
+    .setup-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .setup-item {
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 24px;
+        background: #FCFCFD;
+        min-height: 340px;
+    }
+
+    .setup-number {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #E8F8F2;
+        color: #015936;
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 22px;
+    }
+
+    .setup-item h2 {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 12px;
+    }
+
+    .setup-item p,
+    .safety-note p,
+    .quick-item {
+        color: #64748B;
+        font-size: 16px;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .safety-note {
+        margin-top: 24px;
+        border-left: 4px solid #015936;
+        background: #F8FAFC;
+        border-radius: 8px;
+        padding: 28px 24px;
+    }
+
+    .safety-note h2 {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 10px;
+    }
+
+    .exercise-setup-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 28px;
+        border-top: 1px solid #E2E8F0;
+        margin-top: auto;
+    }
+
+    .setup-btn {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 8px;
+        padding: 16px 18px;
+        font-size: 16px;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1px solid transparent;
+        min-width: 180px;
+    }
+
+    .setup-btn.primary {
+        background: #015936;
+        color: #FFFFFF;
+    }
+
+    .setup-btn.primary:hover {
+        background: #008F5B;
+    }
+
+    .setup-btn.secondary {
+        background: #FFFFFF;
+        color: #475569;
+        border-color: #E2E8F0;
+    }
+
+    .setup-btn.secondary:hover {
+        background: #F8FAFC;
+        color: #0F172A;
+    }
+
+    @media (max-width: 960px) {
+        .exercise-setup-page {
+            min-height: auto;
+            align-items: flex-start;
+        }
+
+        .setup-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .setup-item {
+            min-height: auto;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .exercise-setup-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .exercise-setup-panel {
+            padding: 18px;
+        }
+
+        .exercise-setup-actions {
+            flex-direction: column;
+        }
+
+        .setup-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="exercise-setup-page">
+    <div class="exercise-setup-shell">
+        <header class="exercise-setup-header">
+            <div>
+                <h1>Exercise Setup</h1>
+                <p>Before starting, place your laptop and body so the webcam can clearly track your push-up or sit-up form.</p>
+            </div>
+        </header>
+
+        <div class="exercise-setup-layout">
+            <section class="exercise-setup-panel">
+                <h2 class="section-title">Setup checklist</h2>
+
+                <div class="setup-grid">
+                    <article class="setup-item">
+                        <span class="setup-number">1</span>
+                        <h2>Place the laptop low</h2>
+                        <p>Keep it stable on the floor or a low surface. Open the screen around 90 degrees.</p>
+                    </article>
+
+                    <article class="setup-item">
+                        <span class="setup-number">2</span>
+                        <h2>Use a side view</h2>
+                        <p>Fit your full body in frame, including shoulders, hips, knees, and ankles.</p>
+                    </article>
+
+                    <article class="setup-item">
+                        <span class="setup-number">3</span>
+                        <h2>Clear your space</h2>
+                        <p>Remove nearby objects and make sure the floor is flat before you begin.</p>
+                    </article>
+                </div>
+
+                <div class="safety-note">
+                    <h2>Safety note</h2>
+                    <p>Warm up first. Stop immediately if you feel pain, dizziness, or discomfort. The first valid rep starts the session timer automatically.</p>
+                </div>
+                <div class="exercise-setup-actions">
+                    <a class="setup-btn primary" href="{{ url_for('webcam') }}">Start Camera</a>
+                    <a class="setup-btn secondary" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

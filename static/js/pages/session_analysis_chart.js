@@ -1,12 +1,15 @@
 (function () {
     function pointToCanvas(point, bounds) {
+        const xRatio = (point.time - bounds.minTime) / bounds.timeRange;
+        const yRatio = point.displayValue / 100;
         return {
-            x: bounds.plot.left + ((point.time - bounds.minTime) / bounds.timeRange) * bounds.plot.width,
-            y: bounds.plot.top + ((point.value - bounds.minValue) / bounds.valueRange) * bounds.plot.height
+            x: bounds.plot.left + xRatio * bounds.plot.width,
+            y: bounds.plot.bottom - yRatio * bounds.plot.height
         };
     }
 
-    function drawGrid(ctx, plot) {
+    function drawGrid(ctx, bounds) {
+        const { plot } = bounds;
         ctx.strokeStyle = '#E2E8F0';
         ctx.lineWidth = 1;
         for (let i = 0; i <= 3; i++) {
@@ -14,6 +17,13 @@
             ctx.beginPath();
             ctx.moveTo(plot.left, y);
             ctx.lineTo(plot.right, y);
+            ctx.stroke();
+        }
+        for (let i = 0; i <= 4; i++) {
+            const x = plot.left + (plot.width * i / 4);
+            ctx.beginPath();
+            ctx.moveTo(x, plot.top);
+            ctx.lineTo(x, plot.bottom);
             ctx.stroke();
         }
 
@@ -27,7 +37,7 @@
 
     function drawSmoothLine(ctx, points) {
         ctx.strokeStyle = '#2563EB';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 3.5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.beginPath();
@@ -54,24 +64,44 @@
         points.forEach((point, index) => {
             if (index % Math.max(1, Math.floor(points.length / 10)) !== 0) return;
             ctx.beginPath();
-            ctx.arc(point.x, point.y, 2.2, 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
             ctx.fill();
         });
     }
 
     function drawAxisLabels(ctx, bounds, width, height) {
         ctx.fillStyle = '#64748B';
-        ctx.font = '11px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(bounds.minValue.toFixed(2), 8, bounds.plot.top + 4);
-        ctx.fillText(bounds.maxValue.toFixed(2), 8, bounds.plot.bottom);
+        ctx.font = '600 14px system-ui, sans-serif';
+
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 3; i++) {
+            const value = 100 - (100 * i / 3);
+            const y = bounds.plot.top + (bounds.plot.height * i / 3);
+            ctx.fillText(`${Math.round(value)}%`, bounds.plot.left - 10, y);
+        }
+
         ctx.textAlign = 'center';
-        ctx.fillText(`${Math.round(bounds.minTime)}s`, bounds.plot.left, height - 8);
-        ctx.fillText(`${Math.round(bounds.maxTime)}s`, bounds.plot.right, height - 8);
+        ctx.textBaseline = 'top';
+        for (let i = 0; i <= 4; i++) {
+            const time = bounds.minTime + (bounds.timeRange * i / 4);
+            const x = bounds.plot.left + (bounds.plot.width * i / 4);
+            ctx.fillText(`${Math.round(time)}s`, x, bounds.plot.bottom + 10);
+        }
+
+        ctx.font = '700 15px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Time into session (seconds)', bounds.plot.left, height - 18);
+        ctx.save();
+        ctx.translate(15, bounds.plot.top + bounds.plot.height / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText(bounds.yLabel, 0, 0);
+        ctx.restore();
     }
 
-    function chartBounds(samples, width, height) {
-        const pad = { top: 18, right: 16, bottom: 28, left: 38 };
+    function chartBounds(samples, analysis, width, height) {
+        const pad = { top: 22, right: 22, bottom: 58, left: 76 };
         const plot = {
             left: pad.left,
             top: pad.top,
@@ -83,20 +113,41 @@
 
         const times = samples.map(point => point.time);
         const values = samples.map(point => point.value);
-        const minTime = Math.min(...times);
-        const maxTime = Math.max(...times);
-        const minValue = Math.min(...values);
-        const maxValue = Math.max(...values);
+        const minTime = 0;
+        const maxTime = Math.max(
+            Number(analysis.duration_seconds) || 0,
+            Math.max(...times),
+            1
+        );
+        const rawMinValue = Math.min(...values);
+        const rawMaxValue = Math.max(...values);
+        const measuredRange = rawMaxValue - rawMinValue;
+        const rawRange = Math.max(0.001, measuredRange);
 
         return {
             plot,
             minTime,
             maxTime,
-            minValue,
-            maxValue,
-            valueRange: Math.max(0.001, maxValue - minValue),
+            rawMinValue,
+            rawMaxValue,
+            rawRange,
+            isFlat: measuredRange < 0.001,
+            yLabel: analysis.type === 'shoulder_drop'
+                ? 'Push-up depth (%)'
+                : analysis.type === 'torso_lift'
+                    ? 'Sit-up lift (%)'
+                    : 'Relative movement (%)',
             timeRange: Math.max(0.001, maxTime - minTime)
         };
+    }
+
+    function normalizeSamples(samples, bounds) {
+        return samples.map(point => ({
+            ...point,
+            displayValue: bounds.isFlat
+                ? 50
+                : Math.max(0, Math.min(100, ((point.value - bounds.rawMinValue) / bounds.rawRange) * 100))
+        }));
     }
 
     function drawAnalysisCanvas(canvas) {
@@ -115,19 +166,37 @@
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         ctx.clearRect(0, 0, width, height);
 
-        const bounds = chartBounds(samples, width, height);
-        const points = samples.map(point => pointToCanvas(point, bounds));
+        const bounds = chartBounds(samples, analysis, width, height);
+        const displaySamples = normalizeSamples(samples, bounds);
+        const points = displaySamples.map(point => pointToCanvas(point, bounds));
 
-        drawGrid(ctx, bounds.plot);
+        drawGrid(ctx, bounds);
         drawSmoothLine(ctx, points);
         drawPointMarkers(ctx, points);
         drawAxisLabels(ctx, bounds, width, height);
+    }
+
+    function setupHelpButtons() {
+        document.querySelectorAll('[data-analysis-help-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const panel = button.closest('.analysis-panel');
+                const help = panel ? panel.querySelector('.analysis-help') : null;
+                if (!help) return;
+                const isOpen = help.hidden;
+                help.hidden = !isOpen;
+                button.setAttribute('aria-expanded', String(isOpen));
+                button.textContent = isOpen ? 'Hide guide' : 'Guide';
+            });
+        });
     }
 
     function drawAll() {
         document.querySelectorAll('.analysis-canvas').forEach(drawAnalysisCanvas);
     }
 
-    window.addEventListener('load', drawAll);
+    window.addEventListener('load', () => {
+        setupHelpButtons();
+        drawAll();
+    });
     window.addEventListener('resize', drawAll);
 })();

@@ -5,8 +5,9 @@
 {% block content %}
 <style>
     .settings-shell {
-        max-width: 760px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: var(--page-max-width);
+        margin: 0;
         color: var(--text-main);
     }
 
@@ -15,15 +16,15 @@
     }
 
     .settings-header h1 {
-        font-size: 28px;
-        font-weight: 650;
-        letter-spacing: 0;
+        font-size: var(--page-title-size);
+        font-weight: var(--page-title-weight);
+        letter-spacing: -0.4px;
         margin-bottom: 6px;
     }
 
     .settings-header p {
         color: var(--text-muted);
-        font-size: 14px;
+        font-size: var(--page-subtitle-size);
     }
 
     .settings-panel {
@@ -205,7 +206,7 @@
 
         <section class="settings-section">
             <div class="section-title">
-                <h2><img src="{{ url_for('static', filename='icon/strava.png') }}" alt="Strava" style="height:20px;vertical-align:middle;margin-right:8px">Strava</h2>
+                <h2><img src="{{ url_for('static', filename='icons/strava.png') }}" alt="Strava" style="height:20px;vertical-align:middle;margin-right:8px">Strava</h2>
                 <span>OAuth credentials are server-controlled; connect your account from the Strava page.</span>
             </div>
 

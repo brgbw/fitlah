@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from flask import g
 from sqlalchemy import create_engine, text
 
-from .config import BASE_DIR
+from ..core.config import BASE_DIR
 
 _ENGINE = None
 _SCHEMA_READY = False

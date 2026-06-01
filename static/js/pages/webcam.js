@@ -80,6 +80,15 @@ let currentMode = 'pushup';
     const reviewJumpTime = document.getElementById('reviewJumpTime');
     const reviewPlayPauseBtn = document.getElementById('reviewPlayPauseBtn');
 
+    function lockEntryMode(mode) {
+        if (mode === 'camera') {
+            attachVideoBtn.style.display = 'none';
+            startCamBtn.style.display = 'none';
+        } else if (mode === 'attachment') {
+            startCamBtn.style.display = 'none';
+        }
+    }
+
     function setExerciseMode(mode) {
         if (isRecording || sessionStarted) return;
         currentMode = mode;
@@ -132,7 +141,7 @@ let currentMode = 'pushup';
             cameraPlaceholder.style.display = 'none';
             poseCanvas.style.display = 'block';
             playbackVideo.style.display = 'none';
-            startCamBtn.style.display = 'none';
+            lockEntryMode('camera');
             startRecBtn.style.display = 'inline-block';
             armSession();
             startPoseLoop();
@@ -245,7 +254,6 @@ let currentMode = 'pushup';
             }
         }
 
-        drawHudOverlay();
         ctx.restore();
     }
 
@@ -376,15 +384,6 @@ let currentMode = 'pushup';
         return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
     }
 
-    function drawHudOverlay() {
-        FitLahPoseDrawing.drawHudOverlay(ctx, {
-            validReps,
-            invalidReps,
-            stage,
-            isRecording
-        });
-    }
-
     function setWarning(text) {
         if (text === lastWarningText) return;
         lastWarningText = text;
@@ -461,7 +460,7 @@ let currentMode = 'pushup';
 
         return {
             type: currentMode === 'pushup' ? 'shoulder_drop' : 'torso_lift',
-            label: currentMode === 'pushup' ? 'Shoulder drop' : 'Torso lift',
+            label: currentMode === 'pushup' ? 'Push-up depth' : 'Sit-up lift',
             unit: 'body scale',
             duration_seconds: duration,
             samples,
@@ -900,6 +899,7 @@ let currentMode = 'pushup';
             alert('Stop the current session before attaching a video.');
             return;
         }
+        lockEntryMode('attachment');
         videoAttachmentInput.click();
     }
 
@@ -935,7 +935,7 @@ let currentMode = 'pushup';
         sourceVideo.style.display = 'none';
         cameraPlaceholder.style.display = 'none';
         poseCanvas.style.display = 'block';
-        startCamBtn.style.display = 'inline-block';
+        lockEntryMode('attachment');
         startRecBtn.style.display = 'none';
         stopRecBtn.style.display = 'inline-block';
         uploadBtn.style.display = 'none';
@@ -1044,8 +1044,10 @@ let currentMode = 'pushup';
             } else {
                 clearCurrentRecordingUi('Session stopped. The current recording was deleted.');
             }
+            window.location.reload();
         } catch (err) {
             clearCurrentRecordingUi('Local session stopped. Saved session deletion failed: ' + err.message);
+            window.location.reload();
         }
     }
 

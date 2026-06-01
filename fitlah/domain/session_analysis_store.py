@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import datetime
 
-from .config import BASE_DIR
+from ..core.config import BASE_DIR
 
 TEMP_ANALYSIS_TTL_SECONDS = 60 * 60
 

@@ -1,7 +1,7 @@
 import os
 
-from fitlah.app import app, init_db
-from fitlah.config import BASE_DIR
+from fitlah.core.application import app, init_db
+from fitlah.core.config import BASE_DIR
 
 
 if __name__ == "__main__":

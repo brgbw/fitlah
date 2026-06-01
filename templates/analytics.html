@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}Exercise Graphs | FitLah NSmen Portal{% endblock %}
+{% block title %}Analytics | FitLah NSmen Portal{% endblock %}
 {% block content %}
 <style>
-    .graph-page {
-        color: #0F172A;
+    .analytics-page {
+        color: var(--text-main);
         width: 100%;
+        max-width: var(--page-max-width);
     }
 
-    .graph-header {
+    .analytics-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
@@ -15,22 +16,22 @@
         margin-bottom: 24px;
     }
 
-    .graph-header h1 {
-        font-size: 26px;
-        font-weight: 750;
-        letter-spacing: 0;
+    .analytics-header h1 {
+        font-size: var(--page-title-size);
+        font-weight: var(--page-title-weight);
+        letter-spacing: -0.4px;
         margin-bottom: 6px;
     }
 
-    .graph-header p {
-        color: #64748B;
-        font-size: 14px;
+    .analytics-header p {
+        color: var(--text-muted);
+        font-size: var(--page-subtitle-size);
         line-height: 1.45;
     }
 
     .refresh-btn {
         border: none;
-        background: #015936;
+        background: var(--marker-pushup);
         color: #FFFFFF;
         padding: 10px 16px;
         border-radius: 6px;
@@ -81,7 +82,7 @@
         font-weight: 700;
     }
 
-    .graph-card {
+    .analytics-card {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 8px;
@@ -89,7 +90,7 @@
         box-shadow: var(--card-shadow);
     }
 
-    .graph-toolbar {
+    .analytics-toolbar {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -97,7 +98,7 @@
         margin-bottom: 16px;
     }
 
-    .graph-toolbar h2 {
+    .analytics-toolbar h2 {
         font-size: 18px;
         font-weight: 750;
         letter-spacing: 0;
@@ -130,7 +131,7 @@
     }
 
     .legend-dot.situp {
-        background: #2563EB;
+        background: var(--marker-situp);
     }
 
     .chart-wrap {
@@ -207,21 +208,21 @@
             grid-template-columns: repeat(2, minmax(150px, 1fr));
         }
 
-        .graph-header,
-        .graph-toolbar {
+        .analytics-header,
+        .analytics-toolbar {
             flex-direction: column;
             align-items: stretch;
         }
     }
 </style>
 
-<div class="graph-page">
-    <div class="graph-header">
+<div class="analytics-page">
+    <div class="analytics-header">
         <div>
             <h1>Push-up and Sit-up Trends</h1>
             <p>Track the number of reps logged from webcam sessions over time. Data is loaded from your activity records API.</p>
         </div>
-        <button class="refresh-btn" type="button" onclick="refreshDashboardGraph()">Refresh Data</button>
+        <button class="refresh-btn" type="button" onclick="refreshAnalytics()">Refresh Data</button>
     </div>
 
     <div class="stat-grid">
@@ -243,8 +244,8 @@
         </div>
     </div>
 
-    <section class="graph-card">
-        <div class="graph-toolbar">
+    <section class="analytics-card">
+        <div class="analytics-toolbar">
             <h2>Reps Over Time</h2>
             <div class="legend-row">
                 <span class="legend-item"><span class="legend-dot pushup"></span>Push-ups</span>
@@ -276,5 +277,5 @@
     </section>
 </div>
 
-<script src="{{ asset_url('js/pages/dashboard_graph.js') }}"></script>
+<script src="{{ asset_url('js/pages/analytics.js') }}"></script>
 {% endblock %}

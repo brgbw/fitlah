@@ -3,13 +3,23 @@
 {% block content %}
 <style>
   .performance-page {
-    color: #0F172A;
+    color: var(--text-main);
     width: 100%;
+    max-width: var(--page-max-width);
   }
 
   .performance-page .header-section { margin-bottom: 0; }
-  .performance-page .header-section h1 { font-size: 24px; color: #0F172A; }
-  .performance-page .header-section p { font-size: 14px; color: #000000; margin-top: 4px; }
+  .performance-page .header-section h1 {
+    font-size: var(--page-title-size);
+    font-weight: var(--page-title-weight);
+    color: var(--text-main);
+  }
+  .performance-page .header-section p {
+    font-size: var(--page-subtitle-size);
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
 
   .log-workspace-grid {
     display: grid;
@@ -19,9 +29,9 @@
   }
 
   .calendar-card {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
     padding: 24px;
     height: fit-content;
     position: sticky;
@@ -35,21 +45,21 @@
     margin-bottom: 18px;
   }
 
-  .calendar-month-title { font-size: 16px; font-weight: 700; color: #0F172A; }
+  .calendar-month-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
 
   .nav-btn {
     background: none;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--border);
     border-radius: 6px;
     width: 28px;
     height: 28px;
     cursor: pointer;
     font-size: 14px;
-    color: #000000;
+    color: var(--text-main);
     display: flex; align-items: center; justify-content: center;
     transition: background 0.15s;
   }
-  .nav-btn:hover { background: #F8FAFC; }
+  .nav-btn:hover { background: var(--bg-subtle); }
 
   .calendar-grid {
     display: grid;
@@ -61,7 +71,7 @@
   .weekday-label {
     font-size: 11px;
     font-weight: 700;
-    color: #64748B;
+    color: var(--text-muted);
     text-transform: uppercase;
     padding-bottom: 4px;
   }
@@ -72,48 +82,48 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    background: #F8FAFC;
+    background: var(--bg-subtle);
     font-size: 12px;
     font-weight: 600;
-    color: #0F172A;
+    color: var(--text-main);
     cursor: pointer;
     transition: all 0.15s;
     gap: 2px;
   }
-  .calendar-day:hover { border-color: #015936; background: #E8F8F2; }
-  .calendar-day.today { border-color: #015936; color: #015936; }
-  .calendar-day.active-selected { background: #015936; color: #FFF; border-color: #015936; }
+  .calendar-day:hover { border-color: var(--marker-pushup); background: var(--bg-badge); }
+  .calendar-day.today { border-color: var(--marker-pushup); color: var(--marker-pushup); }
+  .calendar-day.active-selected { background: var(--marker-pushup); color: #FFF; border-color: var(--marker-pushup); }
   .calendar-day.empty { background: transparent; border: none; cursor: default; }
   .calendar-day.empty:hover { background: transparent; border: none; }
 
   .day-dots { display: flex; gap: 3px; }
   .dot { width: 5px; height: 5px; border-radius: 50%; }
-  .dot.pushup { background: #015936; }
-  .dot.situp { background: #2563EB; }
-  .dot.run { background: #F97316; }
+  .dot.pushup { background: var(--marker-pushup); }
+  .dot.situp { background: var(--marker-situp); }
+  .dot.run { background: var(--marker-run); }
   .calendar-day.active-selected .dot { background: rgba(255,255,255,0.9); }
 
   .details-display-stack { display: flex; flex-direction: column; gap: 20px; }
 
   .agenda-card {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
     padding: 24px;
   }
 
   .agenda-item { display: flex; gap: 16px; }
 
   .agenda-color-bar { width: 4px; border-radius: 2px; flex-shrink: 0; }
-  .agenda-color-bar.pushup { background: #015936; }
-  .agenda-color-bar.situp { background: #2563EB; }
-  .agenda-color-bar.run { background: #F97316; }
+  .agenda-color-bar.pushup { background: var(--marker-pushup); }
+  .agenda-color-bar.situp { background: var(--marker-situp); }
+  .agenda-color-bar.run { background: var(--marker-run); }
 
   .agenda-details { display: flex; flex-direction: column; width: 100%; }
-  .agenda-date { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
-  .agenda-name { font-size: 18px; font-weight: 700; color: #0F172A; margin-top: 2px; }
+  .agenda-date { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .agenda-name { font-size: 18px; font-weight: 700; color: var(--text-main); margin-top: 2px; }
 
   .recording-metric-container {
     display: flex;
@@ -149,8 +159,11 @@
     margin-top: 16px;
     flex-wrap: wrap;
   }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #64748B; font-weight: 600; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .legend-dot.pushup { background: var(--marker-pushup); }
+  .legend-dot.situp { background: var(--marker-situp); }
+  .legend-dot.run { background: var(--marker-run); }
 
   .delete-btn {
     margin-left: auto;
@@ -183,7 +196,7 @@
   .ai-coach-block h5 {
     font-size: 18px;
     font-weight: 800;
-    color: #2563EB;
+    color: var(--marker-situp);
     text-transform: uppercase;
     letter-spacing: 0;
     margin-bottom: 10px;
@@ -200,7 +213,7 @@
     padding: 12px 14px;
     background: #F8FAFC;
     border-radius: 8px;
-    border-left: 4px solid #2563EB;
+    border-left: 4px solid var(--marker-situp);
   }
 
   .ai-coach-grid {
@@ -266,9 +279,9 @@
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#015936"></div>Push-up</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Sit-up</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#F97316"></div>2.4km Run</div>
+      <div class="legend-item"><div class="legend-dot pushup"></div>Push-up</div>
+      <div class="legend-item"><div class="legend-dot situp"></div>Sit-up</div>
+      <div class="legend-item"><div class="legend-dot run"></div>2.4km Run</div>
     </div>
   </div>
 

@@ -1,7 +1,5 @@
-import sys
-sys.path.insert(0, '.')
 try:
-    from fitlah.routes import strava_routes
+    from fitlah.routes import strava
     print('import ok')
 except Exception:
     import traceback

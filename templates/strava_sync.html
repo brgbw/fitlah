@@ -3,7 +3,7 @@
 <section class="strava-sync-preview" aria-label="Strava sync">
     <div class="strava-preview-header">
         <div class="strava-preview-brand">
-            <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="" aria-hidden="true">
+            <img src="{{ url_for('static', filename='icons/strava.png') }}" alt="" aria-hidden="true">
             <div>
                 <h3>Strava</h3>
                 <span>Recent runs from Strava</span>
@@ -33,53 +33,52 @@
 
 {% extends 'base.html' %}
 {% block content %}
-
-<!-- Leaflet map CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
 <style>
     .strava-page {
         width: 100%;
-        max-width: 600px;
-        margin: 40px auto;
-        color: #0F172A;
+        max-width: var(--page-max-width);
+        margin: 0;
+        color: var(--text-main);
     }
 
     .strava-container {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 10px;
-        padding: 40px;
+        border-radius: var(--card-radius);
+        padding: 38px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
 
     .strava-header {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 12px;
-        margin-bottom: 32px;
+        margin-bottom: 24px;
     }
 
-    .strava-header img {
-        width: 32px;
-        height: 32px;
+    .strava-header img,
+    .auth-button img {
         object-fit: contain;
     }
 
+    .strava-header img {
+        width: 34px;
+        height: 34px;
+    }
+
     .strava-header h1 {
-        font-size: 28px;
-        font-weight: 650;
-        color: #0F172A;
+        font-size: var(--page-title-size);
+        font-weight: var(--page-title-weight);
         margin: 0;
     }
 
     .strava-description {
-        color: #64748B;
-        font-size: 14px;
+        color: var(--text-muted);
+        font-size: var(--page-subtitle-size);
         line-height: 1.7;
-        margin-bottom: 32px;
-        text-align: center;
+        margin: 0 0 28px;
+        text-align: left;
     }
 
     .auth-section {
@@ -87,33 +86,41 @@
         border-radius: 8px;
         padding: 20px;
         background: #FCFCFD;
-        margin-bottom: 24px;
     }
 
     .auth-section h3 {
         font-size: 16px;
-        font-weight: 600;
-        color: #0F172A;
-        margin-top: 0;
-        margin-bottom: 14px;
+        font-weight: 650;
+        margin: 0 0 12px;
     }
 
-    .auth-button {
+    .auth-note {
+        color: #64748B;
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 0 0 16px;
+    }
+
+    .auth-button,
+    .back-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: 0.2s ease;
+    }
+
+    .auth-button {
         gap: 10px;
+        width: 100%;
         padding: 12px 24px;
         background: #FC4C02;
         color: #FFFFFF;
         border: none;
-        border-radius: 8px;
         font-size: 15px;
-        font-weight: 550;
-        cursor: pointer;
-        transition: 0.2s ease;
-        text-decoration: none;
-        width: 100%;
     }
 
     .auth-button:hover {
@@ -122,90 +129,23 @@
         box-shadow: 0 8px 18px rgba(252, 76, 2, 0.18);
     }
 
-    .save-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 10px 18px;
-        background: #0F766E;
-        color: #FFFFFF;
-        border: none;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    .auth-button[aria-disabled="true"] {
+        pointer-events: none;
+        opacity: 0.6;
     }
 
-    .save-button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 18px rgba(15, 118, 110, 0.18);
-        background: #115E59;
-    }
-
-    .save-button:active:not(:disabled) {
-        transform: translateY(1px);
-    }
-
-    .save-button:disabled {
-        background: #E2E8F0;
-        color: #94A3B8;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    .analyze-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 10px 18px;
-        background: #FC4C02;
-        color: #FFFFFF;
-        border: none;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.15), 0 2px 4px -1px rgba(99, 102, 241, 0.1);
-    }
-
-    .analyze-button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 18px rgba(252, 76, 2, 0.18);
-        background: #E04402;
-    }
-
-    .analyze-button:active:not(:disabled) {
-        transform: translateY(1px);
-    }
-
-    .analyze-button:disabled {
-        background: #E2E8F0;
-        color: #94A3B8;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
+    .auth-button img {
+        width: 18px;
+        height: 18px;
     }
 
     .back-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
+        margin-top: 22px;
         padding: 10px 18px;
         background: #FFFFFF;
         color: #475569;
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        text-decoration: none;
         font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
 
@@ -214,808 +154,124 @@
         color: #0F172A;
         border-color: #CBD5E1;
         transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
     }
 
-    .back-button:active {
-        transform: translateY(1px);
-    }
-
-    .main-back-btn {
-        margin-top: 24px;
-    }
-
-    .auth-button img {
-        width: 18px;
-        height: 18px;
-        object-fit: contain;
-    }
-
-    .activities-section {
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 20px;
-        background: #F8FAFC;
+    .message {
         display: none;
-    }
-
-    .activities-section.loaded {
-        display: block;
-    }
-
-    .activities-section h3 {
-        font-size: 16px;
-        font-weight: 600;
-        color: #0F172A;
-        margin-top: 0;
-        margin-bottom: 16px;
-    }
-
-    .activity-item {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 14px;
-        margin-bottom: 12px;
-        transition: 0.2s ease;
-    }
-
-    .activity-item:last-child {
-        margin-bottom: 0;
-    }
-
-    .activity-item:hover {
-        border-color: #FED7AA;
-        box-shadow: 0 1px 3px rgba(252, 76, 2, 0.1);
-    }
-
-    .activity-name {
-        font-weight: 600;
-        color: #0F172A;
-        font-size: 14px;
-        margin-bottom: 6px;
-    }
-
-    .activity-details {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        font-size: 12px;
-        color: #64748B;
-    }
-
-    .activity-detail-item {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .activity-detail-label {
-        font-weight: 500;
-        color: #475569;
-        margin-bottom: 2px;
-    }
-
-    .activity-detail-value {
-        font-weight: 600;
-        color: #0F172A;
-    }
-
-    .loading-spinner {
-        display: none;
-        text-align: center;
-        padding: 20px;
-    }
-
-    .loading-spinner.active {
-        display: block;
-    }
-
-    .spinner {
-        width: 28px;
-        height: 28px;
-        border: 3px solid #FFEDD5;
-        border-top: 3px solid #FC4C02;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin: 0 auto 10px;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .error-message {
-        display: none;
-        background: #FEE2E2;
-        border: 1px solid #FECACA;
-        color: #991B1B;
         padding: 14px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         font-size: 13px;
-    }
-
-    .error-message.visible {
-        display: block;
-    }
-
-    .success-message {
-        display: none;
-        background: #DCFCE7;
-        border: 1px solid #BBFBDF;
-        color: #166534;
-        padding: 14px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-size: 13px;
-    }
-
-    .success-message.visible {
-        display: block;
-    }
-
-    .strava-preview-panel {
-        display: grid;
-        gap: 14px;
-    }
-
-    .strava-preview-top {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 16px;
-        align-items: start;
-    }
-
-    .strava-preview-title span,
-    .strava-preview-stats span,
-    .strava-analysis-metrics span {
-        display: block;
-        color: #64748B;
-        font-size: 11px;
-        font-weight: 650;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: 4px;
-    }
-
-    .strava-preview-title strong {
-        display: block;
-        color: #0F172A;
-        font-size: 16px;
-        font-weight: 650;
-        margin-bottom: 4px;
-    }
-
-    .strava-preview-title small {
-        color: #64748B;
-        font-size: 13px;
-    }
-
-    .strava-preview-stats,
-    .strava-analysis-metrics {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(74px, 1fr));
-        gap: 8px;
-    }
-
-    .strava-preview-stats div,
-    .strava-analysis-metrics div {
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: #F8FAFC;
-        padding: 10px;
-    }
-
-    .strava-preview-stats strong,
-    .strava-analysis-metrics strong {
-        color: #0F172A;
-        font-size: 14px;
-        font-weight: 700;
-    }
-
-    .strava-route-map {
-        width: 100%;
-        height: 320px;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .strava-empty-map {
-        padding: 18px;
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        color: #64748B;
-        font-size: 13px;
-    }
-
-    .strava-preview-footer {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-end;
-        align-items: center;
-    }
-
-    .strava-preview-footer .back-button {
-        margin-right: auto;
-    }
-
-    .strava-analysis-card {
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: #FFFFFF;
-        padding: 12px;
-    }
-
-    .strava-coach-card {
-        border-top: 1px solid #E2E8F0;
-        margin-top: 12px;
-        padding-top: 12px;
-    }
-
-    .strava-coach-card h5 {
-        color: #2563EB;
-        font-size: 18px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0;
-        margin-bottom: 10px;
-    }
-
-    .strava-coach-summary {
-        color: #334155;
-        font-size: 16px;
-        line-height: 1.6;
-        margin-bottom: 12px;
-    }
-
-    .strava-coach-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    .strava-coach-list h6 {
-        color: #64748B;
-        font-size: 16px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0;
-        margin-bottom: 8px;
-    }
-
-    .strava-coach-list.dos h6 {
-        color: #15803D;
-    }
-
-    .strava-coach-list.donts h6 {
-        color: #DC2626;
-    }
-
-    .strava-coach-list ul {
-        margin: 0;
-        padding-left: 18px;
-        color: #475569;
-        font-size: 16px;
-        line-height: 1.55;
-    }
-
-    .strava-coach-focus {
-        margin-top: 10px;
-        color: #64748B;
-        font-size: 16px;
         line-height: 1.5;
     }
 
-    @media (max-width: 720px) {
-        .strava-preview-top,
-        .strava-preview-stats,
-        .strava-analysis-metrics,
-        .strava-coach-grid {
-            grid-template-columns: 1fr;
-        }
+    .message.visible {
+        display: block;
+    }
 
-        .strava-preview-footer {
-            flex-wrap: wrap;
-            justify-content: stretch;
-        }
+    .message.error {
+        background: #FEE2E2;
+        border: 1px solid #FECACA;
+        color: #991B1B;
+    }
 
-        .strava-preview-footer button {
-            flex: 1 1 120px;
-        }
+    .message.success {
+        background: #DCFCE7;
+        border: 1px solid #BBFBDF;
+        color: #166534;
     }
 </style>
 
-<!-- Leaflet JS (loaded before page scripts below) -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <div class="strava-page">
     <div class="strava-container">
-
         <div class="strava-header">
-            <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="Strava">
+            <img src="{{ url_for('static', filename='icons/strava.png') }}" alt="Strava">
             <h1>Strava Sync</h1>
         </div>
 
         <p class="strava-description">
-            Connect your Strava account to import recent running activities directly into your FitLah dashboard. Securely authorize access below.
+            Authorise Strava to connect your running data with FitLah. Run previews and imports remain available from the dashboard.
         </p>
 
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
+        <div class="message error" id="errorMessage"></div>
+        <div class="message success" id="successMessage"></div>
 
         <div class="auth-section">
             <h3>{{ 'Strava Connected' if strava_connected else 'Authorize Strava Access' }}</h3>
-            {% if strava_connected %}
-                <p style="color:#64748B;font-size:13px;line-height:1.6;margin-bottom:14px">Your Strava account is authorized. Recent runs are loaded below.</p>
-            {% endif %}
+            <p class="auth-note">
+                {{ 'Your Strava account is already authorised. You can reconnect if you need to refresh access.' if strava_connected else 'Connect your Strava account to enable run imports on the dashboard.' }}
+            </p>
             <a href="{{ strava_authorize_url or '#' }}" class="auth-button" id="stravaAuthButton">
-                <img src="{{ url_for('static', filename='icon/strava.png') }}" alt="" aria-hidden="true">
+                <img src="{{ url_for('static', filename='icons/strava.png') }}" alt="" aria-hidden="true">
                 {{ 'Reconnect Strava' if strava_connected else 'Connect with Strava' }}
             </a>
         </div>
 
-        <div class="activities-section" id="activitiesSection">
-            <h3>Recent Running Activities</h3>
-            <div class="loading-spinner" id="loadingSpinner">
-                <div class="spinner"></div>
-                <p>Fetching activities...</p>
-            </div>
-            <div id="activitiesList"></div>
-            <div id="activityPreview" style="display:none; margin-top:18px;"></div>
-        </div>
-
-        <button class="back-button main-back-btn" onclick="window.history.back()">← Back to Dashboard</button>
-
+        <button class="back-button" onclick="window.location.href='{{ url_for('dashboard') }}'">Dashboard</button>
     </div>
 </div>
 
 <script>
-    // Parse query parameters
     function getQueryParam(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
+        return new URLSearchParams(window.location.search).get(name);
+    }
+
+    function showMessage(id, message) {
+        const element = document.getElementById(id);
+        element.textContent = message;
+        element.classList.add('visible');
+    }
+
+    function notifyParent(type, data) {
+        if (window.opener) {
+            window.opener.postMessage({ type, ...data }, window.location.origin);
+        }
     }
 
     function initializeStravaAuth() {
-        const authButton = document.getElementById("stravaAuthButton");
-        if (!authButton.getAttribute("href") || authButton.getAttribute("href") === "#") {
-            showError("Strava Client ID not configured. Contact administrator.");
-            authButton.setAttribute("aria-disabled", "true");
+        const authButton = document.getElementById('stravaAuthButton');
+        if (!authButton.getAttribute('href') || authButton.getAttribute('href') === '#') {
+            showMessage('errorMessage', 'Strava Client ID is not configured. Contact an administrator.');
+            authButton.setAttribute('aria-disabled', 'true');
         }
     }
 
-    // Show error message
-    function showError(message) {
-        const errorDiv = document.getElementById("errorMessage");
-        errorDiv.textContent = message;
-        errorDiv.classList.add("visible");
-    }
-
-    // Show success message
-    function showSuccess(message) {
-        const successDiv = document.getElementById("successMessage");
-        successDiv.textContent = message;
-        successDiv.classList.add("visible");
-    }
-
-    // Handle OAuth callback
-    function handleOAuthCallback() {
-        const code = getQueryParam("code");
-        const error = getQueryParam("error");
+    async function handleOAuthCallback() {
+        const code = getQueryParam('code');
+        const error = getQueryParam('error');
 
         if (error) {
-            showError(`Authorization failed: ${error}`);
-            notifyParent("STRAVA_SYNC_ERROR", { error: error });
+            showMessage('errorMessage', `Authorization failed: ${error}`);
+            notifyParent('STRAVA_SYNC_ERROR', { error });
             return;
         }
 
-        if (!code) {
-            return;
-        }
+        if (!code) return;
 
-        // Show loading spinner
-        document.getElementById("loadingSpinner").classList.add("active");
-        document.getElementById("activitiesSection").classList.add("loaded");
+        try {
+            const response = await fetch('/api/strava-callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            const data = await response.json();
 
-        // Exchange code for token
-        fetch("/api/strava-callback", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ code: code })
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("loadingSpinner").classList.remove("active");
-
-            if (!data.success) {
-                showError(data.error || "Failed to sync with Strava");
-                notifyParent("STRAVA_SYNC_ERROR", { error: data.error });
-                return;
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to sync with Strava.');
             }
 
-            showSuccess(data.message);
-            displayActivities(data.activities);
-
-            // Notify parent window of success
-            notifyParent("STRAVA_SYNC_SUCCESS", { 
-                message: data.message,
-                activities: data.activities
-            });
-
-            // Clean up URL
+            showMessage('successMessage', 'Strava authorised successfully. You can import runs from the dashboard.');
+            notifyParent('STRAVA_SYNC_SUCCESS', { message: data.message, activities: data.activities || [] });
             window.history.replaceState({}, document.title, window.location.pathname);
-        })
-        .catch(error => {
-            document.getElementById("loadingSpinner").classList.remove("active");
-            showError(`Error: ${error.message}`);
-            notifyParent("STRAVA_SYNC_ERROR", { error: error.message });
-        });
-    }
-
-    async function loadConnectedActivities() {
-        document.getElementById("loadingSpinner").classList.add("active");
-        document.getElementById("activitiesSection").classList.add("loaded");
-
-        try {
-            const response = await fetch("/api/strava/activities");
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || "Could not load Strava activities.");
-            }
-            displayActivities(data.activities || []);
-        } catch (error) {
-            showError(error.message);
-        } finally {
-            document.getElementById("loadingSpinner").classList.remove("active");
+        } catch (callbackError) {
+            showMessage('errorMessage', callbackError.message);
+            notifyParent('STRAVA_SYNC_ERROR', { error: callbackError.message });
         }
     }
 
-    // Display fetched activities
-    function displayActivities(activities) {
-        const list = document.getElementById("activitiesList");
-        
-        if (!activities || activities.length === 0) {
-            list.innerHTML = "<p style='color: #64748B; text-align: center;'>No running activities found.</p>";
-            return;
-        }
-
-        list.innerHTML = "";
-        activities.slice(0, 3).forEach(activity => {
-            const item = document.createElement("div");
-            item.className = "activity-item";
-
-            const name = document.createElement("div");
-            name.className = "activity-name";
-            name.textContent = activity.name;
-
-            const details = document.createElement("div");
-            details.className = "activity-details";
-            details.append(
-                activityDetail("Distance", `${activity.distance_km.toFixed(2)} km`),
-                activityDetail("Duration", activity.time),
-                activityDetail("Date", activity.date)
-            );
-
-            const previewButton = document.createElement("button");
-            previewButton.className = "back-button";
-            previewButton.type = "button";
-            previewButton.textContent = "Preview";
-            previewButton.addEventListener("click", () => previewActivity(activity.id, activity));
-
-            item.append(name, details, previewButton);
-            list.append(item);
-        });
-    }
-
-    function activityDetail(label, value) {
-        const item = document.createElement("div");
-        item.className = "activity-detail-item";
-        const labelEl = document.createElement("span");
-        labelEl.className = "activity-detail-label";
-        labelEl.textContent = label;
-        const valueEl = document.createElement("span");
-        valueEl.className = "activity-detail-value";
-        valueEl.textContent = value;
-        item.append(labelEl, valueEl);
-        return item;
-    }
-
-    function escapeHtml(value) {
-        const div = document.createElement("div");
-        div.textContent = value == null ? "" : String(value);
-        return div.innerHTML;
-    }
-
-    function renderImportedRecommendation(ai) {
-        if (!ai || !ai.summary) return "";
-        return ` ${escapeHtml(ai.summary)}`;
-    }
-
-    function calendarLinkFor(log) {
-        const date = log && log.date ? encodeURIComponent(log.date) : '';
-        return `/calendar${date ? `?date=${date}` : ''}`;
-    }
-
-    function renderRunCoachCard(rec) {
-        if (!rec) return '';
-        const recommendations = rec.recommendations || rec.dos || [];
-        const avoid = [rec.weakness || (rec.donts || [])[0]].filter(Boolean);
-        const focus = rec.safetyNote || (rec.focus_areas || []).join(' · ');
-
-        if (!rec.summary && !recommendations.length && !avoid.length && !focus) return '';
-
-        return `
-            <div class="strava-coach-card">
-                <h5>AI PERSONALISED COACH</h5>
-                ${rec.summary ? `<div class="strava-coach-summary">${escapeHtml(rec.summary)}</div>` : ''}
-                <div class="strava-coach-grid">
-                    ${recommendations.length ? `
-                        <div class="strava-coach-list dos">
-                            <h6>RECOMMENDED ACTIONS</h6>
-                            <ul>${recommendations.slice(0, 3).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-                        </div>
-                    ` : ''}
-                    ${avoid.length ? `
-                        <div class="strava-coach-list donts">
-                            <h6>AVOID NEXT</h6>
-                            <ul>${avoid.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-                        </div>
-                    ` : ''}
-                </div>
-                ${focus ? `<div class="strava-coach-focus"><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${escapeHtml(focus)}</div>` : ''}
-            </div>
-        `;
-    }
-
-    async function importStravaActivity(activityId, button) {
-        button.disabled = true;
-        button.textContent = "Importing...";
-        try {
-            const response = await fetch("/api/strava/import", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ activity_id: activityId })
-            });
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || "Could not import Strava activity.");
-            }
-            button.textContent = "Imported";
-            showSuccess(`${data.log.name} imported for ${data.log.date || 'Calendar'}.${data.ai_recommendation && data.ai_recommendation.summary ? ` ${data.ai_recommendation.summary}` : ''}`);
-        } catch (error) {
-            button.disabled = false;
-            button.textContent = "Import";
-            showError(error.message);
-        }
-    }
-
-    // Preview activity (details + streams)
-    async function previewActivity(activityId, activityMeta) {
-        const preview = document.getElementById('activityPreview');
-        preview.style.display = 'block';
-        preview.innerHTML = `<div style="padding:12px;border:1px solid #E2E8F0;border-radius:8px;background:#fff">Loading preview...</div>`;
-
-        try {
-            const res = await fetch('/api/strava/activity-preview', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activity_id: activityId })
-            });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load activity');
-
-            displayPreview(data.activity, data.streams, activityId, activityMeta);
-        } catch (err) {
-            preview.innerHTML = `<div style="padding:12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
-        }
-    }
-
-    function displayPreview(activity, streams, activityId, activityMeta) {
-        const preview = document.getElementById('activityPreview');
-        const latlng = streams.latlng || [];
-        const hasGps = latlng && latlng.length && latlng[0] && latlng[0].length === 2;
-        // hide the main list while previewing
-        const list = document.getElementById('activitiesList');
-        if (list) list.style.display = 'none';
-
-        let mapHtml = '';
-        if (hasGps) {
-            mapHtml = `<div id="routeMap" class="strava-route-map"></div>`;
-        } else {
-            mapHtml = `<div class="strava-empty-map">No GPS route available for this activity.</div>`;
-        }
-
-        preview.innerHTML = `
-            <div class="strava-preview-panel">
-                <div class="strava-preview-top">
-                    <div class="strava-preview-title">
-                        <span>Run preview</span>
-                        <strong>${escapeHtml(activity.name)}</strong>
-                        <small>${escapeHtml(activityMeta ? activityMeta.date : '')}</small>
-                    </div>
-                    <div class="strava-preview-stats">
-                        <div><span>Distance</span><strong>${(activity.distance_km || 0).toFixed(2)} km</strong></div>
-                        <div><span>Time</span><strong>${escapeHtml(activityMeta ? activityMeta.time : '')}</strong></div>
-                        <div><span>Pace</span><strong>${escapeHtml(activity.pace || '--/km')}</strong></div>
-                    </div>
-                </div>
-                ${mapHtml}
-                <div id="ipptPreviewArea"></div>
-                <div class="strava-preview-footer">
-                    <button id="previewBackBtn" class="back-button" type="button">Back</button>
-                    <button id="analyzeBtn" class="analyze-button" type="button">Analyse</button>
-                    <button id="saveBtn" class="save-button" type="button" disabled style="display:none">Save session</button>
-                </div>
-            </div>
-        `;
-
-        // initialize Leaflet map when GPS data is available
-        if (hasGps && typeof L !== 'undefined') {
-            try {
-                const coords = latlng.map(p => [p[0], p[1]]);
-                const map = L.map('routeMap', { scrollWheelZoom: false, zoomControl: true });
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-                }).addTo(map);
-                const poly = L.polyline(coords, { color: '#FC4C02', weight: 4, opacity: 0.95 }).addTo(map);
-                map.fitBounds(poly.getBounds(), { padding: [20, 20] });
-                L.circleMarker(coords[0], { radius: 5, color: '#10B981', fillColor: '#10B981' }).addTo(map);
-                L.circleMarker(coords[coords.length - 1], { radius: 5, color: '#3B82F6', fillColor: '#3B82F6' }).addTo(map);
-                // attach map reference so we can remove later
-                preview._leafletMap = map;
-            } catch (e) {
-                // fallback to simple SVG if Leaflet fails
-                renderRouteSVG(latlng);
-            }
-        }
-
-        // back button restores the list
-        const backBtn = document.getElementById('previewBackBtn');
-        if (backBtn) backBtn.addEventListener('click', () => {
-            if (preview._leafletMap) {
-                try { preview._leafletMap.remove(); } catch (e) {}
-                preview._leafletMap = null;
-            }
-            preview.innerHTML = '';
-            preview.style.display = 'none';
-            if (list) list.style.display = '';
-        });
-
-        document.getElementById('analyzeBtn').addEventListener('click', async () => {
-            await analyzeIpptPreview(activityId);
-        });
-
-        document.getElementById('saveBtn').addEventListener('click', async () => {
-            await saveSession(activityId);
-        });
-    }
-
-    function renderRouteSVG(latlng) {
-        const svg = document.getElementById('routeSvg');
-        if (!svg) return;
-        const w = 600, h = 160;
-        // normalize lat/lon
-        let lats = latlng.map(p => p[0]);
-        let lons = latlng.map(p => p[1]);
-        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-        const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-        const latRange = maxLat - minLat || 1e-6;
-        const lonRange = maxLon - minLon || 1e-6;
-
-        const points = latlng.map(p => {
-            const x = ((p[1] - minLon) / lonRange) * (w - 12) + 6;
-            const y = h - (((p[0] - minLat) / latRange) * (h - 12) + 6);
-            return [x, y];
-        });
-
-        const pathD = points.map((pt, i) => (i === 0 ? `M ${pt[0]} ${pt[1]}` : `L ${pt[0]} ${pt[1]}`)).join(' ');
-        svg.innerHTML = `
-            <path d="${pathD}" stroke="#FC4C02" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
-            <circle cx="${points[0][0]}" cy="${points[0][1]}" r="3" fill="#10B981"></circle>
-            <circle cx="${points[points.length-1][0]}" cy="${points[points.length-1][1]}" r="3" fill="#2563EB"></circle>
-        `;
-    }
-
-    async function analyzeIpptPreview(activityId) {
-        const area = document.getElementById('ipptPreviewArea');
-        area.innerHTML = '<div class="loading-spinner active"><div class="spinner"></div><p>Analysing 2.4km...</p></div>';
-        try {
-            const res = await fetch('/api/strava/ippt-24/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || 'Analysis failed');
-
-            const r = data.result;
-            const rec = data.recommendation || {};
-            area.innerHTML = `
-                <div class="strava-analysis-card">
-                    <div class="strava-analysis-metrics">
-                        <div><span>2.4km time</span><strong>${escapeHtml(r.official_time)}</strong></div>
-                        <div><span>Status</span><strong>${escapeHtml(r.status)}</strong></div>
-                        <div><span>Points</span><strong>${escapeHtml(r.run_points)}</strong></div>
-                    </div>
-                    ${renderRunCoachCard(rec)}
-                </div>
-            `;
-
-            const saveBtn = document.getElementById('saveBtn');
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.style.display = '';
-            }
-        } catch (err) {
-            const saveBtn = document.getElementById('saveBtn');
-            if (saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.style.display = 'none';
-            }
-            area.innerHTML = `<div style="padding:10px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
-        }
-    }
-
-    async function saveSession(activityId) {
-        const saveBtn = document.getElementById('saveBtn');
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
-        try {
-            // 1) persist ippt result
-            const saveRes = await fetch('/api/strava/ippt-24', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
-            const saveData = await saveRes.json();
-            if (!saveRes.ok || !saveData.success) throw new Error(saveData.error || 'Failed to save 2.4km result');
-
-            // 2) generate and persist recommendation if the AI service is available
-            let aiRecommendation = null;
-            try {
-                const recRes = await fetch('/api/strava/ippt-24/recommendation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId }) });
-                const recData = await recRes.json();
-                if (recRes.ok && recData.success) {
-                    aiRecommendation = recData.ai_recommendation || null;
-                } else {
-                    console.warn('Saved Strava run without AI recommendation:', recData.error || 'Recommendation unavailable');
-                }
-            } catch (recommendationError) {
-                console.warn('Saved Strava run without AI recommendation:', recommendationError);
-            }
-
-            // 3) create activity record for Calendar even if recommendation is unavailable
-            const importRes = await fetch('/api/strava/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activity_id: activityId, ai_recommendation: aiRecommendation }) });
-            const importData = await importRes.json();
-            if (!importRes.ok || !importData.success) throw new Error(importData.error || 'Failed to import activity');
-
-            showSuccess(`Saved session: ${importData.log.name} on ${importData.log.date || 'Calendar'}.`);
-            const successDiv = document.getElementById("successMessage");
-            successDiv.innerHTML = `Saved session: ${escapeHtml(importData.log.name)} on ${escapeHtml(importData.log.date || 'Calendar')}. <a href="${calendarLinkFor(importData.log)}" style="color:inherit;text-decoration:underline;font-weight:700">View in Calendar</a>`;
-            // disable buttons
-            document.getElementById('analyzeBtn').disabled = true;
-            saveBtn.textContent = 'Saved';
-        } catch (err) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save session';
-            showError(err.message);
-        }
-    }
-
-    // Send message to parent window (dashboard)
-    function notifyParent(type, data) {
-        if (window.opener) {
-            window.opener.postMessage({
-                type: type,
-                ...data
-            }, window.location.origin);
-        }
-    }
-
-    // Initialize on page load
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener('DOMContentLoaded', function () {
         initializeStravaAuth();
         handleOAuthCallback();
-        if ("{{ 'true' if strava_connected else 'false' }}" === "true" && !getQueryParam("code") && !getQueryParam("error")) {
-            loadConnectedActivities();
-        }
     });
 </script>
-
 {% endblock %}

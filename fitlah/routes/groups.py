@@ -2,15 +2,15 @@ from datetime import datetime
 
 from flask import jsonify, render_template, request
 
-from ..auth import current_user, login_required
-from ..helpers import (
+from ..core.auth import current_user, login_required
+from ..domain.activity_helpers import (
     create_invites_for_group,
     find_group,
     get_personal_best,
     user_is_group_member,
 )
-from ..ippt_scoring import age_profile_from_nric, calculate_from_personal_best
-from ..repositories import (
+from ..domain.ippt_scoring import age_profile_from_nric, calculate_from_personal_best
+from ..data_access.repositories import (
     add_group_member as repo_add_group_member,
     create_group as repo_create_group,
     list_group_members,
@@ -19,8 +19,8 @@ from ..repositories import (
     personal_best as repo_personal_best,
     update_invite,
 )
-from ..security import clean_text, json_too_large, rate_limit
-from ..validators import nric_check
+from ..core.web_security import clean_text, json_too_large, rate_limit
+from ..core.validation import nric_check
 
 
 def _default_best(nric):

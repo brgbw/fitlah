@@ -15,6 +15,17 @@
             --text-muted: #64748B;
             --border: #E2E8F0;
             --bg-badge: #E8F8F2;
+            --bg-surface: #FFFFFF;
+            --bg-subtle: #F8FAFC;
+            --card-radius: 12px;
+            --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            --page-title-size: 30px;
+            --page-title-weight: 650;
+            --page-subtitle-size: 14px;
+            --page-max-width: none;
+            --marker-pushup: #015936;
+            --marker-situp: #2563EB;
+            --marker-run: #F97316;
         }
 
         * {
@@ -200,16 +211,21 @@
             flex: 1;
             padding: 44px 40px;
             overflow-y: auto;
+            width: 100%;
+            min-height: 100vh;
         }
 
         .header-section h1 {
-            font-size: 26px;
-            font-weight: 700;
+            font-size: var(--page-title-size);
+            font-weight: var(--page-title-weight);
+            letter-spacing: -0.4px;
+            color: var(--text-main);
         }
 
         .header-section p {
-            font-size: 14px;
+            font-size: var(--page-subtitle-size);
             color: var(--text-muted);
+            line-height: 1.6;
         }
 
         @media (max-width: 760px) {
@@ -245,7 +261,7 @@
         <div class="logo">Fit<span>Lah</span></div>
 
         <nav class="nav-group">
-            <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path in ['/', '/dashboard'] %}active{% endif %}">
                 Dashboard
             </a>
 
@@ -257,8 +273,8 @@
                 Calendar
             </a>
 
-            <a href="{{ url_for('dashboard_graph') }}" class="nav-item {% if request.path == '/dashboard-graph' %}active{% endif %}">
-                Graphs
+            <a href="{{ url_for('analytics') }}" class="nav-item {% if request.path == '/analytics' %}active{% endif %}">
+                Analytics
             </a>
         </nav>
 
@@ -266,7 +282,7 @@
         <a class="sidebar-footer" href="{{ url_for('settings') }}" aria-label="Open settings">
 
             <img class="soldier-img"
-                 src="{{ url_for('static', filename='icon/soldier.jpg') }}"
+                 src="{{ url_for('static', filename='icons/soldier.jpg') }}"
                  alt="Soldier">
 
             <div class="user-info">

@@ -5,7 +5,7 @@ import os
 import re
 from datetime import date
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DEFAULT_AGE_GROUP = "22-24"
 
 AGE_GROUPS = [

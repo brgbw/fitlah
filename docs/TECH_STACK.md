@@ -23,12 +23,11 @@ Key backend folders:
 
 ```text
 fitlah/
-  app.py                 Flask app factory-style setup and route registration
-  db.py                  PostgreSQL engine, schema setup, encryption helpers
-  repositories.py        Database read/write helpers
-  security.py            Origin checks, CORS headers, rate limits, sanitizers
-  strava.py              Strava API client and run analysis helpers
-  ai_coach.py            OpenRouter AI coaching integration
+  core/                  Flask app setup, auth, config, constants, validation, web security
+  data_access/           PostgreSQL engine, schema setup, encryption, repository helpers
+  domain/                IPPT scoring, activity helpers, user profile, session files
+  integrations/          Strava API client and OpenRouter AI coaching
+  maintenance/           One-off database maintenance commands
   routes/                Flask route modules
 ```
 
@@ -49,7 +48,7 @@ Key frontend folders:
 templates/              Jinja HTML pages and shared UI
 static/js/              Page scripts and exercise counting logic
 static/mediapipe/       Bundled MediaPipe runtime assets
-static/icon/            App and integration icons
+static/icons/           App and integration icons
 ```
 
 ## Database
@@ -57,7 +56,7 @@ static/icon/            App and integration icons
 | Technology | Purpose |
 | --- | --- |
 | PostgreSQL | Primary local database |
-| Auto-created tables | Created on first app startup through `fitlah/db.py` |
+| Auto-created tables | Created on first app startup through `fitlah/data_access/database.py` |
 
 Main data areas:
 
@@ -99,7 +98,7 @@ FITLAH_ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000,https://*.try
 | Feature | Implementation |
 | --- | --- |
 | Session protection | Flask sessions with HTTP-only cookies |
-| Origin checks | `fitlah/security.py` validates unsafe request origins |
+| Origin checks | `fitlah/core/web_security.py` validates unsafe request origins |
 | CORS support | Allowed origins from `.env`, including Cloudflare tunnel wildcard for demos |
 | Rate limiting | In-memory per-user/IP route limits for sensitive endpoints |
 | Token storage | Fernet encryption backed by `FIELD_ENCRYPTION_KEY` or `FITLAH_SECRET_KEY` |

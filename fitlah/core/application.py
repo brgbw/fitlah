@@ -5,9 +5,9 @@ from flask import Flask, url_for
 
 from .auth import current_user
 from .config import BASE_DIR
-from .db import close_db, ensure_tables
-from .routes import register_routes
-from .security import configure_security
+from ..data_access.database import close_db, ensure_tables
+from ..routes import register_routes
+from .web_security import configure_security
 
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 

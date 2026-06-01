@@ -10,11 +10,11 @@ Actions:
 
 Run with the project's environment:
 
-    $env:PYTHONPATH='.'; python scripts/cleanup_strava_settings.py
+    python -m fitlah.maintenance.cleanup_strava_settings
 
 """
-from fitlah.db import ensure_tables, session_scope
-from fitlah.repositories import get_settings, set_setting, get_setting
+from fitlah.data_access.database import ensure_tables, session_scope
+from fitlah.data_access.repositories import get_settings, set_setting, get_setting
 from sqlalchemy import text
 
 

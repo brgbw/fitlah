@@ -1,11 +1,11 @@
 from flask import jsonify, render_template, request
 
-from ..auth import current_user, login_required
-from ..helpers import get_personal_best
-from ..ippt_scoring import AGE_GROUPS, DEFAULT_AGE_GROUP, calculate_from_personal_best
-from ..repositories import activity_records as activity_records_for_nric, list_workouts
-from ..session_cleanup import clear_session_analysis_files
-from .strava_routes import strava_connection_context
+from ..core.auth import current_user, login_required
+from ..domain.activity_helpers import get_personal_best
+from ..domain.ippt_scoring import AGE_GROUPS, DEFAULT_AGE_GROUP, calculate_from_personal_best
+from ..data_access.repositories import activity_records as activity_records_for_nric, list_workouts
+from ..domain.session_cleanup import clear_session_analysis_files
+from .strava import strava_connection_context
 
 
 def register_dashboard_routes(app):
@@ -49,7 +49,7 @@ def register_dashboard_routes(app):
             "age_groups": AGE_GROUPS,
         })
 
-    @app.route("/dashboard-graph")
+    @app.route("/analytics")
     @login_required
-    def dashboard_graph():
-        return render_template("dashboardgraph.html")
+    def analytics():
+        return render_template("analytics.html")
