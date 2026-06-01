@@ -114,7 +114,7 @@
 
     .note-block h2,
     .note-focus h2 {
-        font-size: 16px;
+        font-size: calc(18px * var(--font-scale)) !important;
         font-weight: 800;
         letter-spacing: 0;
         text-transform: uppercase;
@@ -125,40 +125,24 @@
     .note-block.avoid h2 { color: #DC2626; }
     .note-focus h2 { color: var(--text-muted); }
 
-    .note-pill {
-        border-radius: 10px;
-        padding: 14px 16px;
-        font-size: 16px;
-        font-weight: 500;
-        color: #475569;
-        line-height: 1.55;
-    }
-
-    .note-block.do .note-pill {
-         background: var(--bg-subtle);
-        border: 0;
-        border-radius: 8px;
-        padding: 14px 16px;
-        color: #334155;
-        font-size: 16px;
-        font-weight: 400;
-        line-height: 1.6;
-        margin-bottom: 16px;
- 
-    }
-
-    .note-block.avoid .note-pill {
+    .note-list {
         background: var(--bg-subtle);
         border: 0;
-
         border-radius: 8px;
-        padding: 14px 16px;
+        margin: 0 0 16px;
+        padding: 14px 16px 14px 34px;
         color: #334155;
-        font-size: 16px;
+        font-size: calc(18px * var(--font-scale));
         font-weight: 400;
         line-height: 1.6;
-        margin-bottom: 16px;
+    }
 
+    .note-list li {
+        margin-bottom: 6px;
+    }
+
+    .note-list li:last-child {
+        margin-bottom: 0;
     }
 
     .note-focus {
@@ -315,14 +299,22 @@
                 {% if ai.dos %}
                 <section class="note-block do">
                     <h2>RECOMMENDED ACTIONS</h2>
-                    <div class="note-pill">{{ ai.dos[0] }}</div>
+                    <ul class="note-list">
+                        {% for item in ai.dos %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
                 </section>
                 {% endif %}
 
                 {% if ai.donts %}
                 <section class="note-block avoid">
                     <h2>AVOID NEXT</h2>
-                    <div class="note-pill">{{ ai.donts[0] }}</div>
+                    <ul class="note-list">
+                        {% for item in ai.donts %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
                 </section>
                 {% endif %}
             </div>

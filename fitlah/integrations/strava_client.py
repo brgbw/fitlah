@@ -229,20 +229,15 @@ def validate_ippt_activity(activity, streams):
     spike_count = _speed_spike_count(streams, activity)
     if spike_count:
         score -= min(30, 10 + spike_count * 5)
-        flags.append("Suspicious speed spikes detected.")
+        flags.append("Speed spikes detected.")
 
     jump_count = _gps_jump_count(streams)
     if jump_count:
         score -= min(30, 10 + jump_count * 5)
-        flags.append("Suspicious GPS jumps detected.")
+        flags.append("GPS jumps detected.")
 
     score = max(0, min(100, score))
-    if score < 50:
-        status = "invalid"
-    elif flags or score < 85:
-        status = "suspicious"
-    else:
-        status = "verified"
+    status = "valid" if score >= 85 and not flags else "invalid"
     return {"validityScore": score, "status": status, "flags": flags}
 
 

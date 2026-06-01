@@ -39,7 +39,7 @@
     .filter-pill {
         padding: 6px 14px;
         border-radius: 6px;
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 600;
         color: #64748B;
         border: 1px solid transparent;
@@ -106,10 +106,9 @@
     }
 
     .section-title {
-        font-size: 11px;
+        font-size: calc(22px * var(--font-scale));
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
         color: #64748B;
         margin-bottom: 20px;
     }
@@ -127,7 +126,7 @@
         align-items: center;
         gap: 8px;
         color: #64748B;
-        font-size: 12px;
+        font-size: calc(18px * var(--font-scale));
         font-weight: 600;
     }
 
@@ -136,7 +135,7 @@
         border-radius: 8px;
         background: #FFFFFF;
         color: #0F172A;
-        font-size: 12px;
+        font-size: calc(18px * var(--font-scale));
         padding: 8px 10px;
         outline: none;
     }
@@ -480,12 +479,23 @@
         text-align: center;
         padding: 30px 0;
         color: #64748B;
-        font-size: 12px;
+        font-size: calc(20px * var(--font-scale));
+        line-height: 1.5;
+    }
+
+    .invite-empty-state {
+        color: #64748B;
+        text-align: center;
+        padding: 14px 0;
+        font-size: calc(20px * var(--font-scale));
+        line-height: 1.5;
+        font-weight: 600;
     }
 </style>
 
 <div class="header-section">
     <h1>Groups</h1>
+    <p>Review your training entries by date.</p>
 </div>
 
 <!-- Modal -->
@@ -644,7 +654,7 @@
                     {% endif %}
                     {% endfor %}
                 {% endif %}
-                <div id="emptyState" style="font-size:12px; color:#64748B; text-align:center; padding:10px 0; {% if invites|selectattr('status', 'equalto', 'Pending')|list %}display:none;{% endif %}">No pending invitations found.</div>
+                <div id="emptyState" class="invite-empty-state" style="{% if invites|selectattr('status', 'equalto', 'Pending')|list %}display:none;{% endif %}">No pending invitations found.</div>
             </div>
         </div>
     </div>

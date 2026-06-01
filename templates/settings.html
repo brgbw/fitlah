@@ -103,6 +103,40 @@
         font-size: 14px;
     }
 
+    .font-slider-row {
+        align-items: start;
+    }
+
+    .font-slider-control {
+        display: grid;
+        gap: 10px;
+    }
+
+    .font-slider-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .font-slider-top strong {
+        color: var(--text-main);
+        font-size: 18px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .font-slider-control input[type="range"] {
+        padding: 0;
+        accent-color: var(--primary);
+    }
+
+    .font-slider-help {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
     .settings-actions {
         display: flex;
         align-items: center;
@@ -206,6 +240,24 @@
 
         <section class="settings-section">
             <div class="section-title">
+                <h2>Display</h2>
+                <span>Adjust app text size for demos, projectors, and judging rooms.</span>
+            </div>
+
+            <div class="field-row font-slider-row">
+                <label for="font_scale">Font size</label>
+                <div class="font-slider-control">
+                    <div class="font-slider-top">
+                        <input id="font_scale" name="font_scale" type="range" min="0.85" max="1.40" step="0.05" value="{{ '%.2f'|format(font_scale) }}">
+                        <strong id="fontScaleValue">{{ font_percent }}%</strong>
+                    </div>
+                    <div class="font-slider-help">Changes preview immediately. Save changes to keep this size across pages.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <div class="section-title">
                 <h2><img src="{{ url_for('static', filename='icons/strava.png') }}" alt="Strava" style="height:20px;vertical-align:middle;margin-right:8px">Strava</h2>
                 <span>OAuth credentials are server-controlled; connect your account from the Strava page.</span>
             </div>
@@ -231,4 +283,20 @@
         </div>
     </form>
 </div>
+<script>
+    const fontSlider = document.getElementById('font_scale');
+    const fontScaleValue = document.getElementById('fontScaleValue');
+
+    function updateFontPreview() {
+        if (!fontSlider || !fontScaleValue) return;
+        const scale = Number(fontSlider.value || 1);
+        document.documentElement.style.setProperty('--font-scale', scale.toFixed(2));
+        fontScaleValue.textContent = `${Math.round(scale * 100)}%`;
+    }
+
+    if (fontSlider) {
+        fontSlider.addEventListener('input', updateFontPreview);
+        updateFontPreview();
+    }
+</script>
 {% endblock %}

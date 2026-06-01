@@ -198,7 +198,7 @@ SCHEMA = [
         official_time TEXT NOT NULL,
         run_points INTEGER NOT NULL DEFAULT 0,
         validity_score INTEGER NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('verified', 'suspicious', 'invalid')),
+        status TEXT NOT NULL CHECK (status IN ('valid', 'invalid')),
         extra_distance_m NUMERIC(8,2) NOT NULL DEFAULT 0,
         pacing_trend TEXT NOT NULL,
         splits JSONB NOT NULL,
@@ -218,5 +218,34 @@ SCHEMA = [
     CREATE UNIQUE INDEX IF NOT EXISTS uq_activity_user_source_external
     ON activity_records(user_id, source, source_external_id)
     WHERE source_external_id IS NOT NULL AND source_external_id <> ''
+    """,
+    """
+    DO $$
+    DECLARE
+        item record;
+    BEGIN
+        FOR item IN
+            SELECT con.conname
+            FROM pg_constraint con
+            JOIN pg_class rel ON rel.oid = con.conrelid
+            JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+            WHERE nsp.nspname = current_schema()
+              AND rel.relname = 'strava_ippt_results'
+              AND con.contype = 'c'
+              AND pg_get_constraintdef(con.oid) LIKE '%status%'
+        LOOP
+            EXECUTE format('ALTER TABLE strava_ippt_results DROP CONSTRAINT %I', item.conname);
+        END LOOP;
+    END $$;
+    """,
+    """
+    UPDATE strava_ippt_results
+    SET status = CASE WHEN status IN ('verified', 'valid') THEN 'valid' ELSE 'invalid' END
+    WHERE status NOT IN ('valid', 'invalid')
+    """,
+    """
+    ALTER TABLE strava_ippt_results
+    ADD CONSTRAINT strava_ippt_results_status_check
+    CHECK (status IN ('valid', 'invalid'))
     """,
 ]

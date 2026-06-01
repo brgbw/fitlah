@@ -1,5 +1,7 @@
 # FitLah
 
+Current project version: 0.1.4
+
 FitLah is a web app for Singapore IPPT training. It helps users track push-ups, sit-ups, and runs, import real running data from Strava, analyse 2.4km efforts, and get training recommendations from their saved activity history.
 
 ## Project Overview
@@ -9,7 +11,7 @@ FitLah was built for a hackathon as a practical fitness companion for NSmen and 
 The app focuses on four core workflows:
 
 - Track training sessions for push-ups, sit-ups, and runs.
-- Use webcam-based pose detection to count push-up and sit-up reps.
+- Use webcam-based pose detection to count push-up and sit-up reps, with first-rep benchmarking so counting adapts to each user's movement range.
 - Connect Strava to import recent running activities and evaluate 2.4km readiness.
 - Review progress through dashboards, calendar records, personal bests, groups, and optional AI coaching.
 
@@ -31,6 +33,7 @@ FitLah solves this by combining exercise capture, run import, scoring context, a
 - Account signup and login.
 - Dashboard with personal bests and recent activity.
 - Webcam push-up and sit-up session logging with MediaPipe pose detection.
+- Forgiving rep counting for demos and real users: the first valid rep becomes a per-session benchmark for later push-up depth or sit-up height.
 - Calendar-based activity history.
 - Strava OAuth connection and recent run import.
 - 2.4km/IPPT-style run validation from Strava activity streams.
@@ -44,7 +47,7 @@ For judging, a typical demo can follow this order:
 
 1. Launch the app locally and sign in.
 2. Show the dashboard, personal best cards, and recent activity.
-3. Start a webcam push-up or sit-up session and save the result.
+3. Start a webcam push-up or sit-up session and save the result. The first counted rep calibrates the session, then later reps are scored against that movement benchmark.
 4. Open the calendar to show the saved activity.
 5. Connect Strava, import a recent run, and run the 2.4km analysis.
 6. Show AI or fallback coaching recommendations.
@@ -55,6 +58,25 @@ For judging, a typical demo can follow this order:
 For a complete friend handoff, use [`instructions.txt`](instructions.txt). It includes PostgreSQL, Strava API, Cloudflare tunnel, and troubleshooting steps.
 
 For an architecture and dependency overview, see [`docs/TECH_STACK.md`](docs/TECH_STACK.md).
+
+## GitHub Publishing Notes
+
+Before publishing, keep generated local files out of the repository:
+
+- Do not commit `.env`, virtual environments, local database dumps, uploaded user videos, or personal API keys.
+- Use `.env.example` as the public template for environment variables.
+- Strava Client Secrets and OpenRouter API keys should be added locally through `.env` or the app settings, not hard-coded.
+- If you use Cloudflare Tunnel for a demo, the temporary `trycloudflare.com` URL can change every run.
+
+The repository is intended to be publishable as source code plus static lookup data. User recordings and personal database records belong in local runtime storage only.
+
+## Webcam Rep Counting
+
+FitLah uses MediaPipe Pose in the browser for push-up and sit-up sessions.
+
+Push-up counting checks a side-on body profile, arm position, body alignment, and movement depth. The thresholds are intentionally forgiving for hackathon demos and varied camera angles. After the first valid push-up, FitLah stores that rep's elbow depth and shoulder drop as the session benchmark, then accepts later reps that are close to the user's own range.
+
+Sit-up counting checks a side-on torso, hip angle, bent knees, and grounded feet. After the first valid sit-up, FitLah stores that rep's down and up hip-angle range, then uses it to make later reps easier to score for the same user and camera setup.
 
 ## Quick Start
 

@@ -262,7 +262,7 @@ def recalculate_personal_best(nric):
                         SELECT MIN(official_time_seconds)
                         FROM strava_ippt_results
                         WHERE user_id = :user_id
-                          AND status IS DISTINCT FROM 'invalid'
+                          AND status = 'valid'
                     ), 2147483647),
                     COALESCE((
                         SELECT MIN(run_time_seconds)

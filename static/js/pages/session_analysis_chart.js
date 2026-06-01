@@ -185,7 +185,7 @@
                 const isOpen = help.hidden;
                 help.hidden = !isOpen;
                 button.setAttribute('aria-expanded', String(isOpen));
-                button.textContent = isOpen ? 'Hide guide' : 'Guide';
+                button.textContent = isOpen ? 'Hide' : 'Guide';
             });
         });
     }

@@ -22,25 +22,27 @@
     };
 
     const CONFIG = {
-        // The first rep is armed only after a stable lying/down setup is held for 1 second.
-        READY_HOLD_MS: 500,
+        // The first rep is armed after a brief stable lying/down setup hold.
+        READY_HOLD_MS: 350,
         // MediaPipe visibility can flicker during floor exercises; low-confidence frames do not move states.
         POSE_CONFIDENCE_MIN: 0.2,
         // EMA smoothing reduces small landmark jitter while keeping transitions responsive.
         SMOOTHING_ALPHA: 0.4,
         // Bent knees are required for a proper sit-up setup; overly straight legs are rejected.
         KNEE_ANGLE_MIN: 20,
-        KNEE_ANGLE_MAX: 178,
-        KNEE_COLLAPSE_MAX_RATIO: 1.2,
+        KNEE_ANGLE_MAX: 182,
+        KNEE_COLLAPSE_MAX_RATIO: 1.4,
         // Hip angle is used for torso ascent/descent: large means lying/down, small means seated/up.
-        DOWN_HIP_ANGLE_MIN: 85,
-        UP_HIP_ANGLE_MAX: 125,
-        MIN_ASCENT_DELTA: 8,
+        DOWN_HIP_ANGLE_MIN: 78,
+        UP_HIP_ANGLE_MAX: 135,
+        MIN_ASCENT_DELTA: 6,
+        BENCHMARK_UP_HIP_MARGIN: 10,
+        BENCHMARK_ASCENT_RATIO: 0.75,
         // Feet should remain near their calibrated down-position height; large upward movement is rejected.
-        FOOT_LIFT_TOLERANCE: 0.18,
+        FOOT_LIFT_TOLERANCE: 0.24,
         // Side-on analysis expects overlapping shoulders/hips; wide spans imply twisting or camera distortion.
-        CAMERA_WIDTH_MAX_RATIO: 1.2,
-        TWIST_MAX_RATIO: 0.5,
+        CAMERA_WIDTH_MAX_RATIO: 1.45,
+        TWIST_MAX_RATIO: 0.65,
         MIN_BODY_SPAN: 0.12,
         MIN_REP_DURATION_MS: 250,
         REP_COOLDOWN_MS: 250,
@@ -58,6 +60,7 @@
         repStartedAt: 0,
         lastCountedAt: 0,
         minHipAngleThisRep: 180,
+        firstRepBenchmark: null,
         downFrames: 0,
         upFrames: 0,
         ascendingFrames: 0,
@@ -74,6 +77,7 @@
         tracker.repStartedAt = 0;
         tracker.lastCountedAt = 0;
         tracker.minHipAngleThisRep = 180;
+        tracker.firstRepBenchmark = null;
         tracker.downFrames = 0;
         tracker.upFrames = 0;
         tracker.ascendingFrames = 0;
@@ -297,6 +301,22 @@
         tracker.descendingFrames = isDescending ? tracker.descendingFrames + 1 : 0;
     }
 
+    function benchmarkedUpThresholds(downAngle) {
+        const benchmark = tracker.firstRepBenchmark;
+        if (!benchmark) {
+            return {
+                upHipMax: CONFIG.UP_HIP_ANGLE_MAX,
+                minAscentDelta: CONFIG.MIN_ASCENT_DELTA
+            };
+        }
+
+        const benchmarkDelta = Math.max(CONFIG.MIN_ASCENT_DELTA, benchmark.downHipAngle - benchmark.upHipAngle);
+        return {
+            upHipMax: Math.min(155, Math.max(CONFIG.UP_HIP_ANGLE_MAX, benchmark.upHipAngle + CONFIG.BENCHMARK_UP_HIP_MARGIN)),
+            minAscentDelta: Math.max(CONFIG.MIN_ASCENT_DELTA, Math.min(downAngle * 0.15, benchmarkDelta * CONFIG.BENCHMARK_ASCENT_RATIO))
+        };
+    }
+
     function beginRep(helpers, now, validation) {
         tracker.state = STATE.ASCENDING;
         tracker.repStartedAt = now;
@@ -315,6 +335,14 @@
         helpers.setPositionReady(false);
         helpers.setStage(STATE.INVALID_FORM);
         helpers.markInvalid(message);
+    }
+
+    function captureFirstRepBenchmark(downAngle) {
+        if (tracker.firstRepBenchmark) return;
+        tracker.firstRepBenchmark = {
+            downHipAngle: downAngle,
+            upHipAngle: tracker.minHipAngleThisRep
+        };
     }
 
     function sampleMetrics(metrics, helpers, validation) {
@@ -359,7 +387,7 @@
         const downPosture = validateSitupPosture(smoothed, helpers, 'down');
 
         // Ready validation requires the full down posture, bent knees, visible grounded feet, and stable body
-        // landmarks for 1 second. Hand-on-ear validation is intentionally not part of sit-up counting.
+        // landmarks for a brief hold. Hand-on-ear validation is intentionally not part of sit-up counting.
         if (!tracker.readyConfirmed) {
             setReadiness(downPosture, helpers, now);
             sampleMetrics(helpers.metrics, helpers, posture);
@@ -375,10 +403,11 @@
         const hipAngle = posture.metrics.hipAngle;
         const downAngle = tracker.downHipAngle || CONFIG.DOWN_HIP_ANGLE_MIN;
         const ascentDelta = downAngle - hipAngle;
+        const upThresholds = benchmarkedUpThresholds(downAngle);
         const isDown = downPosture.ok && hipAngle >= CONFIG.DOWN_HIP_ANGLE_MIN;
-        const isUp = hipAngle <= CONFIG.UP_HIP_ANGLE_MAX && ascentDelta >= CONFIG.MIN_ASCENT_DELTA;
-        const isAscending = ascentDelta >= 10 && !isUp;
-        const isDescending = tracker.minHipAngleThisRep < 180 && hipAngle > tracker.minHipAngleThisRep + 8;
+        const isUp = hipAngle <= upThresholds.upHipMax && ascentDelta >= upThresholds.minAscentDelta;
+        const isAscending = ascentDelta >= CONFIG.MIN_ASCENT_DELTA && !isUp;
+        const isDescending = tracker.minHipAngleThisRep < 180 && hipAngle > tracker.minHipAngleThisRep + 6;
         updateStableFrames(isDown, isUp, isAscending, isDescending);
 
         tracker.minHipAngleThisRep = Math.min(tracker.minHipAngleThisRep, hipAngle);
@@ -416,6 +445,7 @@
             if (tracker.downFrames >= CONFIG.STABLE_FRAMES_REQUIRED) {
                 const repDuration = now - tracker.repStartedAt;
                 if (repDuration >= CONFIG.MIN_REP_DURATION_MS) {
+                    captureFirstRepBenchmark(downAngle);
                     tracker.lastCountedAt = now;
                     tracker.state = STATE.REP_COUNTED;
                     tracker.downHipAngle = hipAngle;

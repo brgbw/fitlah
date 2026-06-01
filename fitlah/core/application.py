@@ -6,6 +6,7 @@ from flask import Flask, url_for
 from .auth import current_user
 from .config import BASE_DIR
 from ..data_access.database import close_db, ensure_tables
+from ..data_access.repositories import get_setting
 from ..routes import register_routes
 from .web_security import configure_security
 
@@ -30,7 +31,16 @@ def inject_current_user():
     return {
         "current_user": current_user(),
         "asset_url": asset_url,
+        "font_scale": _font_scale(),
     }
+
+
+def _font_scale():
+    try:
+        value = float(get_setting("font_scale", "1"))
+    except (TypeError, ValueError, RuntimeError):
+        value = 1.0
+    return min(1.4, max(0.85, value))
 
 
 def asset_url(filename):

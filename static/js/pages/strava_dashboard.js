@@ -34,9 +34,21 @@ function escapeHtml(value) {
     return div.innerHTML;
 }
 
+function formatValidityStatus(value) {
+    return String(value || '').toLowerCase() === 'valid' ? 'Valid' : 'Invalid';
+}
+
 function calendarLinkFor(log) {
     const date = log && log.date ? encodeURIComponent(log.date) : '';
     return `/calendar${date ? `?date=${date}` : ''}`;
+}
+
+function setWebcamLaunchCardHidden(hidden) {
+    const card = document.getElementById('webcamLaunchCard');
+    if (!card) return;
+    card.style.display = hidden ? 'none' : '';
+    const actionStack = card.closest('.action-stack.single-action');
+    if (actionStack) actionStack.style.display = hidden ? 'none' : '';
 }
 
 function renderRunCoachCard(rec) {
@@ -99,6 +111,7 @@ function makeMiniCard(activity) {
     const name = document.createElement('strong');
     name.textContent = activity.name;
     const meta = el('div');
+    meta.className = 'strava-run-meta';
     meta.textContent = `${Number(activity.distance_km || 0).toFixed(2)} km - ${activity.time || ''} - ${activity.date || ''}`;
     left.append(name, meta);
 
@@ -156,6 +169,7 @@ async function previewActivityDashboard(activityId, activityMeta) {
     const preview = document.getElementById('dashboardStravaPreview');
     const list = document.getElementById('dashboardStravaList');
     if (list) list.style.display = 'none';
+    setWebcamLaunchCardHidden(true);
     preview.style.display = 'block';
     preview.innerHTML = `<div style="padding:12px;border:1px solid #E2E8F0;border-radius:8px;background:#fff">Loading preview...</div>`;
     try {
@@ -216,6 +230,7 @@ async function previewActivityDashboard(activityId, activityMeta) {
             if (preview._leafletMap) { try { preview._leafletMap.remove(); } catch (e) {} preview._leafletMap = null; }
             preview.innerHTML = '';
             preview.style.display = 'none';
+            setWebcamLaunchCardHidden(false);
             if (list) list.style.display = '';
         });
         document.getElementById('dashboardAnalyzeBtn').addEventListener('click', async () => {
@@ -225,6 +240,7 @@ async function previewActivityDashboard(activityId, activityMeta) {
             await saveSessionDashboard(activityId);
         });
     } catch (err) {
+        setWebcamLaunchCardHidden(false);
         preview.innerHTML = `<div style="padding:12px;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;color:#991B1B">${escapeHtml(err.message)}</div>`;
     }
 }
@@ -240,7 +256,7 @@ async function analyzeIpptPreviewDashboard(activityId) {
             <div class="strava-analysis-card">
                 <div class="strava-analysis-metrics">
                     <div><span>2.4km time</span><strong>${escapeHtml(r.official_time)}</strong></div>
-                    <div><span>Status</span><strong>${escapeHtml(r.status)}</strong></div>
+                    <div><span>Status</span><strong>${formatValidityStatus(r.status)}</strong></div>
                     <div><span>Points</span><strong>${escapeHtml(r.run_points)}</strong></div>
                 </div>
                 ${renderRunCoachCard(rec)}

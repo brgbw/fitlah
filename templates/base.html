@@ -19,9 +19,10 @@
             --bg-subtle: #F8FAFC;
             --card-radius: 12px;
             --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            --page-title-size: 30px;
+            --font-scale: {{ font_scale|default(1.0) }};
+            --page-title-size: calc(40px * var(--font-scale));
             --page-title-weight: 650;
-            --page-subtitle-size: 14px;
+            --page-subtitle-size: calc(20px * var(--font-scale));
             --page-max-width: none;
             --marker-pushup: #015936;
             --marker-situp: #2563EB;
@@ -39,6 +40,7 @@
             background-color: var(--bg-body);
             display: flex;
             min-height: 100vh;
+            font-size: calc(18px * var(--font-scale));
         }
 
         .app-container {
@@ -120,7 +122,7 @@
             padding: 12px 14px;
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 14px;
+            font-size: calc(18px * var(--font-scale));
             border-radius: 8px;
 
             transition: all 0.15s ease;
@@ -180,18 +182,18 @@
         }
 
         .user-info .name {
-            font-size: 14px;
+            font-size: calc(18px * var(--font-scale));
             font-weight: 700;
             color: var(--text-main);
         }
 
         .user-info .role {
-            font-size: 12px;
+            font-size: calc(16px * var(--font-scale));
             color: var(--text-muted);
         }
 
         .logout-link {
-            font-size: 11px;
+            font-size: calc(16px * var(--font-scale));
             color: var(--text-muted);
             text-decoration: none;
         }
@@ -308,6 +310,37 @@
     <div class="main-workspace">
         <div class="main-content">
             {% block content %}{% endblock %}
+            <style>
+                .main-content :where(h1) {
+                    font-size: calc(40px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h2) {
+                    font-size: calc(34px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h3) {
+                    font-size: calc(26px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h4, h5, h6) {
+                    font-size: calc(22px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                    font-size: max(calc(18px * var(--font-scale)), 1em) !important;
+                    line-height: 1.5;
+                }
+
+                .main-content :where(span) {
+                    font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+                    line-height: 1.35;
+                }
+
+                .main-content :where(.panel-title, .panel-kicker, .action-meta, .award-pill, .strava-btn, .primary-btn, .calendar-day, .weekday-label, .agenda-date, .metric-label-small, .legend-item, .status-badge-pill) {
+                    font-size: calc(18px * var(--font-scale)) !important;
+                }
+            </style>
         </div>
     </div>
 

@@ -1,10 +1,15 @@
-Version 0.1.3
+Version 0.1.4
 
-Refactor Code and UI
-Removed serverdata json completely
+GitHub-ready documentation and friend handoff update
+
+- Documented adaptive webcam rep counting for push-ups and sit-ups.
+- Added publishing checklist so .env, API keys, videos, virtual environments,
+  and local runtime data stay out of GitHub.
+- Clarified that IPPT lookup JSON files are static reference data.
+- Previous update: refactored code/UI and removed serverdata JSON completely.
 
 
 
 
-Increase version number and edit brief description just before editing 
-so that people will know if it is the latest version
+Increase version number and edit brief description just before publishing
+so people know if it is the latest version.

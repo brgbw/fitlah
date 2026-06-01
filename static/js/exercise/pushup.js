@@ -24,32 +24,34 @@
     };
 
     const CONFIG = {
-        // The first rep is only armed after the user holds a valid straight-arm plank for 1 second.
-        READY_HOLD_MS: 700,
+        // The first rep is armed after a brief valid straight-arm plank hold.
+        READY_HOLD_MS: 450,
         // MediaPipe visibility is noisy in side view; this keeps low-confidence frames from moving states.
         POSE_CONFIDENCE_MIN: 0.28,
         // EMA smoothing absorbs small landmark jitter without adding visible lag to rep transitions.
         SMOOTHING_ALPHA: 0.4,
         // Straight arms define a valid push-up top position.
-        UP_ELBOW_MIN_ANGLE: 115,
+        UP_ELBOW_MIN_ANGLE: 105,
         // A rep must pass this elbow depth, or an equivalent shoulder drop, before it can count.
-        DOWN_ELBOW_MAX_ANGLE: 145,
-        MIN_SHOULDER_DROP: 0.02,
+        DOWN_ELBOW_MAX_ANGLE: 155,
+        MIN_SHOULDER_DROP: 0.015,
+        BENCHMARK_ELBOW_MARGIN: 12,
+        BENCHMARK_SHOULDER_DROP_RATIO: 0.7,
         // Prevent quick oscillations or single-frame flicker from becoming duplicate reps.
         MIN_REP_DURATION_MS: 300,
         REP_COOLDOWN_MS: 300,
         STABLE_FRAMES_REQUIRED: 2,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         // Full-body validation thresholds are normalized by body length so they scale with camera distance.
-        BODY_STRAIGHTNESS_TOLERANCE: 0.35,
-        HEAD_ALIGNMENT_TOLERANCE: 0.55,
-        SHOULDER_SYMMETRY_TOLERANCE: 0.35,
-        HIP_SYMMETRY_TOLERANCE: 0.35,
-        MIN_HIP_ANGLE: 105,
-        MIN_KNEE_ANGLE: 110,
-        WRIST_SHOULDER_MAX_OFFSET: 2.2,
+        BODY_STRAIGHTNESS_TOLERANCE: 0.45,
+        HEAD_ALIGNMENT_TOLERANCE: 0.7,
+        SHOULDER_SYMMETRY_TOLERANCE: 0.45,
+        HIP_SYMMETRY_TOLERANCE: 0.45,
+        MIN_HIP_ANGLE: 95,
+        MIN_KNEE_ANGLE: 100,
+        WRIST_SHOULDER_MAX_OFFSET: 2.6,
         WRIST_BELOW_SHOULDER_MIN: -0.08,
-        CAMERA_WIDTH_MAX_RATIO: 1.0,
+        CAMERA_WIDTH_MAX_RATIO: 1.2,
         MIN_BODY_LENGTH: 0.12
     };
 
@@ -63,7 +65,10 @@
         upFrames: 0,
         repStartedAt: 0,
         lastCountedAt: 0,
-        repInvalid: false
+        repInvalid: false,
+        firstRepBenchmark: null,
+        currentRepMinElbowAngle: 180,
+        currentRepMaxShoulderDrop: 0
     };
 
     function reset() {
@@ -77,6 +82,9 @@
         tracker.repStartedAt = 0;
         tracker.lastCountedAt = 0;
         tracker.repInvalid = false;
+        tracker.firstRepBenchmark = null;
+        tracker.currentRepMinElbowAngle = 180;
+        tracker.currentRepMaxShoulderDrop = 0;
     }
 
     function visible(point, minVisibility) {
@@ -337,11 +345,29 @@
         tracker.upFrames = isUp ? tracker.upFrames + 1 : 0;
     }
 
+    function benchmarkedDownThresholds() {
+        const benchmark = tracker.firstRepBenchmark;
+        if (!benchmark) {
+            return {
+                elbowMax: CONFIG.DOWN_ELBOW_MAX_ANGLE,
+                shoulderDropMin: CONFIG.MIN_SHOULDER_DROP
+            };
+        }
+
+        return {
+            elbowMax: Math.min(165, Math.max(CONFIG.DOWN_ELBOW_MAX_ANGLE, benchmark.elbowAngle + CONFIG.BENCHMARK_ELBOW_MARGIN)),
+            shoulderDropMin: benchmark.shoulderDrop > 0.01
+                ? Math.max(0.008, Math.min(CONFIG.MIN_SHOULDER_DROP, benchmark.shoulderDrop * CONFIG.BENCHMARK_SHOULDER_DROP_RATIO))
+                : CONFIG.MIN_SHOULDER_DROP
+        };
+    }
+
     function isDownPosition(validation) {
         if (!validation.ok) return false;
         const metrics = validation.metrics;
-        return metrics.elbowAngle <= CONFIG.DOWN_ELBOW_MAX_ANGLE ||
-            metrics.shoulderDrop >= CONFIG.MIN_SHOULDER_DROP;
+        const thresholds = benchmarkedDownThresholds();
+        return metrics.elbowAngle <= thresholds.elbowMax ||
+            metrics.shoulderDrop >= thresholds.shoulderDropMin;
     }
 
     function isUpPosition(validation) {
@@ -352,7 +378,23 @@
         tracker.state = STATE.DOWN;
         tracker.repStartedAt = now;
         tracker.repInvalid = false;
+        tracker.currentRepMinElbowAngle = 180;
+        tracker.currentRepMaxShoulderDrop = 0;
         helpers.setStage(STATE.DOWN);
+    }
+
+    function updateCurrentRepBenchmark(validation) {
+        if (!validation.ok || tracker.state !== STATE.DOWN) return;
+        tracker.currentRepMinElbowAngle = Math.min(tracker.currentRepMinElbowAngle, validation.metrics.elbowAngle);
+        tracker.currentRepMaxShoulderDrop = Math.max(tracker.currentRepMaxShoulderDrop, validation.metrics.shoulderDrop || 0);
+    }
+
+    function captureFirstRepBenchmark() {
+        if (tracker.firstRepBenchmark) return;
+        tracker.firstRepBenchmark = {
+            elbowAngle: tracker.currentRepMinElbowAngle,
+            shoulderDrop: tracker.currentRepMaxShoulderDrop
+        };
     }
 
     function rejectCurrentRep(helpers, message) {
@@ -401,7 +443,7 @@
         const movingPose = validatePushupPose(smoothed, helpers, 'moving');
         const upPose = validatePushupPose(smoothed, helpers, 'up');
 
-        // Ready validation uses a full-body top-position plank. The 1-second hold prevents random arm bends,
+        // Ready validation uses a full-body top-position plank. The brief hold prevents random arm bends,
         // standing poses, or partially visible bodies from arming the first rep.
         if (!tracker.readyConfirmed) {
             setReadiness(upPose, helpers, now, upPose.reason);
@@ -445,12 +487,14 @@
                 startDownRep(helpers, now);
             }
         } else if (tracker.state === STATE.DOWN) {
+            updateCurrentRepBenchmark(movingPose);
             helpers.setWarning('Good depth - push back up to a straight-arm plank.');
             helpers.setStage(STATE.DOWN);
 
             if (tracker.upFrames >= CONFIG.STABLE_FRAMES_REQUIRED) {
                 const repDuration = now - tracker.repStartedAt;
                 if (!tracker.repInvalid && repDuration >= CONFIG.MIN_REP_DURATION_MS) {
+                    captureFirstRepBenchmark();
                     tracker.lastCountedAt = now;
                     tracker.state = STATE.REP_COUNTED;
                     helpers.countValidRep(STATE.UP);

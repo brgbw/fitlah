@@ -242,7 +242,7 @@
     }
 
     .strava-preview-brand h3 {
-        font-size: 16px;
+        font-size: calc(24px * var(--font-scale));
         margin-bottom: 2px;
     }
 
@@ -250,7 +250,7 @@
     .strava-preview-stats span,
     .strava-preview-run span {
         color: #64748B;
-        font-size: 16px;
+        font-size: calc(20px * var(--font-scale));
     }
 
     .strava-preview-status {
@@ -482,6 +482,12 @@
         min-width: 0;
     }
 
+    .strava-run-meta {
+        color: #64748B;
+        font-size: calc(20px * var(--font-scale));
+        line-height: 1.45;
+    }
+
     .strava-route-mini {
         width: 160px;
         height: 90px;
@@ -513,7 +519,7 @@
 
     .strava-preview-run strong {
         display: block;
-        font-size: 13px;
+        font-size: calc(22px * var(--font-scale));
         color: #0F172A;
         margin-bottom: 3px;
     }
@@ -525,7 +531,7 @@
         background: #FC4C02;
         color: #FFFFFF;
         padding: 9px 12px;
-        font-size: 12px;
+        font-size: 15px;
         font-weight: 700;
         cursor: pointer;
         white-space: nowrap;
@@ -582,7 +588,7 @@
     .strava-analysis-metrics span {
         display: block;
         color: #64748B;
-        font-size: 11px;
+        font-size: calc(18px * var(--font-scale));
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -592,14 +598,14 @@
     .strava-preview-title strong {
         display: block;
         color: #0F172A;
-        font-size: 16px;
+        font-size: calc(24px * var(--font-scale));
         font-weight: 650;
         margin-bottom: 4px;
     }
 
     .strava-preview-title small {
         color: #64748B;
-        font-size: 13px;
+        font-size: calc(18px * var(--font-scale));
     }
 
     .strava-preview-stats,
@@ -620,7 +626,7 @@
     .strava-preview-stats strong,
     .strava-analysis-metrics strong {
         color: #0F172A;
-        font-size: 14px;
+        font-size: calc(22px * var(--font-scale));
         font-weight: 700;
     }
 
@@ -638,7 +644,7 @@
         border: 1px solid #E2E8F0;
         border-radius: 8px;
         color: #64748B;
-        font-size: 13px;
+        font-size: calc(20px * var(--font-scale));
     }
 
     .strava-preview-footer {
@@ -667,7 +673,7 @@
 
     .strava-coach-card h5 {
         color: var(--marker-situp);
-        font-size: 18px;
+        font-size: calc(18px * var(--font-scale)) !important;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0;
@@ -689,7 +695,7 @@
 
     .strava-coach-list h6 {
         color: #64748B;
-        font-size: 16px;
+        font-size: calc(17px * var(--font-scale)) !important;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0;
@@ -749,7 +755,7 @@
 
     .strava-ai-card h4 {
         color: var(--marker-situp);
-        font-size: 18px;
+        font-size: calc(18px * var(--font-scale)) !important;
         text-transform: uppercase;
         letter-spacing: 0;
         margin-bottom: 8px;
@@ -769,7 +775,7 @@
     }
 
     .strava-ai-grid h5 {
-        font-size: 16px;
+        font-size: calc(17px * var(--font-scale)) !important;
         text-transform: uppercase;
         letter-spacing: 0;
         color: #64748B;
@@ -887,7 +893,7 @@
 
     .empty-recent {
         color: #64748B;
-        font-size: 14px;
+        font-size: calc(20px * var(--font-scale));
         line-height: 1.6;
         padding: 14px;
         border: 1px dashed #CBD5E1;
@@ -969,7 +975,7 @@
 
             <div class="action-stack {% if strava_connected %}single-action{% endif %}">
 
-                <div class="action-card">
+                <div class="action-card" id="webcamLaunchCard">
                     <div>
                         <h3>Push up & Sit up</h3>
 
@@ -1178,6 +1184,10 @@
         }[char]));
     }
 
+    function formatValidityStatus(value) {
+        return String(value || '').toLowerCase() === 'valid' ? 'Valid' : 'Invalid';
+    }
+
     function renderIpptResult(result) {
         const container = document.getElementById('stravaIpptResult');
         if (!container || !result) return;
@@ -1188,7 +1198,7 @@
             <div class="strava-ippt-metrics">
                 <div><span>Official 2.4km</span><strong>${escapeHtml(result.official_time)}</strong></div>
                 <div><span>Run points</span><strong>${Number(result.run_points || 0)}</strong></div>
-                <div><span>Validity</span><strong>${Number(result.validity_score || 0)}/100 ${escapeHtml(result.status)}</strong></div>
+                <div><span>Validity</span><strong>${Number(result.validity_score || 0)}/100 ${formatValidityStatus(result.status)}</strong></div>
                 <div><span>Ignored</span><strong>${Number(result.extra_distance_m || 0).toFixed(0)} m</strong></div>
             </div>
             <ul class="strava-split-list">
