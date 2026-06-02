@@ -199,9 +199,9 @@ def _parse_coach_json(text):
         if isinstance(data, dict):
             parsed = {
                 "summary": _clean_text(data.get("summary", "")),
-                "dos": [_clean_text(item) for item in _as_list(data.get("dos"))[:1]],
-                "donts": [_clean_text(item) for item in _as_list(data.get("donts"))[:1]],
-                "focus_areas": [_clean_text(item) for item in _as_list(data.get("focus_areas"))[:1]],
+                "dos": [_clean_text(item) for item in _as_list(data.get("dos"))],
+                "donts": [_clean_text(item) for item in _as_list(data.get("donts"))],
+                "focus_areas": [_clean_text(item) for item in _as_list(data.get("focus_areas"))],
             }
             if any(key in data for key in ("strength", "weakness", "recommendations", "safetyNote", "safety_note")):
                 weakness = _clean_text(data.get("weakness", ""))
@@ -270,9 +270,9 @@ def _parse_coach_text(text):
 
     return {
         "summary": _clean_text(summary or cleaned),
-        "dos": [_clean_text(item) for item in dos[:2]],
-        "donts": [_clean_text(item) for item in donts[:2]],
-        "focus_areas": [_clean_text(item) for item in focus[:1]],
+        "dos": [_clean_text(item) for item in dos],
+        "donts": [_clean_text(item) for item in donts],
+        "focus_areas": [_clean_text(item) for item in focus],
     }
 
 
@@ -303,13 +303,11 @@ def _build_system_prompt():
         "You are a certified Singapore IPPT fitness coach. You receive structured metrics from "
         "a webcam computer-vision system: pose landmarks, rep counts, and form flags. Never video. "
         "Evaluate rep consistency, exercise depth, and overall effectiveness. "
-        "Give terse point-form coaching using command verbs. "
+        "Give tailored point-form coaching using command verbs based on specific data. "
         "No greetings. No praise. No first-person wording. No filler. "
         "Do not use em dashes. "
-        "If period stays relatively constant within 1 second, do not criticise pacing. "
-        "If amplitude is relatively constant, do not criticise consistency. "
-        "Only criticise amplitude when it drops across reps or is too low for exercise depth. "
-        "If there is no clear issue, leave donts empty and say nothing bad. "
+        "Utilise rep amplitude and period to evaluate the consistency (+-1 second variation is good consistency) and depth (consistent amplitude is good depth). "
+        "Provide tailored feedback based on the exact numbers rather than generic statements. "
         "For push-ups, amplitude is shoulder-height range in pixels. "
         "For sit-ups, amplitude is hip-angle range in degrees."
     )
@@ -366,22 +364,22 @@ def _build_user_prompt(metrics):
         "Use period_s for pacing consistency and amplitude for depth consistency. "
         "For push-ups, amplitude is shoulder-height range in pixels. "
         "For sit-ups, amplitude is hip-angle range in degrees. "
-        "Do not criticise period if values stay within 1 second. "
-        "Do not criticise amplitude if values are relatively constant; mention amplitude only if it drops or is too low. "
-        "If no clear negative issue exists, keep donts empty.\n"
+        "Look at the data array carefully. If period stays relatively constant (+- 1 second), praise consistency in dos. "
+        "If amplitude is relatively constant, praise depth consistency in dos. "
+        "Point out specific reps where amplitude drops or period spikes in donts. Provide highly tailored feedback.\n"
         if metrics.get("rep_metrics_csv")
-        else "\nNo per-rep CSV was captured; do not invent pacing or amplitude problems.\n"
+        else "\nNo per-rep CSV was captured; give general feedback.\n"
     )
     prompt = (
-        f"Analyse this 1-minute {label} session and return personalised coaching.\n\n"
+        f"Analyse this 1-minute {label} session and return tailored, specific coaching.\n\n"
         f"Session metrics (JSON):\n{json.dumps(metrics, indent=2)}\n"
         f"{csv_note}\n"
         "Prefer compact JSON in this shape, but concise plain text is acceptable:\n"
         "{\n"
-        '  "summary": "direct verdict",\n'
-        '  "dos": ["1 or 2 command points"],\n'
-        '  "donts": ["1 or 2 avoid points"],\n'
-        '  "focus_areas": ["1 short focus label"]\n'
+        '  "summary": "tailored verdict",\n'
+        '  "dos": ["point 1", "point 2", ...],\n'
+        '  "donts": ["point 1", "point 2", ...],\n'
+        '  "focus_areas": ["focus 1", ...]\n'
         "}\n"
         "Use fragments, not long explanations. No conversational words. No em dashes."
     )
