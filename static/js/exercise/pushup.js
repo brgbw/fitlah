@@ -25,9 +25,9 @@
 
     const CONFIG = {
         // The first rep is armed after a brief valid straight-arm plank hold.
-        READY_HOLD_MS: 450,
+        READY_HOLD_MS: 50,
         // MediaPipe visibility is noisy in side view; this keeps low-confidence frames from moving states.
-        POSE_CONFIDENCE_MIN: 0.25,
+        POSE_CONFIDENCE_MIN: 0.2,
         // EMA smoothing absorbs small landmark jitter without adding visible lag to rep transitions.
         SMOOTHING_ALPHA: 0.4,
         // Straight arms define a valid push-up top position.
