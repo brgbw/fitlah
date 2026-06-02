@@ -129,34 +129,34 @@ def build_activity_record(activity, user_nric):
 def build_run_recommendation(activity):
     if activity["is_ippt_distance"]:
         summary = (
-            f"{activity['name']} is close enough to a 2.4km benchmark to use for IPPT tracking. "
-            f"The recorded time was {activity['time']} over {activity['distance_km']} km."
+            f"**{activity['name']}** is close enough to a **2.4km benchmark** for IPPT tracking. "
+            f"The recorded time was **{activity['time']}** over {activity['distance_km']} km."
         )
-        focus = ["controlled first 800m", "steady middle split", "final 600m push"]
+        focus = ["**controlled first 800m**", "**steady middle split**", "**final 600m push**"]
     elif activity["pace_seconds_per_km"] and activity["pace_seconds_per_km"] < 300:
         summary = (
-            f"{activity['name']} shows strong aerobic speed at {activity['pace']} over "
-            f"{activity['distance_km']} km. Keep it as conditioning and add a separate 2.4km test."
+            f"**{activity['name']}** shows strong aerobic speed at **{activity['pace']}** over "
+            f"{activity['distance_km']} km. Add a separate **2.4km test**."
         )
-        focus = ["2.4km benchmark run", "race-pace intervals", "recovery after hard runs"]
+        focus = ["**2.4km benchmark run**", "**race-pace intervals**", "**recovery after hard runs**"]
     else:
         summary = (
-            f"{activity['name']} adds useful aerobic volume. Pair this with one sharper "
-            "IPPT-specific run so readiness is measured against the actual 2.4km distance."
+            f"**{activity['name']}** adds useful aerobic volume. Pair this with one sharper "
+            "IPPT-specific run against the actual **2.4km distance**."
         )
-        focus = ["easy-run consistency", "stride economy", "weekly benchmark planning"]
+        focus = ["**easy-run consistency**", "**stride economy**", "**weekly benchmark planning**"]
 
     return {
         "summary": summary,
         "dos": [
-            "Use near-2.4km activities as benchmark evidence.",
-            "Warm up for 8-10 minutes before hard running.",
-            "Track pace trend across repeated efforts, not distance alone.",
+            "Use **near-2.4km activities** as benchmark evidence.",
+            "Warm up for **8-10 minutes** before hard running.",
+            "Track **pace trend** across repeated efforts, not distance alone.",
         ],
         "donts": [
-            "Do not treat a long run time as a direct 2.4km result.",
-            "Do not stack hard run days back-to-back without recovery.",
-            "Do not ignore elapsed time if the activity includes long stops.",
+            "Do not treat a **long run time** as a direct 2.4km result.",
+            "Do not stack **hard run days** back-to-back without recovery.",
+            "Do not ignore **elapsed time** if the activity includes long stops.",
         ],
         "focus_areas": focus,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

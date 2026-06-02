@@ -1,7 +1,9 @@
 import os
+import re
 
 from dotenv import load_dotenv
 from flask import Flask, url_for
+from markupsafe import Markup, escape
 
 from .auth import current_user
 from .config import BASE_DIR
@@ -49,7 +51,20 @@ def asset_url(filename):
     return url_for("static", filename=filename, v=version)
 
 
+def ai_bold(text):
+    value = str(text or "")
+    parts = []
+    cursor = 0
+    for match in re.finditer(r"\*\*([^*]+?)\*\*", value):
+        parts.append(escape(value[cursor:match.start()]))
+        parts.append(Markup("<strong>") + escape(match.group(1).strip()) + Markup("</strong>"))
+        cursor = match.end()
+    parts.append(escape(value[cursor:]))
+    return Markup("".join(str(part) for part in parts))
+
+
 app.jinja_env.globals["asset_url"] = asset_url
+app.jinja_env.filters["ai_bold"] = ai_bold
 
 
 def init_db():

@@ -59,6 +59,27 @@ function escapeHtml(value) {
     return div.innerHTML;
 }
 
+function aiTextHtml(value) {
+    if (window.FitLahAiTextFormat) return FitLahAiTextFormat.boldToHtml(value);
+    return escapeHtml(value);
+}
+
+function uniqueAiItems(items) {
+    const seen = new Set();
+    return (items || []).filter(item => {
+        const key = String(item || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+async function refreshDashboardIpptScore() {
+    if (typeof window.refreshIpptScore === 'function') {
+        await window.refreshIpptScore();
+    }
+}
+
 function formatValidityStatus(value) {
     return String(value || '').toLowerCase() === 'valid' ? 'Valid' : 'Invalid';
 }
@@ -143,7 +164,7 @@ function setDashboardRunReviewMode(active) {
 function renderRunCoachCard(rec) {
     if (!rec) return '';
     const recommendations = rec.recommendations || rec.dos || [];
-    const avoid = [rec.weakness, ...(rec.donts || [])].filter(Boolean);
+    const avoid = uniqueAiItems([rec.weakness, ...(rec.donts || [])]);
     const focus = rec.safetyNote || (rec.focus_areas || []).join(' · ') || (rec.strength ? `Strength: ${rec.strength}` : '');
 
     if (!rec.summary && !recommendations.length && !avoid.length && !focus) return '';
@@ -151,22 +172,22 @@ function renderRunCoachCard(rec) {
     return `
         <div class="strava-coach-card">
             <h5>AI PERSONALISED COACH</h5>
-            ${rec.summary ? `<div class="strava-coach-summary">${escapeHtml(rec.summary)}</div>` : ''}
+            ${rec.summary ? `<div class="strava-coach-summary">${aiTextHtml(rec.summary)}</div>` : ''}
             <div class="strava-coach-grid">
                 ${recommendations.length ? `
                     <div class="strava-coach-list dos">
                         <h6>RECOMMENDED ACTIONS</h6>
-                        <ul>${recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                        <ul>${recommendations.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
                 ${avoid.length ? `
                     <div class="strava-coach-list donts">
                         <h6>AVOID NEXT</h6>
-                            <ul>${avoid.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                            <ul>${avoid.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
             </div>
-            ${focus ? `<div class="strava-coach-focus"><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${escapeHtml(focus)}</div>` : ''}
+            ${focus ? `<div class="strava-coach-focus"><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</div>` : ''}
         </div>
     `;
 }
@@ -497,7 +518,7 @@ async function saveSessionDashboard(activityId) {
     saveBtn.textContent = 'Saving...';
     try {
         const importData = await postActivityJson('/api/strava/ippt-24', activityId);
-        await refreshIpptScore();
+        await refreshDashboardIpptScore();
         // show simple success
         const preview = document.getElementById('dashboardStravaPreview');
         if (preview._routeAnimator) { try { preview._routeAnimator.stop(); } catch (e) {} preview._routeAnimator = null; }

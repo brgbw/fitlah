@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}FitLah NSmen Portal{% endblock %}</title>
-
     <style>
         :root {
             --primary: #00A86B;
@@ -251,6 +250,8 @@
             }
         }
     </style>
+    <script src="{{ asset_url('js/pages/ai_text_format.js') }}"></script>
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body>

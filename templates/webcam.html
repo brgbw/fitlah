@@ -1,330 +1,13 @@
 {% extends 'base.html' %}
-{% block content %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ asset_url('css/webcam.css') }}">
 <script src="{{ asset_url('mediapipe/pose/pose.js') }}"></script>
-<style>
-    /* Active Vision Layout Splitter */
-    .vision-workspace {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 220px;
-        gap: 20px;
-        flex: 1;
-        margin-bottom: 20px;
-        align-items: start;
-    }
+{% endblock %}
 
-    .vision-main-column {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        min-width: 0;
-    }
+{% block content %}
 
-    /* Video Feed Container */
-    .video-feed-card {
-        background-color: #0B1220;
-        border-radius: 14px;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.08);
-        border: 1px solid #1E293B;
-        height: 500px; /* Force fixed height so starting camera doesn't cause scrolling */
-    }
-
-    #poseCanvas,
-    #playbackVideo,
-    #sourceVideo {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    #poseCanvas {
-        display: none;
-        z-index: 2;
-    }
-
-    #sourceVideo {
-        display: none;
-    }
-
-    .camera-placeholder {
-        color: #94A3B8;
-        font-size: 13px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* Live Overlay Indicators Removed */
-
-    /* Right Side Diagnostic Rails */
-    .diagnostics-sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        height: 500px;
-    }
-
-    .metric-v-card {
-        background-color: #FFFFFF;
-        border: 1px solid var(--border);
-        border-radius: var(--card-radius);
-        padding: 18px 14px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        flex: 1;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .metric-v-card:hover {
-        border-color: #CBD5E1;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-    }
-
-    .counter-focus-valid {
-        background: #FFFFFF;
-        border-color: #E2E8F0;
-    }
-
-    .counter-focus-valid .hud-lbl { 
-        color: #166534; 
-    }
-    
-    .giant-counter {
-        font-size: 48px;
-        font-weight: 600;
-        line-height: 1;
-        margin-top: 8px;
-        letter-spacing: 0;
-    }
-
-    .counter-focus-valid .giant-counter { color: #15803D; }
-    .giant-counter span {
-        font-size: 14px;
-        font-weight: 600;
-        opacity: 0.7;
-        letter-spacing: 0;
-    }
-
-    .stage-pill {
-        margin-top: 10px;
-        color: #64748B;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-    }
-
-    /* Control Interface Strip */
-    .control-strip {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 14px;
-        padding: 16px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        flex-shrink: 0;
-    }
-
-    .status-pill {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-main);
-    }
-
-    .stop-btn {
-        background-color: #2563EB;
-        color: #ffffff;
-        border: none;
-        padding: 12px 24px;
-        font-size: 13px;
-        font-weight: 500;
-        border-radius: 8px;
-        cursor: pointer;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        transition: all 0.2s ease;
-    }
-
-    .stop-btn:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
-
-    .stop-btn:active {
-        transform: translateY(0);
-    }
-
-    .header-section h1 {
-        font-size: var(--page-title-size);
-        color: var(--text-main);
-        letter-spacing: -0.4px;
-        font-weight: var(--page-title-weight);
-    }
-
-    .header-section p {
-        font-size: var(--page-subtitle-size);
-        color: var(--text-muted);
-        margin-top: 6px;
-        max-width: 520px;
-        line-height: 1.5;
-    }
-
-    .mode-toggle {
-        display: flex;
-        gap: 6px;
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 4px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    }
-
-    .mode-toggle .stop-btn {
-        text-transform: none;
-        letter-spacing: 0;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 13px;
-
-        background: transparent;
-        color: var(--text-muted);
-    }
-
-    .mode-toggle .stop-btn.mode-active {
-        background: #2563EB;
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
-    }
-
-    .video-feed-card {
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.08);
-    }
-
-    .metric-v-card .hud-lbl {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-muted);
-    }
-
-    .control-strip {
-        border-radius: 14px;
-        padding: 18px 22px;
-        gap: 16px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .control-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: center;
-        flex: 1;
-    }
-
-    .control-actions .stop-btn {
-        text-transform: none;
-        letter-spacing: 0;
-        font-weight: 500;
-        font-size: 13px;
-    }
-
-    .control-actions .stop-btn#startCamBtn {
-        background: #2563EB;
-    }
-
-    .control-actions .stop-btn#uploadBtn {
-        background: #0F766E;
-    }
-
-    .control-actions .stop-btn#attachVideoBtn {
-        background: #0891B2;
-    }
-
-    .control-actions .stop-btn#completeBtn {
-        margin-left: auto;
-        background: #475569 !important;
-    }
-
-    .session-timer {
-        font-size: 28px;
-        font-weight: 650;
-        font-variant-numeric: tabular-nums;
-        color: #0F766E;
-        background: #F0FDFA;
-        border: 1px solid #99F6E4;
-        border-radius: 12px;
-        padding: 10px 20px;
-        min-width: 100px;
-        text-align: center;
-        letter-spacing: 1px;
-    }
-
-    .session-timer.timer-active {
-        color: #B45309;
-        background: #FFFBEB;
-        border-color: #FDE68A;
-        animation: timer-pulse 1s ease-in-out infinite;
-    }
-
-    @keyframes timer-pulse {
-        50% { opacity: 0.85; }
-    }
-
-    .hands-ok-badge {
-        display: inline-block;
-        margin-top: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 20px;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-    }
-
-    .hands-ok-badge.ok {
-        background: #DCFCE7;
-        color: #166534;
-    }
-
-    .hands-ok-badge.bad {
-        background: #FFE4E6;
-        color: #BE123C;
-    }
-
-    @media (max-width: 980px) {
-        .vision-workspace {
-            grid-template-columns: 1fr;
-        }
-
-        .diagnostics-sidebar {
-            height: auto;
-            display: block;
-        }
-
-    }
-
-    @media (max-width: 620px) {
-    }
-</style>
-
-<div class="header-section" style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 20px;">
+<div class="header-section webcam-header">
+    <div class="webcam-title-row">
         <div>
             <h1 id="stationHeader">Exercise Recording Station</h1>
             <p>Side-on camera view. Your first valid rep starts a 1-minute recording session.</p>
@@ -344,7 +27,7 @@
             <div class="camera-placeholder" id="cameraPlaceholder">Camera off</div>
             <video id="sourceVideo" autoplay muted playsinline></video>
             <canvas id="poseCanvas" width="640" height="360"></canvas>
-            <video id="playbackVideo" style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
+            <video id="playbackVideo" style="display: none;"></video>
         </div>
 
     </div>
@@ -354,7 +37,6 @@
         <div class="metric-v-card counter-focus-valid">
             <div class="hud-lbl">Valid Reps</div>
             <div class="giant-counter" id="repCounter">0</div>
-            <div class="stage-pill" id="stageDisplay">Stage: Ready</div>
         </div>
         <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
     </div>
@@ -366,10 +48,10 @@
         <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
         <button type="button" class="stop-btn" id="attachVideoBtn" onclick="selectRecordedVideo()">Attach Video</button>
         <input id="videoAttachmentInput" type="file" accept="video/*" style="display: none;">
-        <button type="button" class="stop-btn" id="startRecBtn" onclick="stopSession()" style="background-color: #B91C1C; display: none;">Stop Session</button>
-        <button type="button" class="stop-btn" id="stopRecBtn" onclick="stopSession()" style="background-color: #B91C1C; display: none;">Stop Session</button>
+        <button type="button" class="stop-btn danger-action" id="startRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
+        <button type="button" class="stop-btn danger-action" id="stopRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
         <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
-        <button type="button" class="stop-btn" id="completeBtn" onclick="saveAndReturn()" style="background-color: var(--text-muted); opacity: 0.5; pointer-events: none;">Done</button>
+        <button type="button" class="stop-btn complete-disabled" id="completeBtn" onclick="saveAndReturn()">Done</button>
     </div>
     <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
 </div>
@@ -377,7 +59,11 @@
 <script src="{{ asset_url('js/sound_manager.js') }}"></script>
 <script src="{{ asset_url('js/exercise/pushup.js') }}"></script>
 <script src="{{ asset_url('js/exercise/situp.js') }}"></script>
+<script src="{{ asset_url('js/pages/ai_text_reveal.js') }}"></script>
 <script src="{{ asset_url('js/pages/webcam_pose_drawing.js') }}"></script>
+<script src="{{ asset_url('js/pages/webcam_metrics.js') }}"></script>
+<script src="{{ asset_url('js/pages/webcam_upload.js') }}"></script>
+<script src="{{ asset_url('js/pages/webcam_ai_coach.js') }}"></script>
 <script src="{{ asset_url('js/pages/webcam.js') }}"></script>
 {% endblock %}
 

@@ -296,7 +296,7 @@
             {% endif %}
 
             {% if ai.summary %}
-            <div class="note-verdict">{{ ai.summary }}</div>
+            <div class="note-verdict">{{ ai.summary|ai_bold }}</div>
             {% endif %}
 
             <div class="note-grid">
@@ -305,7 +305,7 @@
                     <h2>RECOMMENDED ACTIONS</h2>
                     <ul class="note-list">
                         {% for item in ai.dos %}
-                        <li>{{ item }}</li>
+                        <li>{{ item|ai_bold }}</li>
                         {% endfor %}
                     </ul>
                 </section>
@@ -316,7 +316,7 @@
                     <h2>AVOID NEXT</h2>
                     <ul class="note-list">
                         {% for item in ai.donts %}
-                        <li>{{ item }}</li>
+                        <li>{{ item|ai_bold }}</li>
                         {% endfor %}
                     </ul>
                 </section>
@@ -326,7 +326,7 @@
             {% if ai.focus_areas %}
             <section class="note-focus">
                 <h2>FOCUS AREA</h2>
-                <span class="focus-chip">{{ ai.focus_areas[0] }}</span>
+                <span class="focus-chip">{{ ai.focus_areas[0]|ai_bold }}</span>
             </section>
             {% endif %}
 

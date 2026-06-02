@@ -246,6 +246,11 @@
     return div.innerHTML;
   }
 
+  function aiTextHtml(text) {
+    if (window.FitLahAiTextFormat) return FitLahAiTextFormat.boldToHtml(text);
+    return escapeHtml(text);
+  }
+
   function renderAiCoachBlock(ai) {
     if (!ai) return '';
 
@@ -253,25 +258,25 @@
       return `
         <div class="ai-coach-block">
           <h5>AI PERSONALISED COACH</h5>
-          <div class="ai-coach-summary">${escapeHtml(ai)}</div>
+          <div class="ai-coach-summary">${aiTextHtml(ai)}</div>
         </div>`;
     }
 
     if (!ai.summary) return '';
 
-    const dos = (ai.dos || ai.recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const dos = (ai.dos || ai.recommendations || []).map(item => `<li>${aiTextHtml(item)}</li>`).join('');
     const dontItems = ai.donts || [ai.weakness].filter(Boolean);
-    const donts = dontItems.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const donts = dontItems.map(item => `<li>${aiTextHtml(item)}</li>`).join('');
     const focus = ai.safetyNote || (ai.focus_areas || []).join(' · ');
     return `
       <div class="ai-coach-block">
         <h5>AI PERSONALISED COACH</h5>
-        <div class="ai-coach-summary">${escapeHtml(ai.summary)}</div>
+        <div class="ai-coach-summary">${aiTextHtml(ai.summary)}</div>
         <div class="ai-coach-grid">
           ${dos ? `<div class="ai-coach-list dos"><h6>RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}
           ${donts ? `<div class="ai-coach-list donts"><h6>AVOID NEXT</h6><ul>${donts}</ul></div>` : ''}
         </div>
-        ${focus ? `<div class="ai-coach-focus"><strong>${ai.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${escapeHtml(focus)}</div>` : ''}
+        ${focus ? `<div class="ai-coach-focus"><strong>${ai.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</div>` : ''}
       </div>`;
   }
 

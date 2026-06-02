@@ -29,7 +29,11 @@ ALLOWED_VIDEO_MIMES = {
     "video/webm": ".webm",
     "video/mp4": ".mp4",
     "video/quicktime": ".mov",
+    "video/x-m4v": ".mp4",
+    "video/x-msvideo": ".avi",
 }
+
+ALLOWED_VIDEO_EXTENSIONS = {".webm", ".mp4", ".mov", ".m4v", ".avi"}
 
 REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]
 
@@ -254,7 +258,10 @@ def register_webcam_routes(app):
 
         if file.filename == "":
             return jsonify({"success": False, "error": "No selected file"}), 400
+        original_extension = os.path.splitext(file.filename or "")[1].lower()
         extension = ALLOWED_VIDEO_MIMES.get((file.mimetype or "").lower())
+        if not extension and original_extension in ALLOWED_VIDEO_EXTENSIONS:
+            extension = ".mov" if original_extension == ".m4v" else original_extension
         if not extension:
             return jsonify({"success": False, "error": "Unsupported video file type"}), 400
 

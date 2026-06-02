@@ -230,7 +230,7 @@ def _parse_coach_text(text):
         return None
 
     lines = [
-        _clean_text(line.strip(" -*\t"))
+        _clean_text(line.strip(" -\t"))
         for line in str(text or "").splitlines()
         if _clean_text(line.strip(" -*\t"))
     ]
@@ -300,12 +300,16 @@ def _clean_text(text):
 
 def _build_system_prompt():
     return (
-        "You are a certified Singapore IPPT fitness coach. You receive structured metrics from "
-        "a webcam computer-vision system: pose landmarks, rep counts, and form flags. Never video. "
-        "Evaluate rep consistency, exercise depth, and overall effectiveness. "
+        "You are a certified Singapore IPPT fitness coach for three stations: "
+        "2.4km Run, push-ups, and sit-ups. For webcam requests you receive structured metrics from "
+        "a computer-vision system: pose landmarks, rep counts, and form flags. Never video. "
+        "For 2.4km Run requests, use run telemetry, splits, speed, cadence, and moving ratio. "
+        "For push-ups and sit-ups, evaluate rep consistency, exercise depth, and overall effectiveness. "
         "Give tailored point-form coaching using command verbs based on specific data. "
         "No greetings. No praise. No first-person wording. No filler. "
         "Do not use em dashes. "
+        "Bold the most important phrase or metric in each output string with Markdown **double asterisks**. "
+        "Bold station names, exact weak reps, exact split marks, target pace, rep amplitude, period_s, and action cues. "
         "Utilise rep amplitude and period to evaluate the consistency (+-1 second variation is good consistency) and depth (consistent amplitude is good depth). "
         "Provide tailored feedback based on the exact numbers rather than generic statements. "
         "For push-ups, amplitude is shoulder-height range in pixels. "
@@ -371,17 +375,18 @@ def _build_user_prompt(metrics):
         else "\nNo per-rep CSV was captured; give general feedback.\n"
     )
     prompt = (
-        f"Analyse this 1-minute {label} session and return tailored, specific coaching.\n\n"
+        f"Analyse this 1-minute {label} IPPT station session and return tailored, specific coaching.\n\n"
         f"Session metrics (JSON):\n{json.dumps(metrics, indent=2)}\n"
         f"{csv_note}\n"
         "Prefer compact JSON in this shape, but concise plain text is acceptable:\n"
         "{\n"
-        '  "summary": "tailored verdict",\n'
-        '  "dos": ["point 1", "point 2", ...],\n'
-        '  "donts": ["point 1", "point 2", ...],\n'
-        '  "focus_areas": ["focus 1", ...]\n'
+        '  "summary": "tailored verdict with **one important phrase or metric bolded**",\n'
+        '  "dos": ["action point with **key cue or number bolded**", "point 2", ...],\n'
+        '  "donts": ["avoid point with **weak rep or pattern bolded**", "point 2", ...],\n'
+        '  "focus_areas": ["**focus 1**", ...]\n'
         "}\n"
-        "Use fragments, not long explanations. No conversational words. No em dashes."
+        "Use fragments, not long explanations. No conversational words. No em dashes. "
+        "Use **bold** sparingly, only on important AI-generated phrases or metrics."
     )
     return prompt[:MAX_PROMPT_CHARS]
 
@@ -412,41 +417,41 @@ def _fallback_exercise_recommendation(metrics):
 
     if exercise == "pushup":
         if "depth" in flags or shallow_signals >= 2:
-            summary = "Push-up depth needs work"
-            dos = ["Lower chest with control"]
-            donts = ["Avoid half reps"]
-            focus = ["Depth"]
+            summary = "**Push-up depth** needs work"
+            dos = ["Lower chest with **control**"]
+            donts = ["Avoid **half reps**"]
+            focus = ["**Depth**"]
         elif "hips" in flags or "plank" in flags:
-            summary = "Body line needs control"
-            dos = ["Lock hips and ribs"]
-            donts = ["Avoid hip sag"]
-            focus = ["Alignment"]
+            summary = "**Body line** needs control"
+            dos = ["Lock **hips and ribs**"]
+            donts = ["Avoid **hip sag**"]
+            focus = ["**Alignment**"]
         elif "rushed" in flags or "control" in flags:
-            summary = "Rep quality needs tightening"
-            dos = ["Slow each full rep"]
-            donts = ["Avoid rushed reps"]
-            focus = ["Control"]
+            summary = "**Rep quality** needs tightening"
+            dos = ["Slow each **full rep**"]
+            donts = ["Avoid **rushed reps**"]
+            focus = ["**Control**"]
         else:
-            summary = "Solid push-up rhythm"
-            dos = ["Keep steady full range"]
+            summary = "Solid **push-up rhythm**"
+            dos = ["Keep **steady full range**"]
             donts = []
-            focus = ["Pacing"]
+            focus = ["**Pacing**"]
     else:
         if "partial" in flags or "height" in flags:
-            summary = "Sit-up height needs work"
-            dos = ["Reach full upright height"]
-            donts = ["Avoid partial reps"]
-            focus = ["Height"]
+            summary = "**Sit-up height** needs work"
+            dos = ["Reach **full upright height**"]
+            donts = ["Avoid **partial reps**"]
+            focus = ["**Height**"]
         elif "hands" in flags:
-            summary = "Technique needs cleaner control"
-            dos = ["Keep hands on ears"]
-            donts = ["Avoid arm swing"]
-            focus = ["Form"]
+            summary = "**Technique** needs cleaner control"
+            dos = ["Keep **hands on ears**"]
+            donts = ["Avoid **arm swing**"]
+            focus = ["**Form**"]
         else:
-            summary = "Solid sit-up rhythm"
-            dos = ["Keep reps smooth"]
+            summary = "Solid **sit-up rhythm**"
+            dos = ["Keep reps **smooth**"]
             donts = []
-            focus = ["Control"]
+            focus = ["**Control**"]
 
     return {
         "success": True,
@@ -465,7 +470,8 @@ def generate_ippt_run_recommendation(run_summary):
         return {"success": False, "error": "No run summary provided."}
 
     system_prompt = (
-        "You are a certified Singapore IPPT running coach. You receive structured "
+        "You are a certified Singapore IPPT fitness coach for 2.4km Run, push-ups, and sit-ups. "
+        "For this request, act as a 2.4km Run coach. You receive structured "
         "run analytics, including overall speed data and a compact 100m-interval stream CSV "
         "containing dist_m, time_s, speed_mps, cadence, and moving flags.\n"
         "Your goal is to give highly tailored, point-form feedback by analysing:\n"
@@ -474,20 +480,23 @@ def generate_ippt_run_recommendation(run_summary):
         " - Moving ratio (e.g., stopped segments vs elapsed time)\n"
         "Do not recalculate official timing, points, validity, or splits. "
         "No greetings, no first-person wording, no filler, and no em dashes. "
-        "Reference exact numbers from the data to prove you analysed the telemetry."
+        "Reference exact numbers from the data to prove you analysed the telemetry. "
+        "Bold the most important phrase or metric in each output string with Markdown **double asterisks**. "
+        "Bold exact split marks, speed/cadence drops, target pace, and concrete action cues."
     )
     user_prompt = (
         "Give personalised coaching from this computed 2.4km run telemetry.\n\n"
         f"Run summary & telemetry JSON:\n{json.dumps(run_summary, indent=2)}\n\n"
         "Prefer compact JSON in this shape, but concise plain text is acceptable:\n"
         "{\n"
-        '  "summary": "tailored verdict citing specific telemetry insights",\n'
-        '  "strength": "one clear strength backed by data",\n'
-        '  "weakness": "one clear weakness backed by data",\n'
-        '  "recommendations": ["3 to 5 concrete training actions tailored to fix the specific weakness"],\n'
-        '  "safetyNote": "one practical safety note"\n'
+        '  "summary": "tailored verdict citing **specific telemetry insights**",\n'
+        '  "strength": "one clear strength with **one key number bolded**",\n'
+        '  "weakness": "one clear weakness with **one split mark or metric bolded**",\n'
+        '  "recommendations": ["3 to 5 concrete actions with **key cue or target bolded**"],\n'
+        '  "safetyNote": "one practical safety note with **key precaution bolded**"\n'
         "}\n"
-        "Focus on specific 100m marks where speed or cadence dropped."
+        "Focus on specific 100m marks where speed or cadence dropped. "
+        "Use **bold** sparingly, only on important AI-generated phrases or metrics."
     )[:MAX_PROMPT_CHARS]
     result = _call_gemini(system_prompt, user_prompt)
     if not result.get("success"):

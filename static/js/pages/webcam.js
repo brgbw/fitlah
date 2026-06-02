@@ -6,7 +6,6 @@ let currentMode = 'pushup';
     let poseInitPromise = null;
     let detectLoopRunning = false;
     const POSE_TARGET_FPS = 20;
-    const MOVEMENT_GRAPH_MAX_POINTS = 220;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
     const WARNING_VOICE_COOLDOWN_MS = 4500;
     let poseLoopRequestId = null;
@@ -41,11 +40,6 @@ let currentMode = 'pushup';
     let savedSessionIds = [];
     let videoObjectUrl = null;
     let discardRecordingOnStop = false;
-    let aiRecoLoading = false;
-    let aiRecoAnimationTimer = null;
-    let aiRecoPending = Promise.resolve();
-    let aiRecoLastResult = null;
-    const aiRecoResultsBySession = new Map();
     let lastAnalyzedVideoTime = -1;
     let lastWarningSpokenAt = 0;
 
@@ -64,6 +58,8 @@ let currentMode = 'pushup';
     const timerDisplay = document.getElementById('timerDisplay');
     const modePushupBtn = document.getElementById('modePushupBtn');
     const modeSitupBtn = document.getElementById('modeSitupBtn');
+    const repCounter = document.getElementById('repCounter');
+    const stationHeader = document.getElementById('stationHeader');
     const handsBadge = document.getElementById('handsBadge');
     const aiRecoPanel = document.getElementById('aiRecoPanel');
     const aiRecoStatus = document.getElementById('aiRecoStatus');
@@ -74,6 +70,21 @@ let currentMode = 'pushup';
     const aiRecoDonts = document.getElementById('aiRecoDonts');
     const aiRecoFocus = document.getElementById('aiRecoFocus');
     const aiRecoFocusText = document.getElementById('aiRecoFocusText');
+    const webcamMetrics = window.FitLahWebcamMetrics;
+    const webcamUploader = window.FitLahWebcamUpload;
+    const aiCoach = window.FitLahWebcamAiCoach.createController({
+        panel: aiRecoPanel,
+        status: aiRecoStatus,
+        skeleton: aiRecoSkeleton,
+        summary: aiRecoSummary,
+        columns: aiRecoColumns,
+        dos: aiRecoDos,
+        donts: aiRecoDonts,
+        focus: aiRecoFocus,
+        focusText: aiRecoFocusText,
+        compactMetricsForAi: webcamMetrics.compactForAi,
+        getLastSessionId: () => lastSessionId
+    });
 
     function lockEntryMode(mode) {
         if (mode === 'camera') {
@@ -100,13 +111,13 @@ let currentMode = 'pushup';
             modePushupBtn.classList.add('mode-active');
             modeSitupBtn.classList.remove('mode-active');
             if (handsBadge) handsBadge.style.display = 'none';
-            document.getElementById('stationHeader').innerText = 'Push-up Recording';
+            if (stationHeader) stationHeader.innerText = 'Push-up Recording';
             setWarning('Place your camera side-on. Get into push-up position. Your first full rep will start the 1-minute timer.');
         } else {
             modeSitupBtn.classList.add('mode-active');
             modePushupBtn.classList.remove('mode-active');
             if (handsBadge) handsBadge.style.display = 'none';
-            document.getElementById('stationHeader').innerText = 'Sit-up Recording';
+            if (stationHeader) stationHeader.innerText = 'Sit-up Recording';
             setWarning('Lie back, then sit up. Your first valid rep starts the 1-minute timer.');
         }
 
@@ -433,20 +444,7 @@ let currentMode = 'pushup';
     }
 
     function initCvMetrics() {
-        cvMetrics = {
-            exercise: currentMode,
-            frames_sampled: 0,
-            elbow_down_angles: [],
-            elbow_up_angles: [],
-            hip_down_angles: [],
-            hip_up_angles: [],
-            movement_samples: [],
-            rep_metrics: [],
-            rep_metrics_csv: '',
-            rep_count_signal: 0,
-            shallow_rep_signals: 0,
-            form_flags: []
-        };
+        cvMetrics = webcamMetrics.createMetrics(currentMode);
     }
 
     function noteFormFlag(flag) {
@@ -456,98 +454,12 @@ let currentMode = 'pushup';
         }
     }
 
-    function avgAngle(arr) {
-        if (!arr || !arr.length) return null;
-        return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
-    }
-
     function sessionElapsedSeconds() {
         if (attachedVideoFile && isReplayMode) {
             return Math.max(0, Number(playbackVideo.currentTime || 0));
         }
         if (!sessionStartedAt) return 0;
         return Math.max(0, (Date.now() - Date.parse(sessionStartedAt)) / 1000);
-    }
-
-    function smoothMovementSamples(samples) {
-        return samples.map((sample, index) => {
-            const previous = samples[Math.max(0, index - 1)];
-            const next = samples[Math.min(samples.length - 1, index + 1)];
-            return {
-                ...sample,
-                value: Number(((previous.value + sample.value * 2 + next.value) / 4).toFixed(4))
-            };
-        });
-    }
-
-    function compactMovementSamples(samples, maxPoints = MOVEMENT_GRAPH_MAX_POINTS) {
-        const validSamples = (samples || [])
-            .filter(sample => Number.isFinite(sample.time) && Number.isFinite(sample.value))
-            .map(sample => ({
-                time: Number(sample.time.toFixed(2)),
-                value: Number(sample.value.toFixed(4)),
-                elbow_angle: Number.isFinite(sample.elbow_angle) ? sample.elbow_angle : null,
-                hip_angle: Number.isFinite(sample.hip_angle) ? sample.hip_angle : null
-            }));
-        if (validSamples.length <= maxPoints) return smoothMovementSamples(validSamples);
-
-        const step = Math.ceil(validSamples.length / maxPoints);
-        return smoothMovementSamples(validSamples.filter((_, index) => index % step === 0).slice(0, maxPoints));
-    }
-
-    function buildMovementAnalysis(metrics, duration) {
-        const samples = compactMovementSamples(metrics.movement_samples);
-        if (!samples.length) return null;
-
-        const values = samples.map(sample => sample.value);
-        const maxValue = Math.max(...values);
-        const minValue = Math.min(...values);
-        const range = maxValue - minValue;
-
-        return {
-            type: currentMode === 'pushup' ? 'shoulder_height' : 'hip_angle',
-            label: currentMode === 'pushup' ? 'Shoulder height' : 'Hip angle',
-            unit: currentMode === 'pushup' ? 'px' : 'degrees',
-            duration_seconds: duration,
-            samples,
-            reps: Array.isArray(metrics.rep_metrics) ? metrics.rep_metrics.slice() : [],
-            stats: {
-                peak: Number(maxValue.toFixed(3)),
-                range: Number(range.toFixed(3))
-            }
-        };
-    }
-
-    function aiRepMetricsCsv(data) {
-        const rows = (data || []).map((item, index) => {
-            const rep = Number.isFinite(item.rep) ? item.rep : index + 1;
-            const amplitude = Number.isFinite(item.amplitude_angle_deg)
-                ? item.amplitude_angle_deg
-                : (Number.isFinite(item.amplitude_px) ? item.amplitude_px : item.amplitude);
-            const period = item.period_s;
-            return [
-                rep,
-                Number.isFinite(amplitude) ? Number(amplitude).toFixed(3) : '',
-                Number.isFinite(period) ? Number(period).toFixed(3) : ''
-            ].join(',');
-        });
-        return `rep,amplitude,period_s${rows.length ? `\n${rows.join('\n')}` : ''}`;
-    }
-
-    function compactMetricsForAi(metrics) {
-        const payload = { ...metrics };
-        const reps = Array.isArray(payload.rep_metrics)
-            ? payload.rep_metrics
-            : (Array.isArray(payload.movement_analysis?.reps) ? payload.movement_analysis.reps : []);
-        payload.rep_metrics_csv = reps.length
-            ? aiRepMetricsCsv(reps)
-            : (payload.rep_metrics_csv || aiRepMetricsCsv([]));
-        delete payload.rep_metrics;
-        if (payload.movement_analysis) {
-            const { samples, reps: movementReps, ...analysisSummary } = payload.movement_analysis;
-            payload.movement_analysis = analysisSummary;
-        }
-        return payload;
     }
 
     function finalizeSessionMetrics() {
@@ -562,231 +474,13 @@ let currentMode = 'pushup';
             form_flags: m.form_flags ? m.form_flags.slice() : []
         };
         if (currentMode === 'pushup') {
-            FitLahPushupExercise.enrichMetrics(payload, m, avgAngle);
+            FitLahPushupExercise.enrichMetrics(payload, m, webcamMetrics.avgAngle);
         } else {
-            FitLahSitupExercise.enrichMetrics(payload, m, avgAngle);
+            FitLahSitupExercise.enrichMetrics(payload, m, webcamMetrics.avgAngle);
         }
-        payload.rep_metrics_csv = aiRepMetricsCsv(payload.rep_metrics || m.rep_metrics || []);
-        payload.movement_analysis = buildMovementAnalysis(m, duration);
+        payload.rep_metrics_csv = webcamMetrics.repMetricsCsv(payload.rep_metrics || m.rep_metrics || []);
+        payload.movement_analysis = webcamMetrics.buildMovementAnalysis(m, duration, currentMode);
         return payload;
-    }
-
-    function resetAiRecoPanel() {
-        clearAiRecoAnimation();
-        aiRecoLoading = false;
-        aiRecoLastResult = null;
-        if (!aiRecoPanel) return;
-        aiRecoPanel.style.display = 'none';
-        if (aiRecoStatus) {
-            aiRecoStatus.className = 'ai-reco-status';
-            aiRecoStatus.textContent = 'Complete a session to get personalised coaching.';
-        }
-        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'none';
-        if (aiRecoSummary) aiRecoSummary.style.display = 'none';
-        if (aiRecoColumns) aiRecoColumns.style.display = 'none';
-        if (aiRecoFocus) aiRecoFocus.style.display = 'none';
-        if (aiRecoDos) aiRecoDos.innerHTML = '';
-        if (aiRecoDonts) aiRecoDonts.innerHTML = '';
-        if (aiRecoFocusText) aiRecoFocusText.innerHTML = '';
-    }
-
-    function setAiRecoLoading(exerciseLabel) {
-        clearAiRecoAnimation();
-        aiRecoLoading = true;
-        aiRecoLastResult = null;
-        if (!aiRecoPanel) return;
-        aiRecoPanel.style.display = 'block';
-        if (aiRecoStatus) {
-            aiRecoStatus.className = 'ai-reco-status loading';
-            aiRecoStatus.textContent = `Analysing your ${exerciseLabel} for personalised coaching...`;
-        }
-        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'grid';
-        if (aiRecoSummary) aiRecoSummary.style.display = 'none';
-        if (aiRecoColumns) aiRecoColumns.style.display = 'none';
-        if (aiRecoFocus) aiRecoFocus.style.display = 'none';
-    }
-
-    function clearAiRecoAnimation() {
-        if (aiRecoAnimationTimer) {
-            clearTimeout(aiRecoAnimationTimer);
-            aiRecoAnimationTimer = null;
-        }
-    }
-
-    function revealText(element, text, done) {
-        const words = String(text || '').trim().split(/\s+/).filter(Boolean);
-        let index = 0;
-        element.textContent = '';
-
-        function tick() {
-            if (index >= words.length) {
-                aiRecoAnimationTimer = null;
-                if (done) done();
-                return;
-            }
-            element.textContent += `${index ? ' ' : ''}${words[index]}`;
-            index++;
-            aiRecoAnimationTimer = setTimeout(tick, 55);
-        }
-
-        tick();
-    }
-
-    function revealAiItems(items, createElement, done) {
-        const queue = (items || []).filter(Boolean);
-        let index = 0;
-
-        function next() {
-            if (index >= queue.length) {
-                if (done) done();
-                return;
-            }
-            const itemElement = createElement();
-            revealText(itemElement, queue[index], () => {
-                index++;
-                aiRecoAnimationTimer = setTimeout(next, 90);
-            });
-        }
-
-        next();
-    }
-
-    function renderAiRecommendation(data) {
-        clearAiRecoAnimation();
-        aiRecoLoading = false;
-        if (!aiRecoPanel) {
-            console.info('AI recommendation generated after save', {
-                session_id: data.session_id,
-                saved_to_database: data.saved_to_database
-            });
-            return;
-        }
-        aiRecoPanel.style.display = 'block';
-        if (aiRecoStatus) aiRecoStatus.className = 'ai-reco-status';
-        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'none';
-        if (data.ai_error || data.debug?.fallback_used) {
-            const debugDetail = data.debug
-                ? ` (${formatAiDebug(data.debug)})`
-                : '';
-            if (aiRecoStatus) {
-                aiRecoStatus.className = 'ai-reco-status error';
-                aiRecoStatus.textContent = `AI fallback used: ${data.ai_error || 'Gemini failed.'}${debugDetail}`;
-            }
-            console.error('AI recommendation fallback used', data);
-        } else {
-            if (aiRecoStatus) aiRecoStatus.textContent = 'AI personalised coaching';
-        }
-        const dos = (data.dos || []).slice(0, 1);
-        const donts = (data.donts || []).slice(0, 1);
-        const focusAreas = (data.focus_areas || []).slice(0, 1);
-
-        if (aiRecoDos) aiRecoDos.innerHTML = '';
-        if (aiRecoDonts) aiRecoDonts.innerHTML = '';
-        if (aiRecoFocusText) aiRecoFocusText.innerHTML = '';
-
-        if (data.summary) {
-            if (aiRecoSummary) aiRecoSummary.style.display = 'block';
-        } else {
-            if (aiRecoSummary) aiRecoSummary.style.display = 'none';
-        }
-        if (aiRecoColumns) aiRecoColumns.style.display = (dos.length || donts.length) ? 'grid' : 'none';
-
-        if (focusAreas.length) {
-            if (aiRecoFocus) aiRecoFocus.style.display = 'block';
-        } else {
-            if (aiRecoFocus) aiRecoFocus.style.display = 'none';
-        }
-
-        const showDos = (done) => revealAiItems(dos, () => {
-            const li = document.createElement('li');
-            if (aiRecoDos) aiRecoDos.appendChild(li);
-            return li;
-        }, done);
-        const showDonts = (done) => revealAiItems(donts, () => {
-            const li = document.createElement('li');
-            if (aiRecoDonts) aiRecoDonts.appendChild(li);
-            return li;
-        }, done);
-        const showFocus = () => {
-            if (focusAreas.length) {
-                revealAiItems(focusAreas, () => {
-                    const li = document.createElement('li');
-                    if (aiRecoFocusText) aiRecoFocusText.appendChild(li);
-                    return li;
-                });
-            }
-        };
-
-        if (data.summary && aiRecoSummary) {
-            revealText(aiRecoSummary, data.summary, () => showDos(() => showDonts(showFocus)));
-        } else {
-            showDos(() => showDonts(showFocus));
-        }
-    }
-
-    function formatAiDebug(debug) {
-        if (!debug || typeof debug !== 'object') return '';
-        const parts = [];
-        if (debug.failure_stage) parts.push(`stage=${debug.failure_stage}`);
-        if (debug.exception_type) parts.push(`type=${debug.exception_type}`);
-        if (debug.exception_message) parts.push(`message=${debug.exception_message}`);
-        if (debug.model) parts.push(`model=${debug.model}`);
-        if (debug.api_key_present === false) parts.push('api_key=missing');
-        if (debug.sdk_available === false) parts.push('sdk=missing');
-        if (debug.database_save_failed) parts.push('database_save=failed');
-        return parts.join('; ');
-    }
-
-    function renderAiRecoError(message, debug) {
-        clearAiRecoAnimation();
-        aiRecoLoading = false;
-        if (!aiRecoPanel) {
-            console.error('AI recommendation failed after save', { message, debug });
-            return;
-        }
-        aiRecoPanel.style.display = 'block';
-        if (aiRecoStatus) aiRecoStatus.className = 'ai-reco-status error';
-        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'none';
-        const detail = formatAiDebug(debug);
-        if (aiRecoStatus) aiRecoStatus.textContent = detail ? `${message} (${detail})` : message;
-        console.error('AI recommendation failed', { message, debug });
-    }
-
-    async function fetchAiRecommendation(metrics, force = false, sessionIdOverride = null) {
-        if (!metrics || (aiRecoLoading && !force)) return;
-        const label = metrics.exercise === 'pushup' ? 'push-up' : 'sit-up';
-        setAiRecoLoading(label);
-        const payload = compactMetricsForAi(metrics);
-        const targetSessionId = sessionIdOverride || payload.session_id || lastSessionId;
-        if (targetSessionId) {
-            payload.session_id = targetSessionId;
-        }
-        try {
-            const response = await fetch('/api/ai-recommendation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-            aiRecoLastResult = data;
-            if (targetSessionId) {
-                aiRecoResultsBySession.set(String(targetSessionId), data);
-            }
-            if (data.success) {
-                renderAiRecommendation(data);
-                return data;
-            } else {
-                renderAiRecoError(data.error || 'Could not generate AI recommendation.', data.debug);
-                return data;
-            }
-        } catch (err) {
-            aiRecoLastResult = { success: false, error: err.message };
-            if (targetSessionId) {
-                aiRecoResultsBySession.set(String(targetSessionId), aiRecoLastResult);
-            }
-            renderAiRecoError('AI coach connection failed: ' + err.message);
-            return aiRecoLastResult;
-        }
     }
 
     function updateCounters() {
@@ -794,8 +488,7 @@ let currentMode = 'pushup';
         const signature = `${validReps}|${nextStage}`;
         if (signature === lastCounterSignature) return;
         lastCounterSignature = signature;
-        document.getElementById('repCounter').textContent = String(validReps);
-        document.getElementById('stageDisplay').innerText = `Stage: ${nextStage}`;
+        if (repCounter) repCounter.textContent = String(validReps);
     }
 
     function resetRepState() {
@@ -1045,7 +738,7 @@ let currentMode = 'pushup';
         stopRecBtn.style.display = 'inline-block';
         uploadBtn.style.display = 'none';
         timerDisplay.style.display = 'none';
-        resetAiRecoPanel();
+        aiCoach.reset();
         updateCounters();
 
         playbackVideo.onloadedmetadata = () => {
@@ -1105,7 +798,7 @@ let currentMode = 'pushup';
             unlockEntryMode();
             cameraPlaceholder.style.display = 'block';
         }
-        resetAiRecoPanel();
+        aiCoach.reset();
         setWarning(message || 'Session stopped. The current recording was deleted.');
     }
 
@@ -1161,7 +854,7 @@ let currentMode = 'pushup';
         uploadBtn.style.pointerEvents = 'none';
 
         const formData = new FormData();
-        formData.append('video', videoBlob, 'recording.webm');
+        formData.append('video', videoBlob, attachedVideoFile?.name || 'recording.webm');
         formData.append('exercise', currentMode);
         formData.append('valid_reps', validReps);
         formData.append('duration_seconds', lastSessionMetrics?.duration_seconds || sessionDurationSeconds());
@@ -1174,7 +867,7 @@ let currentMode = 'pushup';
         }
 
         try {
-            const result = await uploadVideoForm(formData);
+            const result = await webcamUploader.uploadVideoForm(formData);
             if (result.success) {
                 if (currentMode === 'pushup') {
                     pushupUploaded = true;
@@ -1200,9 +893,7 @@ let currentMode = 'pushup';
                     }
                     : null;
                 if (metricsForAi) {
-                    aiRecoPending = aiRecoPending
-                        .catch(() => {})
-                        .then(() => fetchAiRecommendation(metricsForAi, true, result.session_id));
+                    aiCoach.enqueue(metricsForAi, true, result.session_id);
                 }
                 const label = currentMode === 'pushup' ? 'Push-up' : 'Sit-up';
                 setWarning(`${label} saved. ${result.valid_reps} reps logged. Record another exercise or tap Done.`);
@@ -1233,45 +924,6 @@ let currentMode = 'pushup';
         }
     }
 
-    function uploadVideoForm(formData) {
-        return new Promise((resolve, reject) => {
-            const request = new XMLHttpRequest();
-            request.open('POST', '/api/upload-video', true);
-            request.responseType = 'text';
-            request.timeout = 180000;
-
-            request.onload = () => {
-                let result = null;
-                try {
-                    result = request.responseText ? JSON.parse(request.responseText) : null;
-                } catch (err) {
-                    reject(new Error(`Upload returned an invalid response (${request.status}).`));
-                    return;
-                }
-
-                if (request.status >= 200 && request.status < 300 && result) {
-                    resolve(result);
-                    return;
-                }
-
-                const detail = result?.error || `Server returned ${request.status}`;
-                reject(new Error(detail));
-            };
-
-            request.onerror = () => {
-                reject(new Error('Upload connection failed. Check that the app server is still running and try again.'));
-            };
-            request.ontimeout = () => {
-                reject(new Error('Upload timed out. Try again with a shorter recording or a smaller attached video.'));
-            };
-            request.onabort = () => {
-                reject(new Error('Upload was cancelled before it finished.'));
-            };
-
-            request.send(formData);
-        });
-    }
-
     function checkCompletion() {
         if (pushupUploaded || situpUploaded) {
             completeBtn.style.opacity = '1';
@@ -1291,20 +943,20 @@ let currentMode = 'pushup';
         }
         completeBtn.textContent = 'Opening analysis...';
         completeBtn.style.pointerEvents = 'none';
-        if (aiRecoLoading) {
+        if (aiCoach.isLoading()) {
             completeBtn.textContent = 'Waiting for AI...';
         }
         try {
-            await aiRecoPending;
+            await aiCoach.wait();
         } catch (err) {
             console.error('AI recommendation did not finish before navigation', err);
         }
         const failedAiSession = savedSessionIds.find(item => {
-            const result = aiRecoResultsBySession.get(String(item.id));
+            const result = aiCoach.resultFor(item.id);
             return !result || !result.success || result.saved_to_database !== true;
         });
         if (failedAiSession) {
-            const result = aiRecoResultsBySession.get(String(failedAiSession.id));
+            const result = aiCoach.resultFor(failedAiSession.id);
             completeBtn.textContent = 'Done';
             completeBtn.style.pointerEvents = 'auto';
             alert(result?.error || 'AI recommendation was not saved. Please try Save Session again.');
@@ -1328,7 +980,7 @@ let currentMode = 'pushup';
     });
 
     window.addEventListener('DOMContentLoaded', () => {
-        resetAiRecoPanel();
+        aiCoach.reset();
         setExerciseMode('pushup');
     });
 
