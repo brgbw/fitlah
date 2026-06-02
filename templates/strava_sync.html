@@ -13,19 +13,15 @@
 
     <div id="dashboardStravaPanel">
         <div class="strava-preview-list" id="dashboardStravaList">
-            <div class="strava-preview-run">
+            <div class="strava-preview-run is-static">
                 <div>
                     <strong>Loading Strava activities...</strong>
                     <span>Fetching your latest runs from Strava</span>
                 </div>
             </div>
         </div>
-
-        <div id="dashboardStravaPreview" style="display:none;margin-top:12px"></div>
     </div>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ asset_url('js/pages/strava_dashboard.js') }}"></script>
 </section>
 {% endif %}
@@ -190,7 +186,7 @@
         </div>
 
         <p class="strava-description">
-            Authorise Strava to connect your running data with FitLah. Run previews and imports remain available from the dashboard.
+            Authorise Strava to connect your running data with FitLah. Run previews and imports are available from the dashboard run list.
         </p>
 
         <div class="message error" id="errorMessage"></div>
@@ -199,7 +195,7 @@
         <div class="auth-section">
             <h3>{{ 'Strava Connected' if strava_connected else 'Authorize Strava Access' }}</h3>
             <p class="auth-note">
-                {{ 'Your Strava account is already authorised. You can reconnect if you need to refresh access.' if strava_connected else 'Connect your Strava account to enable run imports on the dashboard.' }}
+                {{ 'Your Strava account is already authorised. You can reconnect if you need to refresh access.' if strava_connected else 'Connect your Strava account to enable run imports and reviews.' }}
             </p>
             <a href="{{ strava_authorize_url or '#' }}" class="auth-button" id="stravaAuthButton">
                 <img src="{{ url_for('static', filename='icons/strava.png') }}" alt="" aria-hidden="true">
@@ -260,7 +256,7 @@
                 throw new Error(data.error || 'Failed to sync with Strava.');
             }
 
-            showMessage('successMessage', 'Strava authorised successfully. You can import runs from the dashboard.');
+            showMessage('successMessage', 'Strava authorised successfully. You can review runs from the dashboard.');
             notifyParent('STRAVA_SYNC_SUCCESS', { message: data.message, activities: data.activities || [] });
             window.history.replaceState({}, document.title, window.location.pathname);
         } catch (callbackError) {

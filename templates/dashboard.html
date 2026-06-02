@@ -33,8 +33,6 @@
                 TRAINING MODULE
             </div>
 
-            <h2>IPPT Training</h2>
-
             <div class="action-stack {% if strava_connected %}single-action{% endif %}">
 
                 <div class="action-card" id="webcamLaunchCard">
@@ -44,11 +42,6 @@
                         <p>
                             Begin a live webcam session to track your form
                         </p>
-                    </div>
-
-                    <div class="action-meta">
-                        <span class="action-dot"></span>
-                        Camera Enabled
                     </div>
 
                     <button class="primary-btn" onclick="triggerWebcamStation()">
@@ -198,7 +191,8 @@
         exerciseSetupUrl: "{{ url_for('exercise_setup') }}",
         stravaConnected: {{ strava_connected|tojson }},
         stravaAuthorizeUrl: {{ strava_authorize_url|tojson }},
-        stravaSyncUrl: "{{ url_for('strava_sync') }}"
+        stravaSyncUrl: "{{ url_for('strava_sync') }}",
+        stravaPreviewRunUrl: "{{ url_for('preview_strava_run') }}"
     };
 </script>
 <script src="{{ asset_url('js/pages/dashboard.js') }}"></script>

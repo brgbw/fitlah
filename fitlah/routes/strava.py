@@ -54,6 +54,16 @@ def register_strava_routes(app):
             strava_authorize_url=_strava_authorize_url(),
         )
 
+    @app.route("/previewstravarun")
+    @login_required
+    def preview_strava_run():
+        return render_template(
+            "preview_strava_run.html",
+            user=current_user(),
+            activity_id=str(request.args.get("activity_id", "")).strip(),
+            **strava_connection_context(),
+        )
+
     @app.route("/api/strava-callback", methods=["POST"])
     @login_required
     @rate_limit("strava-callback", 8, 300)

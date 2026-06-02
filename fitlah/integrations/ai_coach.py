@@ -364,7 +364,7 @@ def _build_user_prompt(metrics):
     exercise = metrics.get("exercise", "exercise")
     label = "push-up" if exercise == "pushup" else "sit-up"
     csv_note = (
-        "\nrep_metrics_csv columns are rep, amplitude, period_s. "
+        "\nrep_metrics_csv columns are rep, amplitude, periods. "
         "Use period_s for pacing consistency and amplitude for depth consistency. "
         "For push-ups, amplitude is shoulder-height range in pixels. "
         "For sit-ups, amplitude is hip-angle range in degrees. "
@@ -385,7 +385,7 @@ def _build_user_prompt(metrics):
         '  "donts": ["avoid point with **weak rep or pattern bolded**", "point 2", ...],\n'
         '  "focus_areas": ["**focus 1**", ...]\n'
         "}\n"
-        "Use fragments, not long explanations. No conversational words. No em dashes. "
+        "Use fragments, not long explanations. Conversational words. No em dashes. "
         "Use **bold** sparingly, only on important AI-generated phrases or metrics."
     )
     return prompt[:MAX_PROMPT_CHARS]

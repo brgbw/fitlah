@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="{{ asset_url('css/strava_run_preview.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="strava-run-review-page">
+    <header class="strava-run-review-header">
+        <div class="strava-run-review-brand">
+            <img src="{{ url_for('static', filename='icons/strava.png') }}" alt="Strava">
+            <div>
+                <h1>Strava Run Review</h1>
+                <p>Review the route, analyse the 2.4km benchmark, and save it to your calendar.</p>
+            </div>
+        </div>
+    </header>
+
+    {% if not strava_connected %}
+    <section class="strava-preview-panel">
+        <div class="strava-empty-map">
+            Connect Strava before reviewing runs.
+        </div>
+        <div class="strava-preview-footer">
+            <a class="strava-btn strava-btn-primary" href="{{ strava_authorize_url or url_for('strava_sync') }}">Connect Strava</a>
+        </div>
+    </section>
+    {% elif not activity_id %}
+    <section class="strava-preview-panel">
+        <div class="strava-empty-map">
+            Choose a run from the dashboard to open its review.
+        </div>
+        <div class="strava-preview-footer">
+            <a class="strava-btn strava-btn-primary" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        </div>
+    </section>
+    {% else %}
+    <section id="stravaRunPreview" class="strava-preview-panel" data-activity-id="{{ activity_id }}">
+        <div class="strava-loading-card ai-loading-card">
+            <span class="ai-loading-dot"></span>
+            <span>Preparing run preview</span>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<script>
+    window.FitLahStravaPreviewConfig = {
+        activityId: {{ activity_id|tojson }},
+        dashboardUrl: "{{ url_for('dashboard') }}"
+    };
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ asset_url('js/pages/strava_run_preview.js') }}"></script>
+{% endblock %}
