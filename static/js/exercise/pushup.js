@@ -45,6 +45,13 @@
         STABLE_FRAMES_REQUIRED: 2,
         INVALID_POSE_GRACE_FRAMES: 5,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
+        SIGNAL_REVERSAL_RATIO: 0.22,
+        SIGNAL_TOP_RETURN_RATIO: 0.82,
+        SIGNAL_SMOOTHING_ALPHA: 0.35,
+        SIGNAL_MIN_AMPLITUDE_BODY_RATIO: 0.045,
+        SIGNAL_MIN_AMPLITUDE_PX: 12,
+        SIGNAL_MIN_PERIOD_S: 0.45,
+        SIGNAL_MAX_PERIOD_S: 8,
         // Full-body validation thresholds are normalized by body length so they scale with camera distance.
         BODY_STRAIGHTNESS_TOLERANCE: 0.45,
         HEAD_ALIGNMENT_TOLERANCE: 0.7,
@@ -91,6 +98,213 @@
         legContactStopRequested: false
     };
 
+    class AdaptivePushupSignalAnalyzer {
+        constructor() {
+            this.reset();
+        }
+
+        reset() {
+            this.globalMaxShoulder = -Infinity;
+            this.globalMinShoulder = Infinity;
+            this.avgAmpShoulder = 0;
+            this.lastMaxShoulder = null;
+            this.lastMaxTime = null;
+            this.lastMinShoulder = null;
+            this.lastMinTime = null;
+            this.localExtremeShoulder = null;
+            this.localExtremeTime = null;
+            this.state = 'CALIBRATING';
+            this.peaks = [];
+            this.repCount = 0;
+            this.repLogs = [];
+            this.rejectedLogs = [];
+            this.currentAscentCounted = false;
+            this.currentAscentRepIndex = null;
+        }
+
+        seedHighPoint(time, shoulderHeightPx) {
+            if (!Number.isFinite(time) || !Number.isFinite(shoulderHeightPx)) return;
+            this.reset();
+            this.globalMaxShoulder = shoulderHeightPx;
+            this.globalMinShoulder = shoulderHeightPx;
+            this.lastMaxShoulder = shoulderHeightPx;
+            this.lastMaxTime = time;
+            this.localExtremeShoulder = shoulderHeightPx;
+            this.localExtremeTime = time;
+            this.state = 'LOOKING_FOR_MIN';
+            this.peaks.push({
+                type: 'Max',
+                time,
+                shoulder: shoulderHeightPx,
+                seeded: true
+            });
+        }
+
+        processPoint(time, shoulderHeightPx, options = {}) {
+            const result = { repLog: null, rejectedLog: null };
+            if (!Number.isFinite(time) || !Number.isFinite(shoulderHeightPx)) return result;
+
+            const minAmplitudePx = Math.max(
+                CONFIG.SIGNAL_MIN_AMPLITUDE_PX,
+                Number(options.minAmplitudePx) || 0
+            );
+            const minPeriodS = Number(options.minPeriodS) || CONFIG.SIGNAL_MIN_PERIOD_S;
+            const maxPeriodS = Number(options.maxPeriodS) || CONFIG.SIGNAL_MAX_PERIOD_S;
+
+            this.globalMaxShoulder = Math.max(this.globalMaxShoulder, shoulderHeightPx);
+            this.globalMinShoulder = Math.min(this.globalMinShoulder, shoulderHeightPx);
+            if (this.state === 'CALIBRATING') {
+                this.avgAmpShoulder = this.globalMaxShoulder - this.globalMinShoulder;
+                if (this.avgAmpShoulder >= minAmplitudePx) {
+                    if (shoulderHeightPx < this.globalMaxShoulder - minAmplitudePx * 0.4) {
+                        this.lastMaxShoulder = this.globalMaxShoulder;
+                        this.lastMaxTime = time;
+                        this.localExtremeShoulder = shoulderHeightPx;
+                        this.localExtremeTime = time;
+                        this.state = 'LOOKING_FOR_MIN';
+                    } else if (shoulderHeightPx > this.globalMinShoulder + minAmplitudePx * 0.4) {
+                        this.lastMinShoulder = this.globalMinShoulder;
+                        this.lastMinTime = time;
+                        this.localExtremeShoulder = shoulderHeightPx;
+                        this.localExtremeTime = time;
+                        this.state = 'LOOKING_FOR_MAX';
+                    }
+                }
+                return result;
+            }
+
+            if (this.state === 'LOOKING_FOR_MIN') {
+                if (this.localExtremeShoulder === null || shoulderHeightPx < this.localExtremeShoulder) {
+                    this.localExtremeShoulder = shoulderHeightPx;
+                    this.localExtremeTime = time;
+                }
+
+                const descentAmp = Math.max(0, (this.lastMaxShoulder ?? shoulderHeightPx) - this.localExtremeShoulder);
+                const reversalThreshold = this._reversalThreshold(descentAmp, minAmplitudePx);
+                if (descentAmp >= minAmplitudePx * 0.5 &&
+                    shoulderHeightPx > this.localExtremeShoulder + reversalThreshold) {
+                    this._registerPeak('Min', this.localExtremeTime, this.localExtremeShoulder);
+                    this.lastMinShoulder = this.localExtremeShoulder;
+                    this.lastMinTime = this.localExtremeTime;
+                    this._blendAmplitude(descentAmp);
+                    this.state = 'LOOKING_FOR_MAX';
+                    this.localExtremeShoulder = shoulderHeightPx;
+                    this.localExtremeTime = time;
+                    this.currentAscentCounted = false;
+                    this.currentAscentRepIndex = null;
+                }
+                return result;
+            }
+
+            if (this.state === 'LOOKING_FOR_MAX') {
+                if (this.localExtremeShoulder === null || shoulderHeightPx > this.localExtremeShoulder) {
+                    this.localExtremeShoulder = shoulderHeightPx;
+                    this.localExtremeTime = time;
+                    if (this.currentAscentRepIndex !== null) {
+                        this._updateRepLog(this.currentAscentRepIndex);
+                    }
+                }
+
+                const ascentAmp = Math.max(0, this.localExtremeShoulder - (this.lastMinShoulder ?? shoulderHeightPx));
+                const period = this.lastMaxTime === null ? 0 : this.localExtremeTime - this.lastMaxTime;
+                const topReference = this.lastMaxShoulder ?? this.localExtremeShoulder;
+                const returnBand = Math.max(minAmplitudePx * 0.35, ascentAmp * (1 - CONFIG.SIGNAL_TOP_RETURN_RATIO));
+                const returnedToTop = shoulderHeightPx >= topReference - returnBand;
+                const validPeriod = period >= minPeriodS && period <= maxPeriodS;
+
+                if (!this.currentAscentCounted && options.isUpPose && returnedToTop) {
+                    if (ascentAmp >= minAmplitudePx && validPeriod) {
+                        result.repLog = this._logRep(period, ascentAmp, this.localExtremeTime);
+                        this.currentAscentCounted = true;
+                        this.currentAscentRepIndex = this.repLogs.length - 1;
+                    } else if (period >= minPeriodS && ascentAmp >= minAmplitudePx * 0.45) {
+                        result.rejectedLog = this._rejectRep(period, ascentAmp, this.localExtremeTime);
+                        this.currentAscentCounted = true;
+                    }
+                }
+
+                const reversalThreshold = this._reversalThreshold(ascentAmp, minAmplitudePx);
+                if (ascentAmp >= minAmplitudePx * 0.5 &&
+                    shoulderHeightPx < this.localExtremeShoulder - reversalThreshold) {
+                    if (this.currentAscentRepIndex !== null) {
+                        this._updateRepLog(this.currentAscentRepIndex);
+                    }
+                    this._registerPeak('Max', this.localExtremeTime, this.localExtremeShoulder);
+                    this.lastMaxShoulder = this.localExtremeShoulder;
+                    this.lastMaxTime = this.localExtremeTime;
+                    this._blendAmplitude(ascentAmp);
+                    this.state = 'LOOKING_FOR_MIN';
+                    this.localExtremeShoulder = shoulderHeightPx;
+                    this.localExtremeTime = time;
+                    this.currentAscentCounted = false;
+                    this.currentAscentRepIndex = null;
+                }
+            }
+
+            return result;
+        }
+
+        _reversalThreshold(amplitudePx, minAmplitudePx) {
+            return Math.max(
+                minAmplitudePx * CONFIG.SIGNAL_REVERSAL_RATIO,
+                amplitudePx * CONFIG.SIGNAL_REVERSAL_RATIO,
+                this.avgAmpShoulder * CONFIG.SIGNAL_REVERSAL_RATIO
+            );
+        }
+
+        _blendAmplitude(amplitudePx) {
+            if (!Number.isFinite(amplitudePx) || amplitudePx <= 0) return;
+            this.avgAmpShoulder = this.avgAmpShoulder
+                ? this.avgAmpShoulder * 0.7 + amplitudePx * 0.3
+                : amplitudePx;
+        }
+
+        _registerPeak(type, time, shoulder) {
+            this.peaks.push({ type, time, shoulder });
+            if (this.peaks.length > 80) this.peaks.shift();
+        }
+
+        _logRep(period, amplitude, time) {
+            this.repCount++;
+            const log = {
+                rep: this.repCount,
+                period_s: Number(period.toFixed(3)),
+                amplitude_px: Number(amplitude.toFixed(3)),
+                time_s: Number(time.toFixed(3))
+            };
+            this.repLogs.push(log);
+            return log;
+        }
+
+        _updateRepLog(index) {
+            const log = this.repLogs[index];
+            if (!log || this.lastMaxTime === null || this.lastMinShoulder === null) return;
+            const period = this.localExtremeTime - this.lastMaxTime;
+            const amplitude = Math.max(0, this.localExtremeShoulder - this.lastMinShoulder);
+            log.period_s = Number(period.toFixed(3));
+            log.amplitude_px = Number(amplitude.toFixed(3));
+            log.time_s = Number(this.localExtremeTime.toFixed(3));
+        }
+
+        _rejectRep(period, amplitude, time) {
+            const log = {
+                period_s: Number(period.toFixed(3)),
+                amplitude_px: Number(amplitude.toFixed(3)),
+                time_s: Number(time.toFixed(3)),
+                reason: 'shoulder height change was too small'
+            };
+            this.rejectedLogs.push(log);
+            return log;
+        }
+    }
+
+    tracker.signalAnalyzer = new AdaptivePushupSignalAnalyzer();
+    tracker.signalStartedAt = null;
+    tracker.signalSeeded = false;
+    tracker.smoothedShoulderHeightPx = null;
+    tracker.publishedRepLogs = 0;
+    tracker.publishedRejectedLogs = 0;
+
     function reset() {
         tracker.state = STATE.NOT_READY;
         tracker.readyStartedAt = null;
@@ -114,6 +328,12 @@
         tracker.legContactActive = false;
         tracker.legContactCountedReps = 0;
         tracker.legContactStopRequested = false;
+        tracker.signalAnalyzer.reset();
+        tracker.signalStartedAt = null;
+        tracker.signalSeeded = false;
+        tracker.smoothedShoulderHeightPx = null;
+        tracker.publishedRepLogs = 0;
+        tracker.publishedRejectedLogs = 0;
     }
 
     function visible(point, minVisibility) {
@@ -142,6 +362,67 @@
         return {
             distance: Math.hypot(point.x - closest.x, point.y - closest.y),
             yOffset: point.y - closest.y
+        };
+    }
+
+    function floorYAtX(a, b, x) {
+        const dx = b.x - a.x;
+        if (Math.abs(dx) < 0.001) return Math.max(a.y, b.y);
+        const t = (x - a.x) / dx;
+        if (t < -0.5 || t > 1.5) return Math.max(a.y, b.y);
+        return a.y + t * (b.y - a.y);
+    }
+
+    function analyzerTimeSeconds(helpers, now) {
+        if (helpers.isReplayMode) return helpers.sessionElapsedSeconds();
+        if (tracker.signalStartedAt === null) tracker.signalStartedAt = now;
+        return (now - tracker.signalStartedAt) / 1000;
+    }
+
+    function frameSize(helpers) {
+        return {
+            width: Math.max(1, Number(helpers.frameWidth) || 640),
+            height: Math.max(1, Number(helpers.frameHeight) || 360)
+        };
+    }
+
+    function shoulderHeightSignal(landmarks, helpers) {
+        const minVisibility = CONFIG.POSE_CONFIDENCE_MIN;
+        const required = [
+            landmarks[LANDMARK.LEFT_SHOULDER],
+            landmarks[LANDMARK.RIGHT_SHOULDER],
+            landmarks[LANDMARK.LEFT_WRIST],
+            landmarks[LANDMARK.RIGHT_WRIST],
+            landmarks[LANDMARK.LEFT_ANKLE],
+            landmarks[LANDMARK.RIGHT_ANKLE]
+        ];
+        if (!required.every(point => visible(point, minVisibility))) return null;
+
+        const size = frameSize(helpers);
+        const toPx = point => ({
+            x: point.x * size.width,
+            y: point.y * size.height,
+            visibility: point.visibility || 0
+        });
+        const shoulderMid = toPx(midpoint(landmarks[LANDMARK.LEFT_SHOULDER], landmarks[LANDMARK.RIGHT_SHOULDER]));
+        const wristMid = toPx(midpoint(landmarks[LANDMARK.LEFT_WRIST], landmarks[LANDMARK.RIGHT_WRIST]));
+        const ankleMid = toPx(midpoint(landmarks[LANDMARK.LEFT_ANKLE], landmarks[LANDMARK.RIGHT_ANKLE]));
+        const floorY = floorYAtX(wristMid, ankleMid, shoulderMid.x);
+        const rawHeightPx = Math.max(0, floorY - shoulderMid.y);
+        const bodyLengthPx = Math.max(1, Math.hypot(shoulderMid.x - ankleMid.x, shoulderMid.y - ankleMid.y));
+        tracker.smoothedShoulderHeightPx = tracker.smoothedShoulderHeightPx === null
+            ? rawHeightPx
+            : tracker.smoothedShoulderHeightPx * (1 - CONFIG.SIGNAL_SMOOTHING_ALPHA) +
+                rawHeightPx * CONFIG.SIGNAL_SMOOTHING_ALPHA;
+
+        return {
+            shoulderHeightPx: tracker.smoothedShoulderHeightPx,
+            rawShoulderHeightPx: rawHeightPx,
+            bodyLengthPx,
+            minAmplitudePx: Math.max(
+                CONFIG.SIGNAL_MIN_AMPLITUDE_PX,
+                bodyLengthPx * CONFIG.SIGNAL_MIN_AMPLITUDE_BODY_RATIO
+            )
         };
     }
 
@@ -336,7 +617,7 @@
         };
     }
 
-    function setReadiness(validUpPose, helpers, now, reason) {
+    function setReadiness(validUpPose, helpers, now, reason, signalPoint) {
         if (!validUpPose.ok) {
             tracker.readyStartedAt = null;
             tracker.readyConfirmed = false;
@@ -367,6 +648,10 @@
         tracker.state = STATE.READY;
         tracker.upShoulderY = validUpPose.metrics.shoulderY;
         tracker.lastUpElbowAngle = validUpPose.metrics.elbowAngle;
+        if (!tracker.signalSeeded && signalPoint) {
+            tracker.signalAnalyzer.seedHighPoint(analyzerTimeSeconds(helpers, now), signalPoint.shoulderHeightPx);
+            tracker.signalSeeded = true;
+        }
         helpers.setPositionReady(true);
         helpers.setStage(STATE.READY);
         return true;
@@ -533,20 +818,42 @@
         helpers.markInvalid(message);
     }
 
-    function sampleMetrics(metrics, helpers, validation) {
+    function publishSignalRepMetrics(metrics) {
+        if (!metrics) return;
+        metrics.rep_metrics = tracker.signalAnalyzer.repLogs.map(log => ({ ...log }));
+        metrics.rep_count_signal = tracker.signalAnalyzer.repCount;
+        metrics.rep_metrics_csv = repMetricsCsv(metrics.rep_metrics);
+    }
+
+    function repMetricsCsv(data) {
+        const rows = (data || []).map((item, index) => {
+            const rep = Number.isFinite(item.rep) ? item.rep : index + 1;
+            const amplitude = Number.isFinite(item.amplitude_px) ? item.amplitude_px : item.amplitude;
+            const period = item.period_s;
+            return [
+                rep,
+                Number.isFinite(amplitude) ? Number(amplitude).toFixed(3) : '',
+                Number.isFinite(period) ? Number(period).toFixed(3) : ''
+            ].join(',');
+        });
+        return `rep,amplitude,period_s${rows.length ? `\n${rows.join('\n')}` : ''}`;
+    }
+
+    function sampleMetrics(metrics, helpers, validation, signalPoint) {
         if (!helpers.isRecording || !metrics || !validation.ok) return;
         const elbowAngle = validation.metrics.elbowAngle;
         metrics.frames_sampled++;
         if (metrics.frames_sampled % CONFIG.GRAPH_SAMPLE_EVERY_FRAMES === 0) {
             metrics.movement_samples.push({
                 time: helpers.sessionElapsedSeconds(),
-                value: Number((validation.metrics.shoulderDrop || 0).toFixed(4)),
+                value: signalPoint ? Number(signalPoint.shoulderHeightPx.toFixed(3)) : 0,
                 elbow_angle: Math.round(elbowAngle)
             });
             if (metrics.movement_samples.length > 900) {
                 metrics.movement_samples.shift();
             }
         }
+        publishSignalRepMetrics(metrics);
         if (metrics.frames_sampled % 5 !== 0) return;
         if (elbowAngle <= benchmarkedDownThresholds().elbowMax) metrics.elbow_down_angles.push(Math.round(elbowAngle));
         if (elbowAngle >= CONFIG.UP_ELBOW_MIN_ANGLE) metrics.elbow_up_angles.push(Math.round(elbowAngle));
@@ -568,28 +875,41 @@
         const smoothed = smoothLandmarks(landmarks);
         const movingPose = validatePushupPose(smoothed, helpers, 'moving');
         const upPose = validatePushupPose(smoothed, helpers, 'up');
+        const signalPoint = shoulderHeightSignal(smoothed, helpers);
 
         // Ready validation uses a full-body top-position plank. The brief hold prevents random arm bends,
         // standing poses, or partially visible bodies from arming the first rep.
         if (!tracker.readyConfirmed) {
-            setReadiness(upPose, helpers, now, upPose.reason);
-            sampleMetrics(helpers.metrics, helpers, movingPose);
+            if (!signalPoint) {
+                tracker.readyStartedAt = null;
+                tracker.readyConfirmed = false;
+                tracker.state = STATE.NOT_READY;
+                helpers.setPositionReady(false);
+                helpers.setStage(STATE.NOT_READY);
+                helpers.setWarning('Keep shoulders, wrists, and ankles visible so shoulder height can be measured.');
+            } else {
+                setReadiness(upPose, helpers, now, upPose.reason, signalPoint);
+            }
+            sampleMetrics(helpers.metrics, helpers, movingPose, signalPoint);
             return;
         }
 
-        if (!movingPose.ok) {
+        if (!movingPose.ok || !signalPoint) {
             tracker.invalidPoseFrames++;
+            const invalidReason = movingPose.ok
+                ? 'Keep shoulders, wrists, and ankles visible so shoulder height can be measured.'
+                : movingPose.reason;
             if (helpers.isRecording || tracker.state === STATE.DOWN) {
-                helpers.setWarning(movingPose.reason);
+                helpers.setWarning(invalidReason);
                 if (tracker.invalidPoseFrames >= CONFIG.INVALID_POSE_GRACE_FRAMES) {
-                    rejectCurrentRep(helpers, movingPose.reason);
+                    rejectCurrentRep(helpers, invalidReason);
                 }
             } else {
                 reset();
                 helpers.setStage(STATE.NOT_READY);
-                helpers.setWarning(movingPose.reason);
+                helpers.setWarning(invalidReason);
             }
-            sampleMetrics(helpers.metrics, helpers, movingPose);
+            sampleMetrics(helpers.metrics, helpers, movingPose, signalPoint);
             return;
         }
         tracker.invalidPoseFrames = 0;
@@ -606,58 +926,60 @@
             tracker.lastUpElbowAngle = upPose.metrics.elbowAngle;
         }
 
-        // State transitions are intentionally conservative:
-        // READY/UP can only enter DOWN after stable depth frames, and DOWN only counts after stable
-        // straight-arm UP frames plus a minimum rep duration. This filters landmark jitter and bounce reps.
-        if (tracker.state === STATE.READY || tracker.state === STATE.UP) {
+        const signalResult = tracker.signalAnalyzer.processPoint(
+            analyzerTimeSeconds(helpers, now),
+            signalPoint.shoulderHeightPx,
+            {
+                isUpPose: isUp && tracker.upFrames >= CONFIG.STABLE_FRAMES_REQUIRED,
+                minAmplitudePx: signalPoint.minAmplitudePx,
+                minPeriodS: CONFIG.SIGNAL_MIN_PERIOD_S,
+                maxPeriodS: CONFIG.SIGNAL_MAX_PERIOD_S
+            }
+        );
+
+        if (tracker.signalAnalyzer.state === 'LOOKING_FOR_MIN') {
+            if (tracker.state !== STATE.DOWN) startDownRep(helpers, now);
+            updateCurrentRepBenchmark(movingPose);
+            helpers.setStage(STATE.DOWN);
             helpers.setWarning(helpers.sessionStarted
                 ? 'Recording - lower under control, then return to a straight-arm plank.'
                 : 'Ready confirmed - lower under control, then push back up.');
-            helpers.setStage(tracker.state);
-
-            if (tracker.downFrames >= CONFIG.STABLE_FRAMES_REQUIRED &&
-                now - tracker.lastCountedAt >= CONFIG.REP_COOLDOWN_MS) {
-                startDownRep(helpers, now);
-            }
-        } else if (tracker.state === STATE.DOWN) {
-            updateCurrentRepBenchmark(movingPose);
-            helpers.setWarning('Good depth - push back up to a straight-arm plank.');
-            helpers.setStage(STATE.DOWN);
-
-            if (tracker.upFrames >= CONFIG.STABLE_FRAMES_REQUIRED) {
-                const repDuration = now - tracker.repStartedAt;
-                if (!tracker.repInvalid && repDuration >= CONFIG.MIN_REP_DURATION_MS) {
-                    captureOrUpdateBenchmark();
-                    tracker.lastCountedAt = now;
-                    tracker.state = STATE.REP_COUNTED;
-                    helpers.countValidRep(STATE.UP);
-                    recordLegContactOnCount(helpers);
-                    helpers.setStage(STATE.REP_COUNTED);
-                } else {
-                    tracker.state = STATE.UP;
-                    helpers.setStage(STATE.UP);
-                    helpers.setWarning('Control the full down-up movement before the rep can count.');
-                }
-            }
-        } else if (tracker.state === STATE.REP_COUNTED) {
-            helpers.setStage(STATE.REP_COUNTED);
-            if (now - tracker.lastCountedAt >= CONFIG.REP_COOLDOWN_MS && isUp) {
-                tracker.state = STATE.UP;
-                helpers.setStage(STATE.UP);
-            }
-        } else {
+        } else if (tracker.signalAnalyzer.state === 'LOOKING_FOR_MAX') {
             tracker.state = STATE.UP;
             helpers.setStage(STATE.UP);
+            helpers.setWarning('Good depth - push back up to a straight-arm plank.');
+        } else {
+            helpers.setStage(STATE.READY);
+        }
+
+        if (signalResult.rejectedLog) {
+            tracker.publishedRejectedLogs = tracker.signalAnalyzer.rejectedLogs.length;
+            helpers.markInvalid('Lower through a fuller shoulder-height range before counting the push-up.');
+            helpers.noteFormFlag('limited push-up shoulder height range');
+            if (helpers.metrics) helpers.metrics.shallow_rep_signals++;
+        }
+
+        if (signalResult.repLog && now - tracker.lastCountedAt >= CONFIG.REP_COOLDOWN_MS) {
+            captureOrUpdateBenchmark();
+            tracker.lastCountedAt = now;
+            tracker.state = STATE.REP_COUNTED;
+            helpers.countValidRep(STATE.UP);
+            recordLegContactOnCount(helpers);
+            publishSignalRepMetrics(helpers.metrics);
+            helpers.setStage(STATE.REP_COUNTED);
         }
 
         showLegContactWarning(helpers);
-        sampleMetrics(helpers.metrics, helpers, movingPose);
+        sampleMetrics(helpers.metrics, helpers, movingPose, signalPoint);
     }
 
     function enrichMetrics(payload, metrics, avgAngle) {
         payload.avg_elbow_angle_down = avgAngle(metrics.elbow_down_angles);
         payload.avg_elbow_angle_up = avgAngle(metrics.elbow_up_angles);
         payload.shallow_rep_signals = metrics.shallow_rep_signals || 0;
+        payload.rep_metrics = Array.isArray(metrics.rep_metrics) ? metrics.rep_metrics.slice() : [];
+        payload.rep_metrics_csv = metrics.rep_metrics_csv || repMetricsCsv(payload.rep_metrics);
+        payload.rep_count_signal = metrics.rep_count_signal || payload.rep_metrics.length;
         if (payload.avg_elbow_angle_down && payload.avg_elbow_angle_down > CONFIG.DOWN_ELBOW_MAX_ANGLE + 3) {
             payload.form_flags.push('limited push-up depth on several reps');
         }

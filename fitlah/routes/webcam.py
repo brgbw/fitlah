@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import uuid
 from datetime import datetime
@@ -22,6 +23,7 @@ from ..core.web_security import bounded_int, json_too_large, limit_structure, ra
 from ..domain.session_cleanup import clear_session_analysis_files
 from ..domain.session_analysis_store import load_temp_analysis_logs, save_temp_analysis
 
+logger = logging.getLogger(__name__)
 
 ALLOWED_VIDEO_MIMES = {
     "video/webm": ".webm",
@@ -29,11 +31,55 @@ ALLOWED_VIDEO_MIMES = {
     "video/quicktime": ".mov",
 }
 
+REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]
+
 
 def _exercise_labels(exercise_type):
     if exercise_type == "pushup":
         return "pushups", "Push Ups", "pushup_videos"
     return "situps", "Sit Ups", "situp_videos"
+
+
+def rep_metrics_csv(data):
+    if not isinstance(data, list):
+        return ",".join(REP_METRIC_KEYS)
+
+    rows = []
+    for index, item in enumerate(data):
+        if not isinstance(item, dict):
+            continue
+        rep = item.get("rep") or index + 1
+        amplitude = item.get("amplitude")
+        if amplitude is None:
+            amplitude = item.get("amplitude_angle_deg")
+        if amplitude is None:
+            amplitude = item.get("amplitude_px")
+        period = item.get("period_s")
+        cells = [
+            str(rep),
+            f"{amplitude:.3f}" if isinstance(amplitude, (int, float)) else "",
+            f"{period:.3f}" if isinstance(period, (int, float)) else "",
+        ]
+        rows.append(",".join(cells))
+    return ",".join(REP_METRIC_KEYS) + ("\n" + "\n".join(rows) if rows else "")
+
+
+def attach_rep_metrics_csv(metrics):
+    if not isinstance(metrics, dict):
+        return metrics
+
+    rep_data = metrics.get("rep_metrics")
+    movement_analysis = metrics.get("movement_analysis")
+    if not rep_data and isinstance(movement_analysis, dict):
+        rep_data = movement_analysis.get("reps")
+    if rep_data:
+        metrics["rep_metrics"] = rep_data
+        metrics["rep_metrics_csv"] = rep_metrics_csv(rep_data)
+    return metrics
+
+
+def attach_pushup_rep_metrics_csv(metrics):
+    return attach_rep_metrics_csv(metrics)
 
 
 def recalculate_exercise_best(db, nric, exercise_type):
@@ -192,7 +238,7 @@ def register_webcam_routes(app):
             return jsonify({"success": False, "error": "Invalid exercise type"}), 400
 
         valid_reps = bounded_int(request.form.get("valid_reps"), 0, 0, 120)
-        invalid_reps = bounded_int(request.form.get("invalid_reps"), 0, 0, 120)
+        invalid_reps = 0
         duration_seconds = bounded_int(request.form.get("duration_seconds"), 60, 1, 120)
         started_at = request.form.get("started_at", "")
         ended_at = request.form.get("ended_at", datetime.now().isoformat())
@@ -202,7 +248,7 @@ def register_webcam_routes(app):
             if len(raw_movement_analysis) > 100000:
                 return jsonify({"success": False, "error": "Movement analysis payload is too large"}), 413
             try:
-                movement_analysis = limit_structure(json.loads(raw_movement_analysis), max_depth=5, max_items=250)
+                movement_analysis = limit_structure(json.loads(raw_movement_analysis), max_depth=5, max_items=600)
             except (TypeError, ValueError):
                 movement_analysis = None
 
@@ -239,7 +285,7 @@ def register_webcam_routes(app):
             "time": f"{duration_seconds // 60}:{duration_seconds % 60:02d} min",
             "date": session_date,
             "notes": (
-                f"Computer vision session. Valid: {valid_reps}, invalid: {invalid_reps}, "
+                f"Computer vision session. Valid: {valid_reps}, "
                 f"duration: {duration_seconds}s. Video: {filename}."
             ),
             "exercise": exercise_type,
@@ -265,7 +311,6 @@ def register_webcam_routes(app):
             "success": True,
             "filename": filename,
             "valid_reps": valid_reps,
-            "invalid_reps": invalid_reps,
             "session_id": session_id,
             "analysis_id": analysis_id,
             "personal_best_record": best,
@@ -284,7 +329,7 @@ def register_webcam_routes(app):
 
         user = current_user()
         nric = user.get("nric")
-        metrics = limit_structure(dict(metrics), max_depth=5, max_items=250)
+        metrics = attach_rep_metrics_csv(limit_structure(dict(metrics), max_depth=5, max_items=600))
         session_id = metrics.pop("session_id", None)
         if session_id is not None:
             try:
@@ -295,11 +340,76 @@ def register_webcam_routes(app):
         metrics["athlete_name"] = user.get("name") or "Athlete"
         metrics["rank"] = user.get("rank") or ""
 
-        result = generate_exercise_recommendation(metrics)
-        if result.get("success") and session_id:
-            saved = save_ai_recommendation(None, session_id, nric, result)
-            result["session_id"] = session_id
-            result["saved_to_database"] = saved
+        logger.info(
+            "AI recommendation requested. nric_present=%s session_id=%s exercise=%s valid_reps=%s frames=%s rep_csv_present=%s",
+            bool(nric),
+            session_id,
+            metrics.get("exercise"),
+            metrics.get("valid_reps"),
+            metrics.get("frames_analyzed"),
+            bool(metrics.get("rep_metrics_csv")),
+        )
+
+        try:
+            result = generate_exercise_recommendation(metrics)
+        except Exception as exc:
+            logger.exception(
+                "AI recommendation crashed before response. session_id=%s exercise=%s",
+                session_id,
+                metrics.get("exercise"),
+            )
+            result = {
+                "success": False,
+                "error": f"AI recommendation crashed: {type(exc).__name__}: {str(exc)[:800]}",
+                "debug": {
+                    "failure_stage": "api_ai_recommendation",
+                    "exception_type": type(exc).__name__,
+                    "exception_message": str(exc)[:800],
+                    "session_id": session_id,
+                    "exercise": metrics.get("exercise"),
+                },
+            }
+
+        if result.get("success"):
+            if not session_id:
+                result["success"] = False
+                result["error"] = "AI recommendation generated but no saved session_id was provided."
+                result.setdefault("debug", {})
+                result["debug"]["database_save_failed"] = True
+                result["debug"]["missing_session_id"] = True
+            else:
+                saved = save_ai_recommendation(None, session_id, nric, result)
+                result["session_id"] = session_id
+                result["saved_to_database"] = saved
+                if not saved:
+                    result["success"] = False
+                    result["error"] = "AI recommendation generated but could not be saved to the database."
+                    result.setdefault("debug", {})
+                    result["debug"]["database_save_failed"] = True
+                    logger.error(
+                        "AI recommendation generated but failed to save. session_id=%s exercise=%s result_keys=%s",
+                        session_id,
+                        metrics.get("exercise"),
+                        sorted(result.keys()),
+                    )
+
+        if result.get("success"):
+            logger.info(
+                "AI recommendation completed. session_id=%s exercise=%s source=%s fallback_used=%s saved=%s",
+                session_id,
+                metrics.get("exercise"),
+                result.get("source", "gemini"),
+                bool((result.get("debug") or {}).get("fallback_used")),
+                result.get("saved_to_database"),
+            )
+        else:
+            logger.error(
+                "AI recommendation failed. session_id=%s exercise=%s error=%s debug=%s",
+                session_id,
+                metrics.get("exercise"),
+                result.get("error"),
+                result.get("debug"),
+            )
 
         status = 200 if result.get("success") else 503
         return jsonify(result), status

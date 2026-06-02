@@ -30,9 +30,7 @@ let currentMode = 'pushup';
     let isReplayMode = false;
     let sessionStartedAt = null;
     let validReps = 0;
-    let invalidReps = 0;
     let stage = null;
-    let lastInvalidAt = 0;
     let lastRepAt = 0;
     let lastLandmarks = null;
     let cvMetrics = null;
@@ -46,9 +44,9 @@ let currentMode = 'pushup';
     let aiRecoLoading = false;
     let aiRecoAnimationTimer = null;
     let aiRecoPending = Promise.resolve();
-    let reviewController = null;
+    let aiRecoLastResult = null;
+    const aiRecoResultsBySession = new Map();
     let lastAnalyzedVideoTime = -1;
-    let forceReplayFrame = false;
     let lastWarningSpokenAt = 0;
 
     const sourceVideo = document.getElementById('sourceVideo');
@@ -69,19 +67,13 @@ let currentMode = 'pushup';
     const handsBadge = document.getElementById('handsBadge');
     const aiRecoPanel = document.getElementById('aiRecoPanel');
     const aiRecoStatus = document.getElementById('aiRecoStatus');
+    const aiRecoSkeleton = document.getElementById('aiRecoSkeleton');
     const aiRecoSummary = document.getElementById('aiRecoSummary');
     const aiRecoColumns = document.getElementById('aiRecoColumns');
     const aiRecoDos = document.getElementById('aiRecoDos');
     const aiRecoDonts = document.getElementById('aiRecoDonts');
     const aiRecoFocus = document.getElementById('aiRecoFocus');
     const aiRecoFocusText = document.getElementById('aiRecoFocusText');
-    const reviewControls = document.getElementById('reviewControls');
-    const reviewSeek = document.getElementById('reviewSeek');
-    const reviewCurrentTime = document.getElementById('reviewCurrentTime');
-    const reviewDuration = document.getElementById('reviewDuration');
-    const reviewSpeed = document.getElementById('reviewSpeed');
-    const reviewJumpTime = document.getElementById('reviewJumpTime');
-    const reviewPlayPauseBtn = document.getElementById('reviewPlayPauseBtn');
 
     function lockEntryMode(mode) {
         if (mode === 'camera') {
@@ -215,11 +207,10 @@ let currentMode = 'pushup';
 
         const imageSource = isReplayMode ? playbackVideo : sourceVideo;
         const replayIsPaused = isReplayMode && playbackVideo.paused;
-        const shouldDrawPausedReplayFrame = isReplayMode && forceReplayFrame;
 
         if (imageSource.readyState >= 2 &&
             !poseInFlight &&
-            (!replayIsPaused || shouldDrawPausedReplayFrame) &&
+            !replayIsPaused &&
             timestamp - lastPoseSentAt >= POSE_MIN_FRAME_MS) {
             poseInFlight = true;
             lastPoseSentAt = timestamp;
@@ -229,7 +220,6 @@ let currentMode = 'pushup';
                 console.warn('Pose frame skipped:', err);
             } finally {
                 poseInFlight = false;
-                forceReplayFrame = false;
             }
         }
 
@@ -321,6 +311,15 @@ let currentMode = 'pushup';
             get isRecording() {
                 return isRecording;
             },
+            get isReplayMode() {
+                return isReplayMode;
+            },
+            get frameWidth() {
+                return poseCanvas.width || sourceVideo.videoWidth || playbackVideo.videoWidth || 640;
+            },
+            get frameHeight() {
+                return poseCanvas.height || sourceVideo.videoHeight || playbackVideo.videoHeight || 360;
+            },
             markInvalid,
             get metrics() {
                 return cvMetrics;
@@ -385,17 +384,6 @@ let currentMode = 'pushup';
 
     function markInvalid(message) {
         setWarning(message);
-        if (isRecording && Date.now() - lastInvalidAt > 1400) {
-            invalidReps++;
-            lastInvalidAt = Date.now();
-            
-            // Play error sound
-            if (window.SoundManager) {
-                SoundManager.playErrorSound();
-            }
-            
-            updateCounters();
-        }
     }
 
     function visible(...points) {
@@ -453,6 +441,9 @@ let currentMode = 'pushup';
             hip_down_angles: [],
             hip_up_angles: [],
             movement_samples: [],
+            rep_metrics: [],
+            rep_metrics_csv: '',
+            rep_count_signal: 0,
             shallow_rep_signals: 0,
             form_flags: []
         };
@@ -495,7 +486,8 @@ let currentMode = 'pushup';
             .map(sample => ({
                 time: Number(sample.time.toFixed(2)),
                 value: Number(sample.value.toFixed(4)),
-                elbow_angle: Number.isFinite(sample.elbow_angle) ? sample.elbow_angle : null
+                elbow_angle: Number.isFinite(sample.elbow_angle) ? sample.elbow_angle : null,
+                hip_angle: Number.isFinite(sample.hip_angle) ? sample.hip_angle : null
             }));
         if (validSamples.length <= maxPoints) return smoothMovementSamples(validSamples);
 
@@ -513,11 +505,12 @@ let currentMode = 'pushup';
         const range = maxValue - minValue;
 
         return {
-            type: currentMode === 'pushup' ? 'shoulder_drop' : 'torso_lift',
-            label: currentMode === 'pushup' ? 'Push-up depth' : 'Sit-up lift',
-            unit: 'body scale',
+            type: currentMode === 'pushup' ? 'shoulder_height' : 'hip_angle',
+            label: currentMode === 'pushup' ? 'Shoulder height' : 'Hip angle',
+            unit: currentMode === 'pushup' ? 'px' : 'degrees',
             duration_seconds: duration,
             samples,
+            reps: Array.isArray(metrics.rep_metrics) ? metrics.rep_metrics.slice() : [],
             stats: {
                 peak: Number(maxValue.toFixed(3)),
                 range: Number(range.toFixed(3))
@@ -525,17 +518,46 @@ let currentMode = 'pushup';
         };
     }
 
+    function aiRepMetricsCsv(data) {
+        const rows = (data || []).map((item, index) => {
+            const rep = Number.isFinite(item.rep) ? item.rep : index + 1;
+            const amplitude = Number.isFinite(item.amplitude_angle_deg)
+                ? item.amplitude_angle_deg
+                : (Number.isFinite(item.amplitude_px) ? item.amplitude_px : item.amplitude);
+            const period = item.period_s;
+            return [
+                rep,
+                Number.isFinite(amplitude) ? Number(amplitude).toFixed(3) : '',
+                Number.isFinite(period) ? Number(period).toFixed(3) : ''
+            ].join(',');
+        });
+        return `rep,amplitude,period_s${rows.length ? `\n${rows.join('\n')}` : ''}`;
+    }
+
+    function compactMetricsForAi(metrics) {
+        const payload = { ...metrics };
+        const reps = Array.isArray(payload.rep_metrics)
+            ? payload.rep_metrics
+            : (Array.isArray(payload.movement_analysis?.reps) ? payload.movement_analysis.reps : []);
+        payload.rep_metrics_csv = reps.length
+            ? aiRepMetricsCsv(reps)
+            : (payload.rep_metrics_csv || aiRepMetricsCsv([]));
+        delete payload.rep_metrics;
+        if (payload.movement_analysis) {
+            const { samples, reps: movementReps, ...analysisSummary } = payload.movement_analysis;
+            payload.movement_analysis = analysisSummary;
+        }
+        return payload;
+    }
+
     function finalizeSessionMetrics() {
         const duration = Math.max(1, sessionDurationSeconds());
-        const total = validReps + invalidReps;
         const m = cvMetrics || {};
         const payload = {
             exercise: currentMode,
             valid_reps: validReps,
-            invalid_reps: invalidReps,
             duration_seconds: duration,
             reps_per_minute: Math.round((validReps / duration) * 60),
-            invalid_rep_rate_pct: total ? Math.round((invalidReps / total) * 100) : 0,
             frames_analyzed: m.frames_sampled || 0,
             form_flags: m.form_flags ? m.form_flags.slice() : []
         };
@@ -544,32 +566,44 @@ let currentMode = 'pushup';
         } else {
             FitLahSitupExercise.enrichMetrics(payload, m, avgAngle);
         }
+        payload.rep_metrics_csv = aiRepMetricsCsv(payload.rep_metrics || m.rep_metrics || []);
         payload.movement_analysis = buildMovementAnalysis(m, duration);
         return payload;
     }
 
     function resetAiRecoPanel() {
         clearAiRecoAnimation();
+        aiRecoLoading = false;
+        aiRecoLastResult = null;
+        if (!aiRecoPanel) return;
         aiRecoPanel.style.display = 'none';
-        aiRecoStatus.className = 'ai-reco-status';
-        aiRecoStatus.textContent = 'Complete a session to get personalised coaching.';
-        aiRecoSummary.style.display = 'none';
-        aiRecoColumns.style.display = 'none';
-        aiRecoFocus.style.display = 'none';
-        aiRecoDos.innerHTML = '';
-        aiRecoDonts.innerHTML = '';
-        aiRecoFocusText.innerHTML = '';
+        if (aiRecoStatus) {
+            aiRecoStatus.className = 'ai-reco-status';
+            aiRecoStatus.textContent = 'Complete a session to get personalised coaching.';
+        }
+        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'none';
+        if (aiRecoSummary) aiRecoSummary.style.display = 'none';
+        if (aiRecoColumns) aiRecoColumns.style.display = 'none';
+        if (aiRecoFocus) aiRecoFocus.style.display = 'none';
+        if (aiRecoDos) aiRecoDos.innerHTML = '';
+        if (aiRecoDonts) aiRecoDonts.innerHTML = '';
+        if (aiRecoFocusText) aiRecoFocusText.innerHTML = '';
     }
 
     function setAiRecoLoading(exerciseLabel) {
         clearAiRecoAnimation();
         aiRecoLoading = true;
-        aiRecoPanel.style.display = 'none';
-        aiRecoStatus.className = 'ai-reco-status loading';
-        aiRecoStatus.textContent = `Analysing your ${exerciseLabel} for personalised coaching...`;
-        aiRecoSummary.style.display = 'none';
-        aiRecoColumns.style.display = 'none';
-        aiRecoFocus.style.display = 'none';
+        aiRecoLastResult = null;
+        if (!aiRecoPanel) return;
+        aiRecoPanel.style.display = 'block';
+        if (aiRecoStatus) {
+            aiRecoStatus.className = 'ai-reco-status loading';
+            aiRecoStatus.textContent = `Analysing your ${exerciseLabel} for personalised coaching...`;
+        }
+        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'grid';
+        if (aiRecoSummary) aiRecoSummary.style.display = 'none';
+        if (aiRecoColumns) aiRecoColumns.style.display = 'none';
+        if (aiRecoFocus) aiRecoFocus.style.display = 'none';
     }
 
     function clearAiRecoAnimation() {
@@ -620,70 +654,109 @@ let currentMode = 'pushup';
     function renderAiRecommendation(data) {
         clearAiRecoAnimation();
         aiRecoLoading = false;
-        aiRecoPanel.style.display = 'none';
-        aiRecoStatus.className = 'ai-reco-status';
-        aiRecoStatus.textContent = 'AI personalised coaching';
+        if (!aiRecoPanel) {
+            console.info('AI recommendation generated after save', {
+                session_id: data.session_id,
+                saved_to_database: data.saved_to_database
+            });
+            return;
+        }
+        aiRecoPanel.style.display = 'block';
+        if (aiRecoStatus) aiRecoStatus.className = 'ai-reco-status';
+        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'none';
+        if (data.ai_error || data.debug?.fallback_used) {
+            const debugDetail = data.debug
+                ? ` (${formatAiDebug(data.debug)})`
+                : '';
+            if (aiRecoStatus) {
+                aiRecoStatus.className = 'ai-reco-status error';
+                aiRecoStatus.textContent = `AI fallback used: ${data.ai_error || 'Gemini failed.'}${debugDetail}`;
+            }
+            console.error('AI recommendation fallback used', data);
+        } else {
+            if (aiRecoStatus) aiRecoStatus.textContent = 'AI personalised coaching';
+        }
         const dos = (data.dos || []).slice(0, 1);
         const donts = (data.donts || []).slice(0, 1);
         const focusAreas = (data.focus_areas || []).slice(0, 1);
 
-        aiRecoDos.innerHTML = '';
-        aiRecoDonts.innerHTML = '';
-        aiRecoFocusText.innerHTML = '';
+        if (aiRecoDos) aiRecoDos.innerHTML = '';
+        if (aiRecoDonts) aiRecoDonts.innerHTML = '';
+        if (aiRecoFocusText) aiRecoFocusText.innerHTML = '';
 
         if (data.summary) {
-            aiRecoSummary.style.display = 'block';
+            if (aiRecoSummary) aiRecoSummary.style.display = 'block';
         } else {
-            aiRecoSummary.style.display = 'none';
+            if (aiRecoSummary) aiRecoSummary.style.display = 'none';
         }
-        aiRecoColumns.style.display = (dos.length || donts.length) ? 'grid' : 'none';
+        if (aiRecoColumns) aiRecoColumns.style.display = (dos.length || donts.length) ? 'grid' : 'none';
 
         if (focusAreas.length) {
-            aiRecoFocus.style.display = 'block';
+            if (aiRecoFocus) aiRecoFocus.style.display = 'block';
         } else {
-            aiRecoFocus.style.display = 'none';
+            if (aiRecoFocus) aiRecoFocus.style.display = 'none';
         }
 
         const showDos = (done) => revealAiItems(dos, () => {
             const li = document.createElement('li');
-            aiRecoDos.appendChild(li);
+            if (aiRecoDos) aiRecoDos.appendChild(li);
             return li;
         }, done);
         const showDonts = (done) => revealAiItems(donts, () => {
             const li = document.createElement('li');
-            aiRecoDonts.appendChild(li);
+            if (aiRecoDonts) aiRecoDonts.appendChild(li);
             return li;
         }, done);
         const showFocus = () => {
             if (focusAreas.length) {
                 revealAiItems(focusAreas, () => {
                     const li = document.createElement('li');
-                    aiRecoFocusText.appendChild(li);
+                    if (aiRecoFocusText) aiRecoFocusText.appendChild(li);
                     return li;
                 });
             }
         };
 
-        if (data.summary) {
+        if (data.summary && aiRecoSummary) {
             revealText(aiRecoSummary, data.summary, () => showDos(() => showDonts(showFocus)));
         } else {
             showDos(() => showDonts(showFocus));
         }
     }
 
-    function renderAiRecoError(message) {
+    function formatAiDebug(debug) {
+        if (!debug || typeof debug !== 'object') return '';
+        const parts = [];
+        if (debug.failure_stage) parts.push(`stage=${debug.failure_stage}`);
+        if (debug.exception_type) parts.push(`type=${debug.exception_type}`);
+        if (debug.exception_message) parts.push(`message=${debug.exception_message}`);
+        if (debug.model) parts.push(`model=${debug.model}`);
+        if (debug.api_key_present === false) parts.push('api_key=missing');
+        if (debug.sdk_available === false) parts.push('sdk=missing');
+        if (debug.database_save_failed) parts.push('database_save=failed');
+        return parts.join('; ');
+    }
+
+    function renderAiRecoError(message, debug) {
         clearAiRecoAnimation();
         aiRecoLoading = false;
-        aiRecoPanel.style.display = 'none';
-        aiRecoStatus.className = 'ai-reco-status error';
-        aiRecoStatus.textContent = message;
+        if (!aiRecoPanel) {
+            console.error('AI recommendation failed after save', { message, debug });
+            return;
+        }
+        aiRecoPanel.style.display = 'block';
+        if (aiRecoStatus) aiRecoStatus.className = 'ai-reco-status error';
+        if (aiRecoSkeleton) aiRecoSkeleton.style.display = 'none';
+        const detail = formatAiDebug(debug);
+        if (aiRecoStatus) aiRecoStatus.textContent = detail ? `${message} (${detail})` : message;
+        console.error('AI recommendation failed', { message, debug });
     }
 
     async function fetchAiRecommendation(metrics, force = false, sessionIdOverride = null) {
         if (!metrics || (aiRecoLoading && !force)) return;
         const label = metrics.exercise === 'pushup' ? 'push-up' : 'sit-up';
         setAiRecoLoading(label);
-        const payload = { ...metrics };
+        const payload = compactMetricsForAi(metrics);
         const targetSessionId = sessionIdOverride || payload.session_id || lastSessionId;
         if (targetSessionId) {
             payload.session_id = targetSessionId;
@@ -695,34 +768,39 @@ let currentMode = 'pushup';
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
+            aiRecoLastResult = data;
+            if (targetSessionId) {
+                aiRecoResultsBySession.set(String(targetSessionId), data);
+            }
             if (data.success) {
                 renderAiRecommendation(data);
                 return data;
             } else {
-                renderAiRecoError(data.error || 'Could not generate AI recommendation.');
+                renderAiRecoError(data.error || 'Could not generate AI recommendation.', data.debug);
                 return data;
             }
         } catch (err) {
-            renderAiRecoError('AI coach unavailable: ' + err.message);
-            return { success: false, error: err.message };
+            aiRecoLastResult = { success: false, error: err.message };
+            if (targetSessionId) {
+                aiRecoResultsBySession.set(String(targetSessionId), aiRecoLastResult);
+            }
+            renderAiRecoError('AI coach connection failed: ' + err.message);
+            return aiRecoLastResult;
         }
     }
 
     function updateCounters() {
         const nextStage = stage || 'Ready';
-        const signature = `${validReps}|${invalidReps}|${nextStage}`;
+        const signature = `${validReps}|${nextStage}`;
         if (signature === lastCounterSignature) return;
         lastCounterSignature = signature;
         document.getElementById('repCounter').textContent = String(validReps);
-        document.getElementById('invalidRepCounter').textContent = String(invalidReps);
         document.getElementById('stageDisplay').innerText = `Stage: ${nextStage}`;
     }
 
     function resetRepState() {
         validReps = 0;
-        invalidReps = 0;
         stage = null;
-        lastInvalidAt = 0;
         lastRepAt = 0;
         lastCounterSignature = '';
         positionLockFrames = 0;
@@ -769,7 +847,6 @@ let currentMode = 'pushup';
         stage = null;
         lastCounterSignature = '';
         validReps = 0;
-        invalidReps = 0;
         if (window.FitLahPushupExercise) {
             FitLahPushupExercise.reset();
         }
@@ -891,7 +968,6 @@ let currentMode = 'pushup';
         poseCanvas.style.display = 'block';
         playbackVideo.currentTime = 0;
         lastAnalyzedVideoTime = -1;
-        showReviewControls();
         const playReplay = () => playbackVideo.play().catch(() => {});
         if (playbackVideo.readyState >= 2) {
             playReplay();
@@ -899,8 +975,8 @@ let currentMode = 'pushup';
             playbackVideo.onloadeddata = playReplay;
         }
         setWarning(analyzeReplayMode
-            ? 'Analysing attached video. Use the timeline controls to review or skip.'
-            : 'Playback and review your form, then upload to save.');
+            ? 'Analysing attached video.'
+            : 'Playback complete. Save the session when ready.');
 
         playbackVideo.onended = () => {
             const wasAnalyzingAttachment = analyzeReplayMode;
@@ -917,36 +993,10 @@ let currentMode = 'pushup';
                 lastSessionMetrics = finalizeSessionMetrics();
                 setWarning('Attached video analysis complete. Save the session.');
             } else {
-                setWarning('Review complete');
-            }
-            if (reviewController) {
-                reviewController.refresh();
+                setWarning('Playback complete');
             }
         };
         startPoseLoop();
-    }
-
-    function showReviewControls() {
-        reviewControls.style.display = 'flex';
-        if (!reviewController && window.FitLahVideoReview) {
-            reviewController = FitLahVideoReview.createController({
-                video: playbackVideo,
-                seek: reviewSeek,
-                current: reviewCurrentTime,
-                duration: reviewDuration,
-                speed: reviewSpeed,
-                timeInput: reviewJumpTime,
-                playPause: reviewPlayPauseBtn,
-                onSeeked: requestReplayFrame
-            });
-        }
-        if (reviewController) {
-            reviewController.refresh();
-        }
-    }
-
-    function hideReviewControls() {
-        reviewControls.style.display = 'none';
     }
 
     function selectRecordedVideo() {
@@ -999,11 +1049,9 @@ let currentMode = 'pushup';
         updateCounters();
 
         playbackVideo.onloadedmetadata = () => {
-            showReviewControls();
             startPlaybackReplay({ analyze: true });
         };
         if (playbackVideo.readyState >= 1) {
-            showReviewControls();
             startPlaybackReplay({ analyze: true });
         }
     }
@@ -1042,7 +1090,6 @@ let currentMode = 'pushup';
         playbackVideo.load();
         playbackVideo.onended = null;
         playbackVideo.style.display = 'none';
-        hideReviewControls();
         poseCanvas.style.display = stream ? 'block' : 'none';
         stopRecBtn.style.display = 'none';
         uploadBtn.style.display = 'none';
@@ -1117,7 +1164,6 @@ let currentMode = 'pushup';
         formData.append('video', videoBlob, 'recording.webm');
         formData.append('exercise', currentMode);
         formData.append('valid_reps', validReps);
-        formData.append('invalid_reps', invalidReps);
         formData.append('duration_seconds', lastSessionMetrics?.duration_seconds || sessionDurationSeconds());
         if (lastSessionMetrics?.movement_analysis) {
             formData.append('movement_analysis', JSON.stringify(lastSessionMetrics.movement_analysis));
@@ -1150,7 +1196,6 @@ let currentMode = 'pushup';
                     ? {
                         ...lastSessionMetrics,
                         valid_reps: result.valid_reps,
-                        invalid_reps: result.invalid_reps,
                         session_id: result.session_id
                     }
                     : null;
@@ -1166,7 +1211,6 @@ let currentMode = 'pushup';
                     armSession();
                     startPoseLoop();
                 } else {
-                    hideReviewControls();
                     cameraPlaceholder.style.display = 'block';
                     cameraPlaceholder.textContent = 'Attach another video or return when done';
                     poseCanvas.style.display = 'none';
@@ -1247,6 +1291,25 @@ let currentMode = 'pushup';
         }
         completeBtn.textContent = 'Opening analysis...';
         completeBtn.style.pointerEvents = 'none';
+        if (aiRecoLoading) {
+            completeBtn.textContent = 'Waiting for AI...';
+        }
+        try {
+            await aiRecoPending;
+        } catch (err) {
+            console.error('AI recommendation did not finish before navigation', err);
+        }
+        const failedAiSession = savedSessionIds.find(item => {
+            const result = aiRecoResultsBySession.get(String(item.id));
+            return !result || !result.success || result.saved_to_database !== true;
+        });
+        if (failedAiSession) {
+            const result = aiRecoResultsBySession.get(String(failedAiSession.id));
+            completeBtn.textContent = 'Done';
+            completeBtn.style.pointerEvents = 'auto';
+            alert(result?.error || 'AI recommendation was not saved. Please try Save Session again.');
+            return;
+        }
         stopPoseLoop();
         if (stream) stream.getTracks().forEach(t => t.stop());
         const ids = savedSessionIds.map(item => item.id).join(',');
@@ -1256,53 +1319,6 @@ let currentMode = 'pushup';
         if (analysisIds) params.set('analysis_ids', analysisIds);
         const query = params.toString();
         window.location.href = query ? `/ai-recommendations?${query}` : "/ai-recommendations";
-    }
-
-    function toggleReviewPlayback() {
-        isReplayMode = true;
-        startPoseLoop();
-        if (playbackVideo.ended && Number.isFinite(playbackVideo.duration)) {
-            playbackVideo.currentTime = 0;
-            requestReplayFrame();
-        }
-        if (playbackVideo.paused) {
-            playbackVideo.play().catch(() => {});
-        } else {
-            playbackVideo.pause();
-        }
-        if (reviewController) reviewController.refresh();
-    }
-
-    function stopReviewPlayback() {
-        if (!Number.isFinite(playbackVideo.duration)) return;
-        playbackVideo.pause();
-        playbackVideo.currentTime = 0;
-        isReplayMode = true;
-        requestReplayFrame();
-        if (reviewController) reviewController.refresh();
-    }
-
-    function skipReviewBy(seconds) {
-        if (reviewController) reviewController.seekBy(seconds);
-    }
-
-    function jumpReviewToInput() {
-        if (reviewController) reviewController.seekTo(reviewJumpTime.value);
-    }
-
-    function skipReviewToEnd() {
-        if (!Number.isFinite(playbackVideo.duration)) return;
-        playbackVideo.currentTime = Math.max(0, playbackVideo.duration - 0.2);
-        isReplayMode = true;
-        requestReplayFrame();
-        playbackVideo.play().catch(() => {});
-    }
-
-    function requestReplayFrame() {
-        if (!playbackVideo.src) return;
-        isReplayMode = true;
-        forceReplayFrame = true;
-        startPoseLoop();
     }
 
     videoAttachmentInput.addEventListener('change', (event) => {
@@ -1318,8 +1334,3 @@ let currentMode = 'pushup';
 
     window.selectRecordedVideo = selectRecordedVideo;
     window.startRecording = startRecording;
-    window.toggleReviewPlayback = toggleReviewPlayback;
-    window.stopReviewPlayback = stopReviewPlayback;
-    window.skipReviewBy = skipReviewBy;
-    window.jumpReviewToInput = jumpReviewToInput;
-    window.skipReviewToEnd = skipReviewToEnd;

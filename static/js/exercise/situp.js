@@ -70,7 +70,9 @@
         downFrames: 0,
         upFrames: 0,
         ascendingFrames: 0,
-        descendingFrames: 0
+        descendingFrames: 0,
+        repStartedAtSeconds: 0,
+        repStartDownHipAngle: null
     };
 
     function reset() {
@@ -91,6 +93,8 @@
         tracker.upFrames = 0;
         tracker.ascendingFrames = 0;
         tracker.descendingFrames = 0;
+        tracker.repStartedAtSeconds = 0;
+        tracker.repStartDownHipAngle = null;
     }
 
     function visible(point, minVisibility) {
@@ -335,6 +339,8 @@
     function beginRep(helpers, now, validation) {
         tracker.state = STATE.ASCENDING;
         tracker.repStartedAt = now;
+        tracker.repStartedAtSeconds = helpers.sessionElapsedSeconds();
+        tracker.repStartDownHipAngle = validation.metrics.hipAngle;
         tracker.minHipAngleThisRep = validation.metrics.hipAngle;
         helpers.setStage(STATE.ASCENDING);
     }
@@ -347,6 +353,8 @@
         tracker.upFrames = 0;
         tracker.ascendingFrames = 0;
         tracker.descendingFrames = 0;
+        tracker.repStartedAtSeconds = 0;
+        tracker.repStartDownHipAngle = null;
         tracker.invalidPostureFrames = 0;
         helpers.setPositionReady(false);
         helpers.setStage(STATE.INVALID_FORM);
@@ -390,11 +398,9 @@
 
         const hipAngle = validation.metrics.hipAngle;
         if (metrics.frames_sampled % CONFIG.GRAPH_SAMPLE_EVERY_FRAMES === 0) {
-            const downAngle = tracker.downHipAngle || CONFIG.DOWN_HIP_ANGLE_MIN;
-            const torsoLift = Math.max(0, downAngle - hipAngle) / 180;
             metrics.movement_samples.push({
                 time: helpers.sessionElapsedSeconds(),
-                value: Number(torsoLift.toFixed(4)),
+                value: Number(hipAngle.toFixed(2)),
                 hip_angle: Math.round(hipAngle)
             });
             if (metrics.movement_samples.length > 900) {
@@ -408,6 +414,43 @@
         if (hipAngle < CONFIG.DOWN_HIP_ANGLE_MIN && hipAngle > CONFIG.UP_HIP_ANGLE_MAX) {
             helpers.noteFormFlag('partial sit-up depth detected');
         }
+    }
+
+    function repMetricsCsv(data) {
+        const rows = (data || []).map((item, index) => {
+            const rep = Number.isFinite(item.rep) ? item.rep : index + 1;
+            const amplitude = Number.isFinite(item.amplitude_angle_deg) ? item.amplitude_angle_deg : item.amplitude;
+            const period = item.period_s;
+            return [
+                rep,
+                Number.isFinite(amplitude) ? Number(amplitude).toFixed(3) : '',
+                Number.isFinite(period) ? Number(period).toFixed(3) : ''
+            ].join(',');
+        });
+        return `rep,amplitude,period_s${rows.length ? `\n${rows.join('\n')}` : ''}`;
+    }
+
+    function recordRepMetrics(metrics, helpers, downAngle, periodMs) {
+        if (!helpers.isRecording || !metrics) return;
+        const count = Array.isArray(metrics.rep_metrics) ? metrics.rep_metrics.length : 0;
+        const periodFromVideo = helpers.sessionElapsedSeconds() - tracker.repStartedAtSeconds;
+        const period = Number.isFinite(periodFromVideo) && periodFromVideo > 0
+            ? periodFromVideo
+            : periodMs / 1000;
+        const startAngle = Math.max(
+            tracker.repStartDownHipAngle || 0,
+            downAngle || 0
+        );
+        const amplitude = Math.max(0, startAngle - tracker.minHipAngleThisRep);
+        if (!Array.isArray(metrics.rep_metrics)) metrics.rep_metrics = [];
+        metrics.rep_metrics.push({
+            rep: count + 1,
+            period_s: Number(period.toFixed(3)),
+            amplitude_angle_deg: Number(amplitude.toFixed(3)),
+            time_s: Number(helpers.sessionElapsedSeconds().toFixed(3))
+        });
+        metrics.rep_metrics_csv = repMetricsCsv(metrics.rep_metrics);
+        metrics.rep_count_signal = metrics.rep_metrics.length;
     }
 
     function analyze(landmarks, helpers) {
@@ -488,6 +531,7 @@
                 const repDuration = now - tracker.repStartedAt;
                 if (repDuration >= CONFIG.MIN_REP_DURATION_MS) {
                     captureOrUpdateBenchmark(Math.max(downAngle, hipAngle));
+                    recordRepMetrics(helpers.metrics, helpers, Math.max(downAngle, hipAngle), repDuration);
                     tracker.lastCountedAt = now;
                     tracker.state = STATE.REP_COUNTED;
                     tracker.downHipAngle = hipAngle;
@@ -518,6 +562,9 @@
     function enrichMetrics(payload, metrics, avgAngle) {
         payload.avg_hip_angle_lying = avgAngle(metrics.hip_down_angles);
         payload.avg_hip_angle_sitting = avgAngle(metrics.hip_up_angles);
+        payload.rep_metrics = Array.isArray(metrics.rep_metrics) ? metrics.rep_metrics.slice() : [];
+        payload.rep_metrics_csv = metrics.rep_metrics_csv || repMetricsCsv(payload.rep_metrics);
+        payload.rep_count_signal = metrics.rep_count_signal || payload.rep_metrics.length;
         if (payload.avg_hip_angle_sitting && payload.avg_hip_angle_sitting > CONFIG.UP_HIP_ANGLE_MAX + 8) {
             payload.form_flags.push('limited sit-up height on several reps');
         }

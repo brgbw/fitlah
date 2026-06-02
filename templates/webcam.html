@@ -97,15 +97,6 @@
         color: #166534; 
     }
     
-    .counter-focus-invalid {
-        background: #FFFFFF;
-        border-color: #E2E8F0;
-    }
-
-    .counter-focus-invalid .hud-lbl { 
-        color: #854D0E; 
-    }
-
     .giant-counter {
         font-size: 48px;
         font-weight: 600;
@@ -115,8 +106,6 @@
     }
 
     .counter-focus-valid .giant-counter { color: #15803D; }
-    .counter-focus-invalid .giant-counter { color: #CA8A04; }
-
     .giant-counter span {
         font-size: 14px;
         font-weight: 600;
@@ -293,64 +282,6 @@
         animation: timer-pulse 1s ease-in-out infinite;
     }
 
-    .review-controls {
-        display: none;
-        align-items: center;
-        gap: 12px;
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 12px 14px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        flex-wrap: wrap;
-    }
-
-    .review-icon-btn {
-        border: 1px solid #CBD5E1;
-        background: #FFFFFF;
-        color: #0F172A;
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .review-icon-btn:hover {
-        background: #F8FAFC;
-    }
-
-    .review-time {
-        font-size: 12px;
-        color: #475569;
-        font-variant-numeric: tabular-nums;
-        min-width: 86px;
-        text-align: center;
-    }
-
-    .review-seek {
-        flex: 1;
-        min-width: 220px;
-        accent-color: var(--primary);
-    }
-
-    .review-select,
-    .review-time-input {
-        height: 34px;
-        border: 1px solid #CBD5E1;
-        border-radius: 8px;
-        background: #FFFFFF;
-        color: #0F172A;
-        padding: 0 10px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .review-time-input {
-        width: 82px;
-    }
-
     @keyframes timer-pulse {
         50% { opacity: 0.85; }
     }
@@ -376,156 +307,6 @@
         color: #BE123C;
     }
 
-    .ai-reco-panel {
-        background: #FFFFFF;
-        border: 1px solid var(--border);
-        border-radius: var(--card-radius);
-        padding: 16px;
-        box-shadow: var(--card-shadow);
-    }
-
-    .ai-reco-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 10px;
-    }
-
-    .ai-reco-header h3 {
-        font-size: 18px;
-        font-weight: 800;
-        color: var(--marker-situp);
-        text-transform: uppercase;
-        letter-spacing: 0;
-    }
-
-    .ai-reco-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: #EFF6FF;
-        color: var(--marker-situp);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: 500;
-    }
-
-    .ai-reco-status {
-        font-size: 16px;
-        color: var(--text-muted);
-        line-height: 1.5;
-        margin-bottom: 10px;
-    }
-
-    .ai-reco-status.loading {
-        color: var(--marker-situp);
-        font-weight: 500;
-    }
-
-    .ai-reco-status.error {
-        color: #B45309;
-    }
-
-    .ai-reco-summary {
-        font-size: 16px;
-        font-weight: 400;
-        color: #334155;
-        line-height: 1.5;
-        margin-bottom: 12px;
-        padding: 11px 12px;
-        background: #F8FAFC;
-        border: 0;
-        border-left: 4px solid var(--marker-situp);
-        border-radius: 8px;
-    }
-
-    .ai-reco-columns {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    @media (max-width: 900px) {
-        .ai-reco-columns {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .ai-reco-block h4 {
-        font-size: calc(17px * var(--font-scale)) !important;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0;
-        margin-bottom: 8px;
-    }
-
-    .ai-reco-block.dos h4 { color: #15803D; }
-    .ai-reco-block.donts h4 { color: #DC2626; }
-
-    .ai-reco-block ul {
-        list-style: disc;
-        padding-left: 22px;
-        margin: 0;
-        color: #475569;
-        font-size: calc(18px * var(--font-scale));
-        line-height: 1.55;
-    }
-
-    .ai-reco-block li {
-        font-size: inherit;
-        font-weight: 500;
-        line-height: inherit;
-        padding: 0;
-        margin-bottom: 6px;
-        color: currentColor;
-    }
-
-    .ai-reco-block.dos li {
-        color: #334155;
-    }
-
-    .ai-reco-block.donts li {
-        color: #334155;
-    }
-
-    .ai-reco-focus {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid var(--border);
-    }
-
-    .ai-reco-focus h4 {
-        font-size: calc(17px * var(--font-scale)) !important;
-        font-weight: 800;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0;
-        margin-bottom: 8px;
-    }
-
-    .ai-reco-focus ul {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .ai-reco-focus li {
-        font-size: 16px;
-        font-weight: 500;
-        color: #475569;
-        line-height: 1.45;
-        background: #F8FAFC;
-        border: 1px solid #CBD5E1;
-        border-radius: 999px;
-        padding: 7px 10px;
-    }
-
     @media (max-width: 980px) {
         .vision-workspace {
             grid-template-columns: 1fr;
@@ -533,16 +314,12 @@
 
         .diagnostics-sidebar {
             height: auto;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            display: block;
         }
 
     }
 
     @media (max-width: 620px) {
-        .diagnostics-sidebar {
-            grid-template-columns: 1fr;
-        }
     }
 </style>
 
@@ -567,54 +344,9 @@
             <div class="camera-placeholder" id="cameraPlaceholder">Camera off</div>
             <video id="sourceVideo" autoplay muted playsinline></video>
             <canvas id="poseCanvas" width="640" height="360"></canvas>
-            <video id="playbackVideo" controls style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
+            <video id="playbackVideo" style="width: 100%; height: 100%; object-fit: cover; z-index: 2; display: none;"></video>
         </div>
 
-        <div class="review-controls" id="reviewControls">
-            <button class="review-icon-btn" id="reviewPlayPauseBtn" type="button" onclick="toggleReviewPlayback()" title="Play or pause">▶</button>
-            <button class="review-icon-btn" id="reviewStopBtn" type="button" onclick="stopReviewPlayback()" title="Stop and return to start">■</button>
-            <button class="review-icon-btn" type="button" onclick="skipReviewBy(-10)" title="Back 10 seconds">«</button>
-            <button class="review-icon-btn" type="button" onclick="skipReviewBy(10)" title="Forward 10 seconds">»</button>
-            <span class="review-time"><span id="reviewCurrentTime">00:00</span> / <span id="reviewDuration">00:00</span></span>
-            <input class="review-seek" id="reviewSeek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video timeline">
-            <select class="review-select" id="reviewSpeed" aria-label="Playback speed">
-                <option value="0.25">0.25x</option>
-                <option value="0.5">0.5x</option>
-                <option value="1" selected>1x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2x</option>
-                <option value="4">4x</option>
-            </select>
-            <input class="review-time-input" id="reviewJumpTime" type="number" min="0" step="1" placeholder="sec" aria-label="Jump to second">
-            <button class="review-icon-btn" type="button" onclick="jumpReviewToInput()" title="Jump to time">↦</button>
-            <button class="review-icon-btn" type="button" onclick="skipReviewToEnd()" title="Skip to end">⏭</button>
-        </div>
-
-        <!-- AI personalised coach (text metrics only, no video sent) -->
-        <section class="ai-reco-panel" id="aiRecoPanel" style="display: none;">
-            <div class="ai-reco-header">
-                <h3>AI PERSONALISED COACH</h3>
-                <span class="ai-reco-icon">AI</span>
-            </div>
-            <p class="ai-reco-status" id="aiRecoStatus">
-                Complete a session to get personalised coaching.
-            </p>
-            <div id="aiRecoSummary" class="ai-reco-summary" style="display: none;"></div>
-            <div class="ai-reco-columns" id="aiRecoColumns" style="display: none;">
-                <div class="ai-reco-block dos">
-                    <h4>RECOMMENDED ACTIONS</h4>
-                    <ul id="aiRecoDos"></ul>
-                </div>
-                <div class="ai-reco-block donts">
-                    <h4>AVOID NEXT</h4>
-                    <ul id="aiRecoDonts"></ul>
-                </div>
-            </div>
-            <div class="ai-reco-focus" id="aiRecoFocus" style="display: none;">
-                <h4>Focus area</h4>
-                <ul id="aiRecoFocusText"></ul>
-            </div>
-        </section>
     </div>
 
     <!-- Right Diagnostic Readout Columns -->
@@ -623,10 +355,6 @@
             <div class="hud-lbl">Valid Reps</div>
             <div class="giant-counter" id="repCounter">0</div>
             <div class="stage-pill" id="stageDisplay">Stage: Ready</div>
-        </div>
-        <div class="metric-v-card counter-focus-invalid">
-            <div class="hud-lbl">Invalid Reps</div>
-            <div class="giant-counter" id="invalidRepCounter">0</div>
         </div>
         <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
     </div>
@@ -650,7 +378,6 @@
 <script src="{{ asset_url('js/exercise/pushup.js') }}"></script>
 <script src="{{ asset_url('js/exercise/situp.js') }}"></script>
 <script src="{{ asset_url('js/pages/webcam_pose_drawing.js') }}"></script>
-<script src="{{ asset_url('js/pages/webcam_video_review.js') }}"></script>
 <script src="{{ asset_url('js/pages/webcam.js') }}"></script>
 {% endblock %}
 

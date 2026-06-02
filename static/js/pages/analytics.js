@@ -40,7 +40,6 @@
                     date: log.date,
                     exercise,
                     reps: parseReps(log),
-                    invalidReps: Number(log.invalid_reps || 0),
                     duration: parseDuration(log)
                 };
             })
@@ -82,7 +81,7 @@
         const latest = logs.slice().sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 8);
 
         if (!latest.length) {
-            tbody.innerHTML = '<tr><td colspan="5">No push-up or sit-up logs found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4">No push-up or sit-up logs found.</td></tr>';
             return;
         }
 
@@ -91,7 +90,6 @@
                 <td>${escapeHtml(log.date)}</td>
                 <td><span class="exercise-pill ${log.exercise}">${log.exercise === 'pushup' ? 'Push-up' : 'Sit-up'}</span></td>
                 <td><strong>${log.reps}</strong></td>
-                <td>${log.invalidReps}</td>
                 <td>${escapeHtml(log.duration)}</td>
             </tr>
         `).join('');
@@ -368,7 +366,7 @@
 
     async function refreshAnalytics() {
         const tbody = document.getElementById('latestExerciseRows');
-        tbody.innerHTML = '<tr><td colspan="5">Loading logs...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4">Loading logs...</td></tr>';
 
         try {
             const response = await fetch(api.activityRecords);
@@ -383,7 +381,7 @@
             renderLatestRows(state.logs);
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = `<tr><td colspan="5">${escapeHtml(err.message)}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4">${escapeHtml(err.message)}</td></tr>`;
         }
     }
 

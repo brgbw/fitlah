@@ -76,9 +76,12 @@
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         for (let i = 0; i <= 3; i++) {
-            const value = 100 - (100 * i / 3);
+            const ratioFromTop = i / 3;
+            const value = bounds.valueUnit === 'degrees'
+                ? `${Math.round(bounds.rawMaxValue - bounds.rawRange * ratioFromTop)}°`
+                : `${Math.round(100 - (100 * ratioFromTop))}%`;
             const y = bounds.plot.top + (bounds.plot.height * i / 3);
-            ctx.fillText(`${Math.round(value)}%`, bounds.plot.left - 10, y);
+            ctx.fillText(value, bounds.plot.left - 10, y);
         }
 
         ctx.textAlign = 'center';
@@ -131,9 +134,14 @@
             rawMinValue,
             rawMaxValue,
             rawRange,
+            valueUnit: analysis.type === 'hip_angle' ? 'degrees' : null,
             isFlat: measuredRange < 0.001,
-            yLabel: analysis.type === 'shoulder_drop'
-                ? 'Push-up depth (%)'
+            yLabel: analysis.type === 'shoulder_height'
+                ? 'Shoulder height (%)'
+                : analysis.type === 'shoulder_drop'
+                    ? 'Push-up depth (%)'
+                : analysis.type === 'hip_angle'
+                    ? 'Hip angle (degrees)'
                 : analysis.type === 'torso_lift'
                     ? 'Sit-up lift (%)'
                     : 'Relative movement (%)',
