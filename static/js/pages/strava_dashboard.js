@@ -143,8 +143,8 @@ function setDashboardRunReviewMode(active) {
 function renderRunCoachCard(rec) {
     if (!rec) return '';
     const recommendations = rec.recommendations || rec.dos || [];
-    const avoid = [rec.weakness || (rec.donts || [])[0]].filter(Boolean);
-    const focus = rec.safetyNote || (rec.focus_areas || []).join(' · ');
+    const avoid = [rec.weakness, ...(rec.donts || [])].filter(Boolean);
+    const focus = rec.safetyNote || (rec.focus_areas || []).join(' · ') || (rec.strength ? `Strength: ${rec.strength}` : '');
 
     if (!rec.summary && !recommendations.length && !avoid.length && !focus) return '';
 
@@ -156,7 +156,7 @@ function renderRunCoachCard(rec) {
                 ${recommendations.length ? `
                     <div class="strava-coach-list dos">
                         <h6>RECOMMENDED ACTIONS</h6>
-                        <ul>${recommendations.slice(0, 3).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                        <ul>${recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
                 ${avoid.length ? `

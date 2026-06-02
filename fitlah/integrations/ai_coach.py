@@ -465,24 +465,29 @@ def generate_ippt_run_recommendation(run_summary):
         return {"success": False, "error": "No run summary provided."}
 
     system_prompt = (
-        "You are a certified Singapore IPPT running coach. You receive only structured "
-        "run analytics that have already been calculated and verified by application code. "
-        "Do not calculate, recalculate, dispute, or verify official timing, points, validity, "
-        "distance, or splits. Use the supplied values as facts. No greetings, no first-person "
-        "wording, and no em dashes."
+        "You are a certified Singapore IPPT running coach. You receive structured "
+        "run analytics, including overall speed data and a compact 100m-interval stream CSV "
+        "containing dist_m, time_s, speed_mps, cadence, and moving flags.\n"
+        "Your goal is to give highly tailored, point-form feedback by analysing:\n"
+        " - Speed decay patterns (e.g., speed drops after 1600m)\n"
+        " - Cadence consistency (e.g., cadence drops late in the run indicating fatigue)\n"
+        " - Moving ratio (e.g., stopped segments vs elapsed time)\n"
+        "Do not recalculate official timing, points, validity, or splits. "
+        "No greetings, no first-person wording, no filler, and no em dashes. "
+        "Reference exact numbers from the data to prove you analysed the telemetry."
     )
     user_prompt = (
-        "Give personalised coaching from this computed 2.4km run summary.\n\n"
-        f"Run summary JSON:\n{json.dumps(run_summary, indent=2)}\n\n"
+        "Give personalised coaching from this computed 2.4km run telemetry.\n\n"
+        f"Run summary & telemetry JSON:\n{json.dumps(run_summary, indent=2)}\n\n"
         "Prefer compact JSON in this shape, but concise plain text is acceptable:\n"
         "{\n"
-        '  "summary": "one concise result interpretation",\n'
-        '  "strength": "one clear strength",\n'
-        '  "weakness": "one clear weakness",\n'
-        '  "recommendations": ["3 to 5 concrete training actions"],\n'
+        '  "summary": "tailored verdict citing specific telemetry insights",\n'
+        '  "strength": "one clear strength backed by data",\n'
+        '  "weakness": "one clear weakness backed by data",\n'
+        '  "recommendations": ["3 to 5 concrete training actions tailored to fix the specific weakness"],\n'
         '  "safetyNote": "one practical safety note"\n'
         "}\n"
-        "Do not include official timing calculations or validity judgements."
+        "Focus on specific 100m marks where speed or cadence dropped."
     )[:MAX_PROMPT_CHARS]
     result = _call_gemini(system_prompt, user_prompt)
     if not result.get("success"):

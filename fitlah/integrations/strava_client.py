@@ -89,13 +89,13 @@ def fetch_activity_streams(access_token, activity_id):
         f"/activities/{activity_id}/streams",
         access_token,
         params={
-            "keys": "time,distance,latlng,velocity_smooth,moving",
+            "keys": "time,distance,latlng,velocity_smooth,moving,cadence",
             "key_by_type": "true",
         },
     )
     return {
         key: (streams.get(key) or {}).get("data") or []
-        for key in ("time", "distance", "latlng", "velocity_smooth", "moving")
+        for key in ("time", "distance", "latlng", "velocity_smooth", "moving", "cadence")
     }
 
 

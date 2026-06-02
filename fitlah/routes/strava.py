@@ -206,12 +206,13 @@ def register_strava_routes(app):
 
         try:
             result = _cached_ippt_result(nric, activity_id, user)
+            _, streams = _cached_activity_details(nric, activity_id)
         except StravaApiError as error:
             return _error(str(error), error.status_code)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
 
-        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group)
+        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group, streams)
 
         return jsonify({"success": True, "result": result, "recommendation": recommendation})
 
@@ -231,16 +232,20 @@ def register_strava_routes(app):
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
         recommendation = _cache_get(("ippt_recommendation", nric, activity_id))
+        streams = None
         if recommendation is None and result:
-            recommendation = _build_ippt_recommendation(result, age_group)
+            try:
+                _, streams = _cached_activity_details(nric, activity_id)
+            except StravaApiError:
+                streams = None
+            recommendation = _build_ippt_recommendation(result, age_group, streams)
         elif recommendation is None:
             try:
                 result = _cached_ippt_result(nric, activity_id, user)
-                recommendation = _build_ippt_recommendation(result, age_group)
+                _, streams = _cached_activity_details(nric, activity_id)
             except StravaApiError as error:
                 return _error(str(error), error.status_code)
-        if not recommendation.get("success") or not recommendation.get("recommendations"):
-            recommendation = _fallback_ippt_recommendation(result)
+            recommendation = _build_ippt_recommendation(result, age_group, streams)
         _cache_set(("ippt_recommendation", nric, activity_id), recommendation)
 
         saved_result = update_strava_ippt_recommendation(nric, activity_id, recommendation) if strava_ippt_result(nric, activity_id) else result
@@ -318,22 +323,17 @@ def _cached_ippt_result(nric, activity_id, user):
     return dict(_cache_set(cache_key, result))
 
 
-def _cached_ippt_recommendation(nric, activity_id, result, age_group):
+def _cached_ippt_recommendation(nric, activity_id, result, age_group, streams=None):
     cache_key = ("ippt_recommendation", nric, activity_id)
     recommendation = _cache_get(cache_key)
     if recommendation is not None:
         return recommendation
 
-    return _cache_set(cache_key, _build_ippt_recommendation(result, age_group))
+    return _cache_set(cache_key, _build_ippt_recommendation(result, age_group, streams))
 
 
-def _build_ippt_recommendation(result, age_group):
-    if os.environ.get("FITLAH_STRAVA_LIVE_AI", "").lower() not in {"1", "true", "yes"}:
-        return _fallback_ippt_recommendation(result)
-
-    recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group))
-    if not recommendation.get("success") or not recommendation.get("summary"):
-        return _fallback_ippt_recommendation(result)
+def _build_ippt_recommendation(result, age_group, streams=None):
+    recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group, streams))
     return recommendation
 
 
@@ -475,8 +475,9 @@ def _import_strava_activity(nric, activity_id, ai_recommendation=None, activity=
     }
 
 
-def _ippt_ai_summary(result, age_group):
-    return {
+def _ippt_ai_summary(result, age_group, streams=None):
+    details = result.get("details") or {}
+    summary = {
         "activityName": result.get("activity_name"),
         "ageGroup": age_group,
         "officialTime": result.get("official_time"),
@@ -487,50 +488,45 @@ def _ippt_ai_summary(result, age_group):
         "pacingTrend": result.get("pacing_trend"),
         "splits": result.get("splits"),
         "validationFlags": result.get("validation_flags"),
+        "elapsedTime": details.get("elapsed_time") or int(details.get("elapsed_time") or 0),
+        "movingTime": details.get("moving_time") or int(details.get("moving_time") or 0),
+        "averageSpeed": round(float(details.get("average_speed") or 0), 3),
+        "maxSpeed": round(float(details.get("max_speed") or 0), 3),
     }
+    if streams:
+        csv = _compact_stream_csv(streams)
+        if csv:
+            summary["streamCSV"] = csv
+    return summary
 
 
-def _fallback_ippt_recommendation(result):
-    trend = result.get("pacing_trend") or "even pace"
-    official_time = result.get("official_time") or "--:--"
-    if trend == "slowed down":
-        summary = f"2.4km recorded at {official_time}. Pace faded late, so the next block should protect the final 800m."
-        strength = "Early speed is available."
-        weakness = "Late pace fade after halfway."
-        actions = [
-            "Open the first 800m slightly easier",
-            "Run 6 x 400m at goal pace",
-            "Add one weekly easy aerobic run",
-        ]
-    elif trend == "negative split":
-        summary = f"2.4km recorded at {official_time}. The finish was strong, so the next gain is committing earlier."
-        strength = "Strong finish and controlled pacing."
-        weakness = "Could reach goal pace earlier."
-        actions = [
-            "Reach goal pace by the second 400m",
-            "Finish intervals with one fast rep",
-            "Keep easy days genuinely easy",
-        ]
-    else:
-        summary = f"2.4km recorded at {official_time}. Pacing was steady; improve by making goal pace feel easier."
-        strength = "Steady pacing profile."
-        weakness = "Needs more race-pace efficiency."
-        actions = [
-            "Repeat 400m intervals at target split",
-            "Use a 1200m tempo for rhythm",
-            "Retest after one recovery day",
-        ]
-    return {
-        "success": True,
-        "summary": summary,
-        "strength": strength,
-        "weakness": weakness,
-        "recommendations": actions,
-        "safetyNote": "Stop hard efforts if chest pain, dizziness, or unusual breathlessness appears.",
-        "dos": actions,
-        "donts": [weakness],
-        "focus_areas": [],
-    }
+def _compact_stream_csv(streams):
+    """Downsample streams to ~every 100m for a token-efficient CSV."""
+    time_s = streams.get("time") or []
+    dist_s = streams.get("distance") or []
+    vel_s = streams.get("velocity_smooth") or []
+    mov_s = streams.get("moving") or []
+    cad_s = streams.get("cadence") or []
+    if len(time_s) < 2 or len(dist_s) < 2:
+        return ""
+
+    header = "dist_m,time_s,speed_mps,cadence,moving"
+    rows = []
+    next_mark = 0
+    step = 100
+    n = min(len(time_s), len(dist_s))
+    for i in range(n):
+        d = float(dist_s[i])
+        if d >= next_mark:
+            t = int(time_s[i])
+            v = round(float(vel_s[i]), 2) if i < len(vel_s) else ""
+            c = int(cad_s[i]) if i < len(cad_s) and cad_s[i] is not None else ""
+            m = 1 if (i >= len(mov_s) or mov_s[i]) else 0
+            rows.append(f"{int(d)},{t},{v},{c},{m}")
+            next_mark = d + step
+            if d >= 2400:
+                break
+    return header + "\n" + "\n".join(rows) if rows else ""
 
 
 def _token_record():
