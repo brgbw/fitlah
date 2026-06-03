@@ -1,116 +1,137 @@
-FitLah Friend Setup and Launch Guide
+FitLah Cloud Implementation Guide
 Version 0.1.8
 
-This guide is for running FitLah locally on a laptop for the hackathon.
-It covers Python, PostgreSQL, Strava API setup, optional Cloudflare tunnel
-testing, GitHub publishing checks, and launching the app.
+This guide explains how to implement FitLah on Vercel with Neon PostgreSQL.
+It intentionally describes the cloud deployment path only.
 
-Recommended versions:
-- Python 3.11 or newer
-- PostgreSQL 16, 17, or 18
-- Windows PowerShell
+1. Prepare the repository
 
-1. Get the project folder
+Push the project to GitHub.
 
-Open PowerShell and go to wherever you placed the project.
+Do not commit:
+- .env
+- virtual environments
+- API keys
+- database dumps
+- user uploads
 
-Example:
+2. Create the Neon database
 
-   cd "C:\Users\YOUR_NAME\Documents\CODE_EXP_FITLAH_2026"
+Go to:
 
-2. Install Python dependencies
+   https://neon.tech
 
-Create a virtual environment:
+Create a new project.
 
-   python -m venv .venv
+In the Neon dashboard:
+- Open Connect.
+- Select the app database and role.
+- Enable connection pooling.
+- Copy the pooled connection string.
 
-Activate it:
+The value should look like:
 
-   .\.venv\Scripts\Activate.ps1
+   postgresql://USER:PASSWORD@HOST-pooler.REGION.aws.neon.tech/DB?sslmode=require&channel_binding=require
 
-If PowerShell blocks activation, run this once in the same terminal:
+3. Create the Vercel project
 
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-   .\.venv\Scripts\Activate.ps1
+Go to:
 
-Install packages:
+   https://vercel.com
 
-   python -m pip install --upgrade pip
-   pip install -r requirements.txt
+Import the GitHub repository.
 
-3. Install and start PostgreSQL
+Use these settings:
+- Framework Preset: Other
+- Build Command: blank/default
+- Output Directory: blank/default
+- Install Command: blank/default, or pip install -r requirements.txt
 
-Download PostgreSQL from:
+FitLah deploys through:
 
-   https://www.postgresql.org/download/
+   api/index.py
 
-For Windows, use the EnterpriseDB installer. Keep the default components:
-- PostgreSQL Server
-- pgAdmin 4
-- Command Line Tools
+Do not configure a Start Command.
 
-During installation:
-- Remember the password you set for the postgres user.
-- Keep the default port as 5432 unless your laptop already uses it.
+4. Add Vercel environment variables
 
-PostgreSQL normally starts automatically. To check:
+Open:
 
-   Get-Service *postgres*
+   Vercel Project -> Settings -> Environment Variables
 
-If the service is stopped, start it from Windows Services or PowerShell.
-The service name may differ by version:
+Add these variables for Production:
 
-   Start-Service postgresql-x64-18
-
-4. Create the database
-
-Go to the PostgreSQL bin folder. Change 18 if your installed version is
-different.
-
-   cd "C:\Program Files\PostgreSQL\18\bin"
-   .\psql.exe -U postgres
-
-Enter your postgres password, then run:
-
-   CREATE DATABASE fitlah;
-   \c fitlah
-   SELECT current_database();
-   \q
-
-5. Create the .env file
-
-In the project root, copy .env.example to .env:
-
-   Copy-Item .env.example .env
-
-Open .env and fill in your PostgreSQL password:
-
-   DATABASE_URL=postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5432/fitlah
-
-Also set a secret key. Any long random text is fine for local testing:
-
+   DATABASE_URL=your Neon pooled connection string
    FITLAH_SECRET_KEY=replace-with-a-long-random-secret
+   FITLAH_PRODUCTION=true
+   FITLAH_COOKIE_SECURE=true
+   FITLAH_DB_DISABLE_POOL=true
+   FITLAH_PUBLIC_BASE_URL=https://fitlah.vercel.app
+   FITLAH_ALLOWED_ORIGINS=https://fitlah.vercel.app
+   FITLAH_ALLOW_STRAVA_SETTINGS_WRITE=false
+   GEMINI_API_KEY=
+   GEMINI_MODEL=gemini-3.1-flash-lite
 
-For hackathon Cloudflare tunnel testing, keep:
+Optional:
 
-   FITLAH_PUBLIC_BASE_URL=auto
-   FITLAH_ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000,https://*.trycloudflare.com
+   FIELD_ENCRYPTION_KEY=your-fernet-key
 
-6. Set up Strava API
+If FIELD_ENCRYPTION_KEY is omitted, FitLah derives encryption from
+FITLAH_SECRET_KEY.
+
+5. Deploy to Production
+
+Go to:
+
+   Vercel Project -> Deployments
+
+Redeploy the latest GitHub deployment as Production.
+
+Environment variable changes do not affect an already-running deployment until
+you redeploy.
+
+6. Attach the domain
+
+Open:
+
+   Vercel Project -> Settings -> Domains
+
+Confirm the project domain:
+
+   fitlah.vercel.app
+
+If you use another custom domain, add it here and then update:
+
+   FITLAH_PUBLIC_BASE_URL=https://your-domain.com
+   FITLAH_ALLOWED_ORIGINS=https://your-domain.com
+
+Redeploy after changing those values.
+
+7. Verify the deployment
+
+Open these URLs:
+
+   https://fitlah.vercel.app/healthz
+   https://fitlah.vercel.app/healthz/db
+
+Expected /healthz response:
+
+   {"database":"configured","missing_recommended":[],"missing_required":[],"success":true}
+
+Expected /healthz/db response:
+
+   {"database":"ok","success":true}
+
+8. Configure Strava
 
 Go to:
 
    https://www.strava.com/settings/api
 
-Create an API application if you do not already have one.
+Use:
 
-Use these values:
-- Application Name: FitLah
-- Category: Training
-- Website: http://127.0.0.1:5000
-- Authorization Callback Domain:
-    - For local-only testing: 127.0.0.1
-    - For Cloudflare tunnel testing: trycloudflare.com
+   Website: https://fitlah.vercel.app
+   Authorization Callback Domain: fitlah.vercel.app
 
 Important:
 - Strava wants only the domain in Authorization Callback Domain.
@@ -118,191 +139,36 @@ Important:
 - Do not enter /strava-sync.
 - Do not enter a trailing slash.
 
-After saving, Strava will show:
-- Client ID
-- Client Secret
+In FitLah, open:
 
-Keep both ready.
+   Settings -> Strava ID / Client secret
 
-7. Launch the app locally
+Save the Strava Client ID and Client Secret.
 
-Go back to the project folder:
+9. Confirm app data saves to Neon
 
-   cd "C:\Users\YOUR_NAME\Documents\CODE_EXP_FITLAH_2026"
+Create a new FitLah account from the deployed site.
 
-Make sure the virtual environment is active:
+Then check Neon:
+- Open Tables in the Neon dashboard.
+- Confirm a new row exists in users.
+- Confirm app-created tables such as personal_bests and activity_records exist.
 
-   .\.venv\Scripts\Activate.ps1
+10. Troubleshooting
 
-Start the app:
+If /healthz says DATABASE_URL is missing:
+- Add DATABASE_URL under Vercel Production environment variables.
+- Redeploy Production.
 
-   python app.py
+If /healthz/db says connection_failed:
+- Use the Neon pooled connection string.
+- Confirm sslmode=require is present.
+- Confirm the Neon project is active.
 
-Open:
+If signup succeeds but Strava redirects fail:
+- Confirm FITLAH_PUBLIC_BASE_URL matches the final deployed domain.
+- Confirm Strava Authorization Callback Domain is the domain only.
 
-   http://127.0.0.1:5000
-
-Keep this terminal running while using the app.
-
-8. Add Strava credentials inside FitLah
-
-In the FitLah app:
-
-1. Create an account or log in.
-2. Click the user/settings area at the bottom-left.
-3. Open Settings.
-4. Paste the Strava Client ID.
-5. Paste the Strava Client Secret.
-6. Save.
-7. Go back to the dashboard or Strava sync page.
-8. Click Connect with Strava.
-
-9. Strava run preview
-
-The dashboard Strava review panel shows the GPS route with a moving runner
-marker. The runner loops from the start of the route to the end continuously,
-so the preview stays active during demos instead of stopping on a static map.
-When a run is opened for review, FitLah hides the Potential IPPT Score,
-Recent Activity, training action cards, and surrounding training header so the
-route preview can use the full dashboard width.
-
-10. Webcam push-up and sit-up counting
-
-FitLah uses browser-based MediaPipe Pose detection for push-up and sit-up
-sessions.
-
-For best webcam results:
-- Place the camera side-on to the user.
-- Keep the full body in frame.
-- Use good lighting and avoid busy backgrounds.
-- Start from a clear ready position before doing the first rep.
-
-The counter is designed to be forgiving for real users and hackathon demos.
-The first valid rep becomes the session benchmark:
-- For push-ups, FitLah uses the first counted rep's elbow depth and shoulder
-  drop as the reference for later reps.
-- For sit-ups, FitLah uses the first counted rep's down/up hip-angle range as
-  the reference for later reps.
-
-This means users do not need perfect textbook angles for every rep, as long as
-their later reps are reasonably close to their own first valid rep.
-
-Push-up leg-floor checks are soft on purpose:
-- If the user's knees or legs look close to the floor for several frames,
-  FitLah warns them to lift slightly.
-- If they correct it, the warning counter clears.
-- If the issue continues across a few counted reps, FitLah stops the recording
-  and proceeds to analysis instead of repeatedly frustrating the user.
-
-11. Optional: expose the app with Cloudflare Tunnel
-
-This lets another person open your local app from their laptop or phone.
-
-Install cloudflared:
-
-   https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
-
-With Flask still running on port 5000, open a second PowerShell terminal:
-
-   cloudflared tunnel --url http://127.0.0.1:5000
-
-Cloudflare will print a URL like:
-
-   https://something-random.trycloudflare.com
-
-Open that URL in the browser.
-
-Because .env uses FITLAH_PUBLIC_BASE_URL=auto, FitLah will generate Strava
-redirect URLs using the current Cloudflare tunnel host automatically.
-
-If Strava says redirect_uri is invalid:
-- Confirm the Strava Authorization Callback Domain is trycloudflare.com.
-- Restart python app.py after changing .env.
-- Make sure you opened the app through the Cloudflare URL before clicking
-  Connect with Strava.
-
-12. Optional: OpenRouter AI coaching
-
-The app still works without OpenRouter. Strava analysis will show the run
-time, status, points, and fallback coaching.
-
-To enable live AI coaching, add these to .env:
-
-   OPENROUTER_API_KEY=your_openrouter_key
-   OPENROUTER_MODEL=openai/gpt-4o-mini
-   OPENROUTER_TIMEOUT_SECONDS=30
-   OPENROUTER_SITE_URL=http://127.0.0.1:5000
-   OPENROUTER_APP_NAME=FitLah
-
-Restart the app after changing .env.
-
-13. GitHub publishing checklist
-
-Before publishing the project to GitHub:
-- Do not commit .env.
-- Do not commit personal Strava Client Secrets or OpenRouter API keys.
-- Do not commit .venv, __pycache__, uploaded user videos, local database dumps,
-  or other runtime-generated files.
-- Keep .env.example as the public environment template.
-- If demo data is needed, use fake accounts and non-sensitive sample records.
-- Check git status before pushing:
-
-   git status --short
-
-Only source code, templates, static assets, docs, requirements, and safe sample
-configuration should be published.
-
-14. Useful commands
-
-Stop Flask:
-
-   Ctrl+C
-
-Leave the virtual environment:
-
-   deactivate
-
-Check PostgreSQL tables:
-
-   cd "C:\Program Files\PostgreSQL\18\bin"
-   .\psql.exe -U postgres -d fitlah
-   \dt
-   SELECT id, nric, name FROM users;
-   \q
-
-15. Troubleshooting
-
-python is not found:
-- Install Python 3.11 or newer.
-- Tick "Add Python to PATH" during installation.
-
-pip install fails:
-- Confirm the virtual environment is active.
-- Run python -m pip install --upgrade pip again.
-
-Database connection fails:
-- Confirm PostgreSQL is running.
-- Confirm the database is named fitlah.
-- Confirm DATABASE_URL has the correct password.
-- If your password has special characters, URL-encode them or use a simpler
-  local password for the hackathon.
-
-Port 5000 is already in use:
-- Stop the other Flask process, or set another port before launch:
-
-   $env:FLASK_RUN_PORT=5001
-   python app.py
-
-Strava redirects to 127.0.0.1 while using Cloudflare:
-- Make sure FITLAH_PUBLIC_BASE_URL=auto is in .env.
-- Restart python app.py.
-- Open the Cloudflare URL first, then click Connect with Strava.
-
-Browser says Request origin is not allowed:
-- Add the current public URL to FITLAH_ALLOWED_ORIGINS, or keep:
-
-   https://*.trycloudflare.com
-
-Antivirus slows webcam/video features:
-- Temporarily allow the project folder and Python process in antivirus settings
-  during the demo.
+If uploaded webcam videos disappear:
+- This is expected on Vercel serverless functions.
+- Use object storage such as Vercel Blob or S3 for durable uploaded videos.

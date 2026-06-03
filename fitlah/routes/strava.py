@@ -368,13 +368,11 @@ def _strava_redirect_uri():
         return explicit_uri
 
     public_base_url = (os.environ.get("FITLAH_PUBLIC_BASE_URL") or "").strip().rstrip("/")
-    if public_base_url.lower() == "auto":
-        public_base_url = ""
     if public_base_url:
         return f"{public_base_url}{url_for('strava_sync')}"
 
     stored_uri = (get_setting("strava_redirect_uri") or "").strip().rstrip("/")
-    if stored_uri and "127.0.0.1" not in stored_uri and "localhost" not in stored_uri:
+    if stored_uri:
         return stored_uri
 
     return f"{_external_base_url()}{url_for('strava_sync')}"

@@ -1,34 +1,37 @@
 # FitLah Tech Stack
 
-This document summarizes the main technologies used in FitLah and what each piece is responsible for.
+This document summarizes the production cloud architecture for FitLah.
 
 ## Application Overview
 
-FitLah is a local-first Flask web app for IPPT training. It combines account-based activity tracking, webcam exercise logging, Strava run import, 2.4km/IPPT run analysis, group features, calendar records, and optional AI coaching.
+FitLah is a Flask web app deployed on Vercel with Neon PostgreSQL. It combines account-based activity tracking, webcam exercise logging, Strava run import, 2.4km/IPPT run analysis, group features, calendar records, and optional AI coaching.
 
 ## Backend
 
 | Layer | Technology | Purpose |
 | --- | --- | --- |
 | Web framework | Flask 3 | Routes, request handling, sessions, templates, API endpoints |
-| Language | Python 3.11+ | Backend application code and integrations |
-| Database access | SQLAlchemy 2 | PostgreSQL/Neon connection management and SQL execution |
+| Runtime | Vercel Python serverless runtime | Hosts the Flask app through `api/index.py` |
+| Language | Python 3.12 | Backend application code and integrations |
+| Database access | SQLAlchemy 2 | Neon/PostgreSQL connection management and SQL execution |
 | Database driver | psycopg2-binary | PostgreSQL adapter for Python |
-| Config loading | python-dotenv | Loads `.env` values during local startup |
-| HTTP client | requests | Calls Strava and OpenRouter APIs |
+| Config loading | Environment variables / python-dotenv | Vercel uses dashboard env vars; dotenv remains available for non-production tooling |
+| HTTP client | requests | Calls Strava APIs |
+| AI client | google-genai | Optional Gemini coaching responses |
 | Secret encryption | cryptography / Fernet | Encrypts stored app secrets and OAuth tokens |
-| TLS trust helper | truststore, certifi | Improves local SSL certificate handling for API calls |
+| TLS trust helper | truststore, certifi | Improves SSL certificate handling for external API calls |
 
 Key backend folders:
 
 ```text
+api/                    Vercel Python entrypoint
 fitlah/
-  core/                  Flask app setup, auth, config, constants, validation, web security
-  data_access/           PostgreSQL engine, schema setup, encryption, repository helpers
-  domain/                IPPT scoring, activity helpers, user profile, session files
-  integrations/          Strava API client and OpenRouter AI coaching
-  maintenance/           One-off database maintenance commands
-  routes/                Flask route modules
+  core/                 Flask app setup, auth, config, validation, web security
+  data_access/          Neon/PostgreSQL engine, schema setup, repository helpers
+  domain/               IPPT scoring, activity helpers, user profile, session helpers
+  integrations/         Strava API client and Gemini AI coaching
+  maintenance/          One-off database maintenance commands
+  routes/               Flask route modules
 ```
 
 ## Frontend
@@ -55,8 +58,8 @@ static/icons/           App and integration icons
 
 | Technology | Purpose |
 | --- | --- |
-| PostgreSQL / Neon | Primary local or hosted database |
-| Auto-created tables | Created on first app startup through `fitlah/data_access/database.py` |
+| Neon PostgreSQL | Hosted production database |
+| SQLAlchemy schema bootstrap | Creates required tables on first request |
 
 Main data areas:
 
@@ -71,83 +74,76 @@ Main data areas:
 
 | Integration | Purpose | Required |
 | --- | --- | --- |
+| Vercel | Hosts the Flask app and manages domains | Required |
+| Neon | Hosted PostgreSQL database | Required |
 | Strava API | OAuth login, recent run import, GPS stream fetching, 2.4km run analysis | Required for Strava sync |
-| OpenRouter API | Optional AI coaching summaries and recommendations | Optional |
-| Cloudflare Tunnel | Temporary public URL for hackathon demos and external user testing | Optional |
-| Vercel | Hosted Flask deployment and custom domain management | Optional |
-| Neon | Hosted PostgreSQL for Vercel deployments | Optional |
+| Gemini API | Optional AI coaching summaries and recommendations | Optional |
 
 ## Strava OAuth Flow
 
 1. User clicks Connect with Strava.
-2. Flask builds a Strava authorization URL.
+2. Flask builds a Strava authorization URL from `FITLAH_PUBLIC_BASE_URL`.
 3. `redirect_uri` points to `/strava-sync`.
 4. Strava redirects back with an authorization code.
 5. Browser posts the code to `/api/strava-callback`.
 6. Backend exchanges the code for access and refresh tokens.
-7. Tokens are stored encrypted in PostgreSQL.
+7. Tokens are stored encrypted in Neon.
 8. Recent runs can be fetched, previewed, analyzed, and imported.
 
-For Cloudflare demo testing, `.env` should use:
-
-```env
-FITLAH_PUBLIC_BASE_URL=auto
-FITLAH_ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000,https://*.trycloudflare.com
-```
-
-## Security and Local Demo Controls
+## Security Controls
 
 | Feature | Implementation |
 | --- | --- |
 | Session protection | Flask sessions with HTTP-only cookies |
-| Origin checks | `fitlah/core/web_security.py` validates unsafe request origins |
-| CORS support | Allowed origins from `.env`, including Cloudflare tunnel wildcard for demos |
+| Secure cookies | `FITLAH_COOKIE_SECURE=true` in production |
+| Origin checks | `fitlah/core/web_security.py` validates unsafe request origins against `FITLAH_ALLOWED_ORIGINS` |
 | Rate limiting | In-memory per-user/IP route limits for sensitive endpoints |
 | Token storage | Fernet encryption backed by `FIELD_ENCRYPTION_KEY` or `FITLAH_SECRET_KEY` |
 | Upload limits | Flask `MAX_CONTENT_LENGTH` from `FITLAH_MAX_UPLOAD_BYTES` |
 
-## Local Runtime
+## Vercel Runtime
 
-The app is launched directly with:
-
-```powershell
-python app.py
-```
-
-Default local URL:
+Vercel loads:
 
 ```text
-http://127.0.0.1:5000
+api/index.py
 ```
 
-Optional port override:
+`api/index.py` imports the Flask app object:
 
-```powershell
-$env:FLASK_RUN_PORT=5001
-python app.py
+```python
+from fitlah.core.application import app
 ```
 
-## Cloud Runtime
-
-For Vercel deployments, `app.py` exports the Flask `app` object that Vercel loads as the serverless entrypoint. Hosted deployments should use Neon PostgreSQL through `DATABASE_URL`, preferably with Neon's pooled connection string.
+The root `app.py` file re-exports the same object for compatibility.
 
 Core production environment values:
 
 ```env
 DATABASE_URL=postgresql://USER:PASSWORD@HOST-pooler.REGION.aws.neon.tech/DB?sslmode=require&channel_binding=require
-FITLAH_PUBLIC_BASE_URL=https://your-domain.com
-FITLAH_ALLOWED_ORIGINS=https://your-domain.com,https://your-project.vercel.app
+FITLAH_PUBLIC_BASE_URL=https://fitlah.vercel.app
+FITLAH_ALLOWED_ORIGINS=https://fitlah.vercel.app
 FITLAH_PRODUCTION=true
 FITLAH_COOKIE_SECURE=true
 FITLAH_DB_DISABLE_POOL=true
 ```
+
+## Health Checks
+
+```text
+/healthz
+/healthz/db
+```
+
+`/healthz` confirms required environment variables exist.
+
+`/healthz/db` confirms the Vercel function can connect to Neon.
 
 ## Dependency Files
 
 | File | Purpose |
 | --- | --- |
 | `requirements.txt` | Python dependencies |
-| `.env.example` | Safe local environment template |
-| `instructions.txt` | Full laptop setup guide for teammates |
-| `docs/POSTGRES_SETUP.md` | PostgreSQL installation and database walkthrough |
-| `docs/VERCEL_NEON_SETUP.md` | Vercel custom domain and Neon deployment checklist |
+| `.env.example` | Safe cloud environment variable template |
+| `instructions.txt` | Cloud implementation handoff guide |
+| `docs/VERCEL_NEON_SETUP.md` | Vercel domain and Neon setup checklist |

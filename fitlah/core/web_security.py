@@ -89,9 +89,7 @@ def _client_key(scope):
 
 def _allowed_origins():
     configured = os.environ.get("FITLAH_ALLOWED_ORIGINS", "")
-    origins = {item.strip().rstrip("/") for item in configured.split(",") if item.strip()}
-    origins.update({"http://localhost:5000", "http://127.0.0.1:5000"})
-    return origins
+    return {item.strip().rstrip("/") for item in configured.split(",") if item.strip()}
 
 
 def _origin_allowed(source, allowed):
