@@ -41,7 +41,7 @@ def inject_current_user():
 def _font_scale():
     try:
         value = float(get_setting("font_scale", "1"))
-    except (TypeError, ValueError, RuntimeError):
+    except Exception:
         value = 1.0
     return min(1.4, max(0.85, value))
 
@@ -80,31 +80,36 @@ def healthz():
     recommended = ["FITLAH_PUBLIC_BASE_URL", "FITLAH_ALLOWED_ORIGINS"]
     missing_required = [name for name in required if not (os.environ.get(name) or "").strip()]
     missing_recommended = [name for name in recommended if not (os.environ.get(name) or "").strip()]
-    database = "not_configured" if "DATABASE_URL" in missing_required else "ok"
-    status = 200
-
-    if database == "ok":
-        try:
-            with session_scope() as conn:
-                conn.execute(text("SELECT 1"))
-        except Exception:
-            database = "connection_failed"
-            status = 503
-
-    if missing_required:
-        status = 503
 
     return jsonify({
-        "success": status == 200,
-        "database": database,
+        "success": not missing_required,
+        "database": "configured" if "DATABASE_URL" not in missing_required else "not_configured",
         "missing_required": missing_required,
         "missing_recommended": missing_recommended,
-    }), status
+    }), 200 if not missing_required else 503
+
+
+@app.route("/healthz/db")
+def healthz_db():
+    if not (os.environ.get("DATABASE_URL") or "").strip():
+        return jsonify({"success": False, "database": "not_configured"}), 503
+
+    try:
+        with session_scope() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as exc:
+        return jsonify({
+            "success": False,
+            "database": "connection_failed",
+            "error_type": exc.__class__.__name__,
+        }), 503
+
+    return jsonify({"success": True, "database": "ok"}), 200
 
 
 @app.before_request
 def ensure_database_ready():
-    if request.endpoint in {"healthz", "static"}:
+    if request.endpoint in {"healthz", "healthz_db", "static"}:
         return None
     if not _database_initialized:
         init_db()
