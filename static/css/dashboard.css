@@ -584,6 +584,19 @@
             padding: 16px;
         }
 
+        .ippt-panel {
+            display: grid;
+            gap: 10px;
+        }
+
+        .ippt-title-row {
+            margin-bottom: 0;
+        }
+
+        .ippt-title-row p {
+            display: none;
+        }
+
         .action-stack {
             gap: 12px;
             margin-top: 20px;
@@ -605,16 +618,43 @@
         }
 
         .strava-preview-header,
-        .strava-preview-brand,
-        .ippt-title-row,
-        .score-line {
+        .strava-preview-brand {
             align-items: flex-start;
             flex-direction: column;
         }
 
+        .score-hero {
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 12px;
+            padding: 12px;
+            margin-bottom: 0;
+        }
+
+        .score-line {
+            margin-bottom: 6px;
+        }
+
         .score-ring {
-            width: 84px;
-            height: 84px;
+            width: 68px;
+            height: 68px;
+        }
+
+        .score-total strong {
+            font-size: 22px;
+        }
+
+        .award-pill {
+            padding: 5px 9px;
+        }
+
+        .score-note {
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .station-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
         }
 
         .strava-preview-run {
@@ -628,9 +668,22 @@
 
         .station-card {
             grid-template-columns: 1fr;
+            gap: 4px;
+            padding: 10px 8px;
         }
 
         .station-card small {
             text-align: left;
+        }
+
+        .station-card span {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .station-card strong {
+            font-size: 15px;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
         }
     }

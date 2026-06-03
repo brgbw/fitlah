@@ -28,23 +28,6 @@
         line-height: 1.45;
     }
 
-    .refresh-btn {
-        border: none;
-        background: var(--marker-pushup);
-        color: #FFFFFF;
-        padding: 10px 16px;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 500;
-        cursor: pointer;
-        white-space: nowrap;
-        min-height: 44px;
-    }
-
-    .refresh-btn:hover {
-        background: #008F5B;
-    }
-
     .stat-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -229,10 +212,6 @@
             height: 320px;
         }
 
-        .refresh-btn {
-            width: 100%;
-        }
-
         .latest-table,
         .latest-table thead,
         .latest-table tbody,
@@ -279,7 +258,6 @@
             <h1>Push-up and Sit-up Trends</h1>
             <p>Track the number of reps logged from webcam sessions over time. Data is loaded from your activity records API.</p>
         </div>
-        <button class="refresh-btn" type="button" onclick="refreshAnalytics()">Refresh Data</button>
     </div>
 
     <div class="stat-grid">
