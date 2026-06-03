@@ -18,7 +18,6 @@
     .settings-header h1 {
         font-size: var(--page-title-size);
         font-weight: var(--page-title-weight);
-        letter-spacing: -0.4px;
         margin-bottom: 6px;
     }
 
@@ -90,6 +89,7 @@
         padding: 10px 11px;
         outline: none;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        min-height: 44px;
     }
 
     .field-row input:focus,
@@ -170,6 +170,7 @@
         font-weight: 600;
         padding: 10px 18px;
         transition: background-color 0.15s ease;
+        min-height: 44px;
     }
 
     .save-button:hover {
@@ -196,6 +197,16 @@
 
         .settings-actions {
             padding: 16px 20px;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .settings-message {
+            margin-right: 0;
+        }
+
+        .save-button {
+            width: 100%;
         }
     }
 </style>

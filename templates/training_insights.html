@@ -20,7 +20,6 @@
         font-size: var(--page-title-size);
         font-weight: var(--page-title-weight);
         color: var(--text-main);
-        letter-spacing: -0.4px;
     }
 
     .notes-header p {
@@ -48,6 +47,7 @@
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;
+        min-height: 44px;
     }
 
     .notes-btn.primary {
@@ -64,7 +64,7 @@
     .note-card {
         background: #FFFFFF;
         border: 1px solid var(--border);
-        border-radius: var(--card-radius);
+        border-radius: 8px;
         padding: 22px;
         box-shadow: var(--card-shadow);
     }
@@ -265,6 +265,11 @@
 
         .notes-actions {
             justify-content: flex-start;
+        }
+
+        .notes-btn {
+            flex: 1 1 180px;
+            text-align: center;
         }
 
         .note-grid {

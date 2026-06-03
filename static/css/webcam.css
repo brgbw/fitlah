@@ -16,7 +16,7 @@
     }
     .video-feed-card {
         background-color: #0B1220;
-        border-radius: 14px;
+        border-radius: 8px;
         position: relative;
         overflow: hidden;
         display: flex;
@@ -24,7 +24,9 @@
         justify-content: center;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.08);
         border: 1px solid #1E293B;
-        height: 500px;
+        aspect-ratio: 16 / 9;
+        min-height: 280px;
+        max-height: min(62vh, 560px);
     }
 
     #poseCanvas,
@@ -32,7 +34,7 @@
     #sourceVideo {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
     }
 
     #poseCanvas {
@@ -49,19 +51,21 @@
         font-size: 13px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0;
+        text-align: center;
+        padding: 18px;
     }
     .diagnostics-sidebar {
         display: flex;
         flex-direction: column;
         gap: 12px;
-        height: 500px;
+        min-height: 280px;
     }
 
     .metric-v-card {
         background-color: #FFFFFF;
         border: 1px solid var(--border);
-        border-radius: var(--card-radius);
+        border-radius: 8px;
         padding: 24px 18px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         display: flex;
@@ -103,7 +107,7 @@
     .control-strip {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 16px 24px;
         display: flex;
         align-items: center;
@@ -130,7 +134,7 @@
         font-weight: 500;
         border-radius: 8px;
         cursor: pointer;
-        letter-spacing: 0.5px;
+        letter-spacing: 0;
         text-transform: uppercase;
         transition: all 0.2s ease;
     }
@@ -147,7 +151,6 @@
     .header-section h1 {
         font-size: var(--page-title-size);
         color: var(--text-main);
-        letter-spacing: -0.4px;
         font-weight: var(--page-title-weight);
     }
 
@@ -164,7 +167,7 @@
         gap: 6px;
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 4px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
@@ -194,7 +197,7 @@
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0;
         color: var(--text-muted);
     }
 
@@ -203,11 +206,11 @@
         font-family: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
         font-size: 16px;
         font-weight: 750;
-        letter-spacing: 0.03em;
+        letter-spacing: 0;
     }
 
     .control-strip {
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 18px 22px;
         gap: 16px;
         flex-wrap: wrap;
@@ -253,11 +256,11 @@
         color: #0F766E;
         background: #F0FDFA;
         border: 1px solid #99F6E4;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 10px 20px;
         min-width: 100px;
         text-align: center;
-        letter-spacing: 1px;
+        letter-spacing: 0;
     }
 
     .session-timer.timer-active {
@@ -279,7 +282,7 @@
         padding: 4px 10px;
         border-radius: 20px;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
+        letter-spacing: 0;
     }
 
     .hands-ok-badge.ok {
@@ -292,6 +295,30 @@
         color: #BE123C;
     }
 
+    .camera-status-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        color: #475569;
+        font-size: 15px;
+        line-height: 1.5;
+        margin-bottom: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .camera-status-card.error {
+        background: #FEE2E2;
+        border-color: #FECACA;
+        color: #991B1B;
+    }
+
+    .camera-status-card.success {
+        background: #DCFCE7;
+        border-color: #BBF7D0;
+        color: #166534;
+    }
+
     @media (max-width: 980px) {
         .vision-workspace {
             grid-template-columns: 1fr;
@@ -299,7 +326,9 @@
 
         .diagnostics-sidebar {
             height: auto;
-            display: block;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
     }
@@ -328,4 +357,62 @@
     background-color: var(--text-muted);
     opacity: 0.5;
     pointer-events: none;
+}
+
+@media (max-width: 640px) {
+    .webcam-header {
+        margin-bottom: 18px;
+    }
+
+    .webcam-title-row {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .mode-toggle {
+        width: 100%;
+    }
+
+    .mode-toggle .stop-btn {
+        flex: 1;
+        padding-inline: 10px;
+    }
+
+    .video-feed-card {
+        min-height: 210px;
+        max-height: none;
+    }
+
+    .diagnostics-sidebar {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-v-card {
+        padding: 16px;
+    }
+
+    .giant-counter {
+        font-size: clamp(56px, 24vw, 84px);
+    }
+
+    .control-strip {
+        align-items: stretch;
+        padding: 14px;
+    }
+
+    .control-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .control-actions .stop-btn,
+    .control-actions .stop-btn#completeBtn {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .session-timer {
+        width: 100%;
+    }
 }

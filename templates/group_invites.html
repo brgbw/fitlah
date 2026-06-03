@@ -8,7 +8,6 @@
         font-size: var(--page-title-size);
         font-weight: var(--page-title-weight);
         color: var(--text-main);
-        letter-spacing: -0.4px;
         margin-bottom: 6px;
     }
     .header-section p {
@@ -19,7 +18,7 @@
     /* Split Layout */
     .sync-grid-split {
         display: grid;
-        grid-template-columns: 1fr 300px;
+        grid-template-columns: minmax(0, 1fr) 300px;
         gap: 24px;
         align-items: start;
     }
@@ -160,7 +159,7 @@
         font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0;
         color: #64748B;
         border-bottom: 1px solid #E2E8F0;
     }
@@ -192,7 +191,7 @@
         font-weight: 700;
         color: #64748B;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
+        letter-spacing: 0;
     }
     
     .user-id-tag {
@@ -212,7 +211,7 @@
         font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.3px;
+        letter-spacing: 0;
     }
     .status-badge-pill.gold { 
         background-color: #FEF3C7; 
@@ -321,7 +320,7 @@
     }
     .modal-window {
         background-color: #FFFFFF;
-        width: 480px;
+        width: min(480px, calc(100vw - 32px));
         border-radius: 14px;
         box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
         border: 1px solid #E2E8F0;
@@ -370,7 +369,7 @@
         font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0;
         color: #64748B;
     }
     .form-element-block input, .form-element-block select {
@@ -490,6 +489,103 @@
         font-size: calc(20px * var(--font-scale));
         line-height: 1.5;
         font-weight: 600;
+    }
+
+    @media (max-width: 980px) {
+        .sync-grid-split {
+            grid-template-columns: 1fr;
+        }
+
+        .right-panel-column {
+            order: -1;
+        }
+
+        .filter-row {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-pill {
+            white-space: nowrap;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .inline-add-member,
+        .leaderboard-bar,
+        .token-input-row,
+        .modal-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .inline-add-member button,
+        .btn-add-token,
+        .btn-modal-cancel,
+        .btn-modal-submit {
+            min-height: 44px;
+            width: 100%;
+        }
+
+        .sync-table,
+        .sync-table thead,
+        .sync-table tbody,
+        .sync-table tr,
+        .sync-table th,
+        .sync-table td {
+            display: block;
+        }
+
+        .sync-table thead {
+            display: none;
+        }
+
+        .sync-table tr {
+            border-bottom: 1px solid #E2E8F0;
+            padding: 12px 14px;
+        }
+
+        .sync-table tr:last-child {
+            border-bottom: 0;
+        }
+
+        .sync-table td {
+            border-bottom: 0;
+            display: grid;
+            grid-template-columns: 126px minmax(0, 1fr);
+            gap: 10px;
+            padding: 8px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .sync-table td:nth-child(1)::before { content: "Name"; color: #64748B; font-weight: 800; }
+        .sync-table td:nth-child(2)::before { content: "Age"; color: #64748B; font-weight: 800; }
+        .sync-table td:nth-child(3)::before { content: "PB Push-ups"; color: #64748B; font-weight: 800; }
+        .sync-table td:nth-child(4)::before { content: "PB Sit-ups"; color: #64748B; font-weight: 800; }
+        .sync-table td:nth-child(5)::before { content: "PB 2.4km"; color: #64748B; font-weight: 800; }
+        .sync-table td:nth-child(6)::before { content: "IPPT Score"; color: #64748B; font-weight: 800; }
+        .sync-table td:nth-child(7)::before { content: "Award"; color: #64748B; font-weight: 800; }
+
+        .sync-table td[colspan] {
+            display: block;
+        }
+        .sync-table td[colspan]::before {
+            content: none;
+        }
+
+        .modal-overlay {
+            align-items: flex-end;
+        }
+
+        .modal-window {
+            width: 100%;
+            max-height: 92svh;
+            overflow-y: auto;
+            border-radius: 14px 14px 0 0;
+        }
     }
 </style>
 

@@ -40,7 +40,7 @@
     .strava-container {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: var(--card-radius);
+        border-radius: 8px;
         padding: 38px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
@@ -117,6 +117,7 @@
         color: #FFFFFF;
         border: none;
         font-size: 15px;
+        min-height: 48px;
     }
 
     .auth-button:hover {
@@ -143,6 +144,7 @@
         border: 1px solid #E2E8F0;
         font-size: 13px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        min-height: 44px;
     }
 
     .back-button:hover {
@@ -175,6 +177,24 @@
         background: #DCFCE7;
         border: 1px solid #BBFBDF;
         color: #166534;
+    }
+
+    @media (max-width: 640px) {
+        .strava-container {
+            padding: 18px;
+        }
+
+        .strava-header {
+            align-items: flex-start;
+        }
+
+        .auth-section {
+            padding: 16px;
+        }
+
+        .back-button {
+            width: 100%;
+        }
     }
 </style>
 
@@ -229,7 +249,13 @@
         if (!authButton.getAttribute('href') || authButton.getAttribute('href') === '#') {
             showMessage('errorMessage', 'Strava Client ID is not configured. Contact an administrator.');
             authButton.setAttribute('aria-disabled', 'true');
+            return;
         }
+        authButton.addEventListener('click', () => {
+            try {
+                sessionStorage.setItem('fitlah_strava_auth_started', String(Date.now()));
+            } catch (err) {}
+        });
     }
 
     async function handleOAuthCallback() {
@@ -250,13 +276,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code })
             });
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Failed to sync with Strava.');
+                throw new Error(data.error || 'Failed to sync with Strava. If you returned from the Strava app, sign in again and reconnect.');
             }
 
             showMessage('successMessage', 'Strava authorised successfully. You can review runs from the dashboard.');
+            try {
+                sessionStorage.removeItem('fitlah_strava_auth_started');
+            } catch (err) {}
             notifyParent('STRAVA_SYNC_SUCCESS', { message: data.message, activities: data.activities || [] });
             window.history.replaceState({}, document.title, window.location.pathname);
         } catch (callbackError) {

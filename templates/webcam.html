@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/webcam.css') }}">
-<script src="{{ asset_url('mediapipe/pose/pose.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -15,7 +14,7 @@
     <div class="webcam-title-row">
         <div>
             <h1 id="stationHeader">Exercise Recording Station</h1>
-            <p>Side-on camera view. Your first valid rep starts a 1-minute recording session.</p>
+            <p>Use a side-on view. Your first valid rep starts a 1-minute recording session.</p>
         </div>
         <div class="mode-toggle">
             <button id="modePushupBtn" type="button" class="stop-btn mode-active" onclick="setExerciseMode('pushup')">Push-Up</button>
@@ -42,6 +41,10 @@
         </div>
         <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
     </div>
+</div>
+
+<div class="camera-status-card" id="cameraStatus" role="status" aria-live="polite">
+    Start the camera or attach a recorded video. On mobile, allow camera access and keep your full body in frame.
 </div>
 
 <div class="control-strip">

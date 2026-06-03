@@ -53,6 +53,8 @@
     border-radius: 6px;
     width: 28px;
     height: 28px;
+    min-width: 44px;
+    min-height: 44px;
     cursor: pointer;
     font-size: 14px;
     color: var(--text-main);
@@ -122,7 +124,7 @@
   .agenda-color-bar.run { background: var(--marker-run); }
 
   .agenda-details { display: flex; flex-direction: column; width: 100%; }
-  .agenda-date { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .agenda-date { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0; }
   .agenda-name { font-size: 18px; font-weight: 700; color: var(--text-main); margin-top: 2px; }
 
   .recording-metric-container {
@@ -136,7 +138,7 @@
   }
 
   .metric-block-large { display: flex; flex-direction: column; gap: 4px; }
-  .metric-label-small { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-label-small { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0; }
   .metric-value-huge { font-size: 32px; font-weight: 800; color: #0F172A; line-height: 1.1; }
   .metric-value-huge span { font-size: 14px; font-weight: 600; color: #64748B; }
   .metric-divider-line { width: 1px; height: 44px; background: #E2E8F0; }
@@ -176,6 +178,8 @@
     border-radius: 6px;
     transition: all 0.15s;
     line-height: 1;
+    min-width: 44px;
+    min-height: 44px;
   }
   .delete-btn:hover { background: #FEE2E2; color: #E11D48; }
 
@@ -258,6 +262,22 @@
   @media (max-width: 700px) {
     .log-workspace-grid { grid-template-columns: 1fr; }
     .calendar-card { position: static; }
+    .calendar-grid { gap: 4px; }
+    .calendar-card,
+    .agenda-card {
+      padding: 16px;
+    }
+    .agenda-item {
+      gap: 12px;
+    }
+    .recording-metric-container {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .metric-divider-line {
+      display: none;
+    }
   }
 </style>
 

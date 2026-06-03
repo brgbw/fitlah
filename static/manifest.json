@@ -1,0 +1,18 @@
+{
+  "name": "FitLah NSmen Portal",
+  "short_name": "FitLah",
+  "description": "Mobile-friendly IPPT training, Strava run review, and exercise tracking.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#E2E8F0",
+  "theme_color": "#00A86B",
+  "icons": [
+    {
+      "src": "/static/icons/fitlah-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

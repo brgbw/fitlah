@@ -4,8 +4,10 @@ let currentMode = 'pushup';
     let stream = null;
     let pose = null;
     let poseInitPromise = null;
+    let poseScriptPromise = null;
     let detectLoopRunning = false;
-    const POSE_TARGET_FPS = 20;
+    const isMobileLikeDevice = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 760;
+    const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 20;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
     const WARNING_VOICE_COOLDOWN_MS = 4500;
     let poseLoopRequestId = null;
@@ -61,6 +63,7 @@ let currentMode = 'pushup';
     const repCounter = document.getElementById('repCounter');
     const stationHeader = document.getElementById('stationHeader');
     const handsBadge = document.getElementById('handsBadge');
+    const cameraStatus = document.getElementById('cameraStatus');
     const aiRecoPanel = document.getElementById('aiRecoPanel');
     const aiRecoStatus = document.getElementById('aiRecoStatus');
     const aiRecoSkeleton = document.getElementById('aiRecoSkeleton');
@@ -102,6 +105,56 @@ let currentMode = 'pushup';
         attachVideoBtn.style.display = '';
     }
 
+    function setCameraMessage(message, type = '') {
+        if (!cameraStatus) return;
+        cameraStatus.textContent = message;
+        cameraStatus.classList.toggle('error', type === 'error');
+        cameraStatus.classList.toggle('success', type === 'success');
+    }
+
+    function mediaUnsupportedMessage() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            return 'This browser does not expose camera access. Try current iPhone Safari, Android Chrome, or attach a recorded video instead.';
+        }
+        if (!window.isSecureContext) {
+            return 'Camera access requires HTTPS on mobile browsers. Use the Vercel production URL or localhost during development.';
+        }
+        return '';
+    }
+
+    function cameraErrorMessage(err) {
+        const name = err && err.name ? err.name : '';
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+            return 'Camera permission was blocked. Allow camera access in your browser settings, then start the camera again.';
+        }
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            return 'No usable camera was found. Attach a recorded video, or try a device with a front or rear camera.';
+        }
+        if (name === 'NotReadableError' || name === 'TrackStartError') {
+            return 'The camera is already in use by another app. Close other camera apps and try again.';
+        }
+        if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+            return 'This camera does not support the requested mobile-friendly settings. Retrying with a simpler camera setup may help.';
+        }
+        return `Could not start camera: ${err && err.message ? err.message : 'Unknown browser error.'}`;
+    }
+
+    function loadPoseScript() {
+        if (window.Pose) return Promise.resolve();
+        if (poseScriptPromise) return poseScriptPromise;
+
+        setCameraMessage('Loading pose model. This may take a moment on mobile data.');
+        poseScriptPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/static/mediapipe/pose/pose.js';
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Pose model failed to load. Check your connection and refresh.'));
+            document.head.appendChild(script);
+        });
+        return poseScriptPromise;
+    }
+
     function setExerciseMode(mode) {
         if (isRecording || sessionStarted) return;
         currentMode = mode;
@@ -135,26 +188,17 @@ let currentMode = 'pushup';
         if (stream) return;
         startCamBtn.disabled = true;
         startCamBtn.textContent = 'Starting...';
+        setCameraMessage('Starting camera. Allow access when your browser asks.');
         try {
-            if (!window.Pose) {
-                alert('Pose model is still loading. Please try again in a moment.');
-                startCamBtn.disabled = false;
-                startCamBtn.textContent = 'Start Camera';
-                return;
-            }
+            const unsupported = mediaUnsupportedMessage();
+            if (unsupported) throw new Error(unsupported);
 
+            await loadPoseScript();
             await initPose();
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 640 },
-                    height: { ideal: 360 },
-                    frameRate: { ideal: 24, max: 30 },
-                    facingMode: 'user'
-                },
-                audio: false
-            });
+            stream = await openCameraStream();
             sourceVideo.srcObject = stream;
             await sourceVideo.play();
+            resizePoseCanvas(sourceVideo);
 
             cameraPlaceholder.style.display = 'none';
             poseCanvas.style.display = 'block';
@@ -163,11 +207,55 @@ let currentMode = 'pushup';
             startRecBtn.style.display = 'inline-block';
             armSession();
             startPoseLoop();
+            setCameraMessage('Camera ready. Keep your full side profile inside the frame.', 'success');
         } catch (err) {
-            alert('Could not access camera or pose model: ' + err.message);
+            setCameraMessage(err.message || cameraErrorMessage(err), 'error');
             startCamBtn.disabled = false;
             startCamBtn.textContent = 'Start Camera';
         }
+    }
+
+    async function openCameraStream() {
+        const preferredFacingMode = 'user';
+        const fallbackFacingMode = 'environment';
+        const preferred = {
+            video: {
+                width: { ideal: isMobileLikeDevice ? 480 : 640 },
+                height: { ideal: isMobileLikeDevice ? 270 : 360 },
+                frameRate: { ideal: POSE_TARGET_FPS, max: isMobileLikeDevice ? 15 : 30 },
+                facingMode: { ideal: preferredFacingMode }
+            },
+            audio: false
+        };
+
+        try {
+            return await navigator.mediaDevices.getUserMedia(preferred);
+        } catch (err) {
+            const canRetry = err && ['OverconstrainedError', 'ConstraintNotSatisfiedError', 'NotFoundError'].includes(err.name);
+            if (canRetry) {
+                try {
+                    return await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: isMobileLikeDevice ? 480 : 640 },
+                            height: { ideal: isMobileLikeDevice ? 270 : 360 },
+                            frameRate: { ideal: POSE_TARGET_FPS, max: isMobileLikeDevice ? 15 : 30 },
+                            facingMode: { ideal: fallbackFacingMode }
+                        },
+                        audio: false
+                    });
+                } catch (fallbackErr) {
+                    return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+            }
+            throw new Error(cameraErrorMessage(err));
+        }
+    }
+
+    function resizePoseCanvas(media) {
+        const width = media.videoWidth || (isMobileLikeDevice ? 480 : 640);
+        const height = media.videoHeight || Math.round(width * 9 / 16);
+        poseCanvas.width = width;
+        poseCanvas.height = height;
     }
 
     async function initPose() {
@@ -179,7 +267,7 @@ let currentMode = 'pushup';
             });
             pose.setOptions({
                 modelComplexity: 0,
-                smoothLandmarks: true,
+                smoothLandmarks: !isMobileLikeDevice,
                 enableSegmentation: false,
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
@@ -213,6 +301,11 @@ let currentMode = 'pushup';
     async function runPoseLoop(timestamp = performance.now()) {
         if (!detectLoopRunning || !pose) {
             poseLoopRequestId = null;
+            return;
+        }
+
+        if (document.hidden) {
+            poseLoopRequestId = requestAnimationFrame(runPoseLoop);
             return;
         }
 
@@ -712,11 +805,8 @@ let currentMode = 'pushup';
 
     async function loadRecordedVideo(file) {
         if (!file) return;
-        if (!window.Pose) {
-            alert('Pose model is still loading. Please try again in a moment.');
-            return;
-        }
 
+        await loadPoseScript();
         await initPose();
         clearCurrentRecordingUi('Loading attached video...');
         attachedVideoFile = file;
@@ -751,9 +841,11 @@ let currentMode = 'pushup';
         updateCounters();
 
         playbackVideo.onloadedmetadata = () => {
+            resizePoseCanvas(playbackVideo);
             startPlaybackReplay({ analyze: true });
         };
         if (playbackVideo.readyState >= 1) {
+            resizePoseCanvas(playbackVideo);
             startPlaybackReplay({ analyze: true });
         }
     }
@@ -1011,13 +1103,30 @@ let currentMode = 'pushup';
 
     videoAttachmentInput.addEventListener('change', (event) => {
         const file = event.target.files && event.target.files[0];
-        loadRecordedVideo(file);
+        loadRecordedVideo(file).catch(err => {
+            setCameraMessage(err.message || 'Could not analyse the attached video.', 'error');
+            unlockEntryMode();
+        });
         event.target.value = '';
+    });
+
+    sourceVideo.addEventListener('loadedmetadata', () => resizePoseCanvas(sourceVideo));
+    playbackVideo.addEventListener('loadedmetadata', () => resizePoseCanvas(playbackVideo));
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            lastPoseSentAt = performance.now();
+        } else if ((stream || isReplayMode) && pose) {
+            startPoseLoop();
+        }
     });
 
     window.addEventListener('DOMContentLoaded', () => {
         aiCoach.reset();
         setExerciseMode('pushup');
+        const unsupported = mediaUnsupportedMessage();
+        if (unsupported) {
+            setCameraMessage(`${unsupported} You can still attach a recorded video.`, 'error');
+        }
     });
 
     window.selectRecordedVideo = selectRecordedVideo;

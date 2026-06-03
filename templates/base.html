@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#00A86B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="FitLah">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <title>{% block title %}FitLah NSmen Portal{% endblock %}</title>
     <style>
         :root {
@@ -19,9 +23,9 @@
             --card-radius: 12px;
             --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
             --font-scale: {{ font_scale|default(1.0) }};
-            --page-title-size: calc(40px * var(--font-scale));
+            --page-title-size: clamp(30px, calc(40px * var(--font-scale)), 40px);
             --page-title-weight: 650;
-            --page-subtitle-size: calc(20px * var(--font-scale));
+            --page-subtitle-size: clamp(16px, calc(20px * var(--font-scale)), 20px);
             --page-max-width: none;
             --marker-pushup: #015936;
             --marker-situp: #2563EB;
@@ -33,6 +37,13 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            letter-spacing: 0;
+        }
+
+        html {
+            min-width: 0;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
@@ -40,11 +51,59 @@
             display: flex;
             min-height: 100vh;
             font-size: calc(18px * var(--font-scale));
+            overflow-x: hidden;
+            color: var(--text-main);
+            touch-action: manipulation;
         }
 
         .app-container {
             display: flex;
             width: 100%;
+            min-width: 0;
+        }
+
+        a,
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button,
+        a,
+        input,
+        select,
+        textarea {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button,
+        [role="button"],
+        input[type="button"],
+        input[type="submit"],
+        input[type="file"],
+        select {
+            min-height: 44px;
+        }
+
+        input,
+        select,
+        textarea {
+            max-width: 100%;
+            font-size: 16px;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+        }
+
+        .mobile-topbar,
+        .mobile-nav-backdrop {
+            display: none;
         }
 
         .sidebar-rail {
@@ -123,8 +182,8 @@
             text-decoration: none;
             font-size: calc(18px * var(--font-scale));
             border-radius: 8px;
-
             transition: all 0.15s ease;
+            min-height: 44px;
         }
 
         .nav-item:hover {
@@ -214,13 +273,14 @@
             overflow-y: auto;
             width: 100%;
             min-height: 100vh;
+            min-width: 0;
         }
 
         .header-section h1 {
             font-size: var(--page-title-size);
             font-weight: var(--page-title-weight);
-            letter-spacing: -0.4px;
             color: var(--text-main);
+            overflow-wrap: anywhere;
         }
 
         .header-section p {
@@ -229,16 +289,122 @@
             line-height: 1.6;
         }
 
-        @media (max-width: 760px) {
+        @media (max-width: 900px) {
+            body {
+                display: block;
+            }
+
+            .mobile-topbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 80;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                min-height: calc(58px + env(safe-area-inset-top));
+                padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+                background: rgba(255, 255, 255, 0.96);
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+            }
+
+            .mobile-brand {
+                font-size: 24px;
+                font-weight: 800;
+                text-decoration: none;
+                color: var(--text-main);
+                line-height: 1;
+            }
+
+            .mobile-brand span {
+                color: var(--primary);
+            }
+
+            .mobile-menu-button {
+                width: 44px;
+                height: 44px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: #FFFFFF;
+                display: inline-grid;
+                place-items: center;
+                cursor: pointer;
+            }
+
+            .mobile-menu-button-lines {
+                width: 20px;
+                height: 14px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .mobile-menu-button-lines span {
+                display: block;
+                width: 100%;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--text-main);
+            }
+
+            .mobile-nav-backdrop {
+                position: fixed;
+                inset: 0;
+                z-index: 60;
+                background: rgba(15, 23, 42, 0.36);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.18s ease;
+            }
+
+            body.nav-open .mobile-nav-backdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
             .sidebar-rail,
             .sidebar-rail:hover,
             .sidebar-rail:focus-within {
-                width: 16px;
-                flex-basis: 16px;
+                width: 0;
+                flex-basis: 0;
+                min-height: 0;
+                position: fixed;
+                inset: 0 auto 0 0;
+                z-index: 70;
             }
 
             .sidebar {
                 width: min(280px, 86vw);
+                height: 100svh;
+                min-height: 100vh;
+                position: fixed;
+                padding: calc(76px + env(safe-area-inset-top)) 18px 22px;
+                transform: translateX(-105%);
+                box-shadow: 18px 0 40px rgba(15, 23, 42, 0.18);
+            }
+
+            .sidebar:hover,
+            .sidebar:focus-within,
+            body.nav-open .sidebar {
+                transform: translateX(0);
+            }
+
+            .sidebar::after {
+                display: none;
+            }
+
+            .logo {
+                display: none;
+            }
+
+            .nav-item {
+                padding: 14px 14px;
+                font-size: 17px;
             }
 
             .main-workspace {
@@ -246,7 +412,28 @@
             }
 
             .main-content {
-                padding: 74px 18px 28px;
+                padding: calc(82px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+                min-height: 100svh;
+            }
+
+            .main-content :where(h1) {
+                font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+            }
+
+            .main-content :where(h2) {
+                font-size: clamp(24px, calc(28px * var(--font-scale)), 30px) !important;
+            }
+
+            .main-content :where(h3) {
+                font-size: clamp(20px, calc(24px * var(--font-scale)), 26px) !important;
+            }
+
+            .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+            }
+
+            .sidebar-footer {
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
             }
         }
     </style>
@@ -256,10 +443,17 @@
 
 <body>
 <div class="app-container">
+    <header class="mobile-topbar">
+        <a href="{{ url_for('dashboard') }}" class="mobile-brand" aria-label="FitLah dashboard">Fit<span>Lah</span></a>
+        <button class="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
+            <span class="mobile-menu-button-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+    </header>
+    <button class="mobile-nav-backdrop" type="button" aria-label="Close navigation"></button>
 
     <!-- Sidebar -->
     <div class="sidebar-rail">
-    <aside class="sidebar">
+    <aside class="sidebar" id="appSidebar">
 
         <div class="logo">Fit<span>Lah</span></div>
 
@@ -341,10 +535,55 @@
                 .main-content :where(.panel-title, .panel-kicker, .action-meta, .award-pill, .strava-btn, .primary-btn, .calendar-day, .weekday-label, .agenda-date, .metric-label-small, .legend-item, .status-badge-pill) {
                     font-size: calc(18px * var(--font-scale)) !important;
                 }
+
+                @media (max-width: 900px) {
+                    .main-content :where(h1) {
+                        font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+                    }
+
+                    .main-content :where(h2) {
+                        font-size: clamp(24px, calc(28px * var(--font-scale)), 30px) !important;
+                    }
+
+                    .main-content :where(h3) {
+                        font-size: clamp(20px, calc(24px * var(--font-scale)), 26px) !important;
+                    }
+
+                    .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                        font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+                    }
+                }
             </style>
         </div>
     </div>
 
 </div>
+<script>
+    (function () {
+        const body = document.body;
+        const menuButton = document.querySelector('.mobile-menu-button');
+        const backdrop = document.querySelector('.mobile-nav-backdrop');
+        const navLinks = document.querySelectorAll('.sidebar a');
+
+        function setNavOpen(open) {
+            body.classList.toggle('nav-open', open);
+            if (menuButton) {
+                menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+                menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+            }
+        }
+
+        if (menuButton) {
+            menuButton.addEventListener('click', () => setNavOpen(!body.classList.contains('nav-open')));
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', () => setNavOpen(false));
+        }
+        navLinks.forEach(link => link.addEventListener('click', () => setNavOpen(false)));
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') setNavOpen(false);
+        });
+    })();
+</script>
 </body>
 </html>
