@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#00A86B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="FitLah">
+    <link rel="manifest" href="/static/manifest.json">
+    <title>FitLah NSmen Portal</title>
+    <style>
+        :root {
+            --primary: #00A86B;
+            --primary-hover: #008F5B;
+            --bg-body: #E2E8F0;
+            --bg-sidebar: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --bg-badge: #E8F8F2;
+            --bg-surface: #FFFFFF;
+            --bg-subtle: #F8FAFC;
+            --card-radius: 12px;
+            --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            --font-scale: 1.0;
+            --page-title-size: clamp(30px, calc(40px * var(--font-scale)), 40px);
+            --page-title-weight: 650;
+            --page-subtitle-size: clamp(16px, calc(20px * var(--font-scale)), 20px);
+            --page-max-width: none;
+            --marker-pushup: #015936;
+            --marker-situp: #2563EB;
+            --marker-run: #F97316;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            letter-spacing: 0;
+        }
+
+        html {
+            min-width: 0;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            display: flex;
+            min-height: 100vh;
+            font-size: calc(18px * var(--font-scale));
+            overflow-x: hidden;
+            color: var(--text-main);
+            touch-action: manipulation;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            min-width: 0;
+        }
+
+        a,
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button,
+        a,
+        input,
+        select,
+        textarea {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button,
+        [role="button"],
+        input[type="button"],
+        input[type="submit"],
+        input[type="file"],
+        select {
+            min-height: 44px;
+        }
+
+        input,
+        select,
+        textarea {
+            max-width: 100%;
+            font-size: 16px;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+        }
+
+        .mobile-topbar,
+        .mobile-nav-backdrop {
+            display: none;
+        }
+
+        .sidebar-rail {
+            width: 16px;
+            min-height: 100vh;
+            flex: 0 0 16px;
+            transition: width 0.2s ease, flex-basis 0.2s ease;
+            position: relative;
+            z-index: 50;
+        }
+
+        .sidebar-rail:hover,
+        .sidebar-rail:focus-within {
+            width: 240px;
+            flex-basis: 240px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 36px 24px;
+            height: 100vh;
+            position: sticky;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 50;
+            transition: transform 0.2s ease;
+            transform: translateX(calc(-100% + 16px));
+
+            /* subtle depth */
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 16px;
+            height: 100vh;
+            background: transparent;
+        }
+
+        .sidebar:hover,
+        .sidebar:focus-within {
+            transform: translateX(0);
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 48px;
+        }
+
+        .logo span { color: var(--primary); }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: calc(18px * var(--font-scale));
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            min-height: 44px;
+        }
+
+        .nav-item:hover {
+            background-color: #F8FAFC;
+            color: var(--text-main);
+            transform: translateX(2px);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background-color: var(--bg-badge);
+            font-weight: 600;
+
+            border-left: 3px solid var(--primary);
+            padding-left: 11px;
+        }
+
+        /* Footer */
+        .sidebar-footer {
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: inherit;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: background-color 0.15s ease, padding 0.15s ease;
+        }
+
+        .sidebar-footer:hover {
+            background-color: #F8FAFC;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+
+        /* Soldier image */
+        .soldier-img {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+
+            /* subtle polish */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        /* User info */
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .user-info .name {
+            font-size: calc(18px * var(--font-scale));
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .user-info .role {
+            font-size: calc(16px * var(--font-scale));
+            color: var(--text-muted);
+        }
+
+        .logout-link {
+            font-size: calc(16px * var(--font-scale));
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .logout-link:hover {
+            color: #E11D48;
+        }
+
+        /* Main */
+        .main-workspace {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 44px 40px;
+            overflow-y: auto;
+            width: 100%;
+            min-height: 100vh;
+            min-width: 0;
+        }
+
+        .header-section h1 {
+            font-size: var(--page-title-size);
+            font-weight: var(--page-title-weight);
+            color: var(--text-main);
+            overflow-wrap: anywhere;
+        }
+
+        .header-section p {
+            font-size: var(--page-subtitle-size);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                display: block;
+            }
+
+            .mobile-topbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 80;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                min-height: calc(58px + env(safe-area-inset-top));
+                padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+                background: rgba(255, 255, 255, 0.96);
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+            }
+
+            .mobile-brand {
+                font-size: 24px;
+                font-weight: 800;
+                text-decoration: none;
+                color: var(--text-main);
+                line-height: 1;
+            }
+
+            .mobile-brand span {
+                color: var(--primary);
+            }
+
+            .mobile-menu-button {
+                width: 44px;
+                height: 44px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: #FFFFFF;
+                display: inline-grid;
+                place-items: center;
+                cursor: pointer;
+            }
+
+            .mobile-menu-button-lines {
+                width: 20px;
+                height: 14px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .mobile-menu-button-lines span {
+                display: block;
+                width: 100%;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--text-main);
+            }
+
+            .mobile-nav-backdrop {
+                position: fixed;
+                inset: 0;
+                z-index: 60;
+                background: rgba(15, 23, 42, 0.36);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.18s ease;
+            }
+
+            body.nav-open .mobile-nav-backdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .sidebar-rail,
+            .sidebar-rail:hover,
+            .sidebar-rail:focus-within {
+                width: 100%;
+                flex-basis: 0;
+                min-height: 0;
+                position: fixed;
+                inset: auto 0 0;
+                z-index: 70;
+                pointer-events: none;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                min-height: 0;
+                max-height: calc(100svh - 74px);
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+                border-top: 1px solid var(--border);
+                border-right: 0;
+                border-radius: 18px 18px 0 0;
+                transform: translateY(110%);
+                box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.18);
+                overflow-y: auto;
+                pointer-events: auto;
+            }
+
+            .sidebar:hover,
+            .sidebar:focus-within,
+            body.nav-open .sidebar {
+                transform: translateY(0);
+            }
+
+            .sidebar::after {
+                display: none;
+            }
+
+            .logo {
+                display: none;
+            }
+
+            .nav-item {
+                padding: 9px 12px;
+                font-size: 15px;
+                min-height: 46px;
+                border: 1px solid transparent;
+            }
+
+            .nav-item.active {
+                border-left: 0;
+                padding-left: 12px;
+                border-color: #BCEBD9;
+            }
+
+            .main-workspace {
+                margin-left: 0;
+            }
+
+            .main-content {
+                padding: calc(82px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+                min-height: 100svh;
+            }
+
+            .main-content :where(h1) {
+                font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+            }
+
+            .main-content :where(h2) {
+                font-size: clamp(24px, calc(28px * var(--font-scale)), 30px) !important;
+            }
+
+            .main-content :where(h3) {
+                font-size: clamp(20px, calc(24px * var(--font-scale)), 26px) !important;
+            }
+
+            .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+            }
+
+            .sidebar-footer {
+                margin-top: 10px;
+                padding: 10px;
+                border-top: 1px solid var(--border);
+                border-radius: 8px;
+                background: #F8FAFC;
+            }
+
+            .soldier-img {
+                width: 42px;
+                height: 42px;
+                border-radius: 8px;
+            }
+
+            .user-info .name {
+                font-size: 15px;
+            }
+
+            .user-info .role,
+            .logout-link {
+                font-size: 13px;
+            }
+
+            .sidebar .nav-item {
+                font-size: 15px !important;
+                line-height: 1.25;
+            }
+        }
+    </style>
+    <script src="/static/js/pages/ai_text_format.js?v=1780409404"></script>
+    
+<link rel="stylesheet" href="/static/css/dashboard.css?v=1780491506">
+
+</head>
+
+<body>
+<div class="app-container">
+    <header class="mobile-topbar">
+        <a href="/" class="mobile-brand" aria-label="FitLah dashboard">Fit<span>Lah</span></a>
+        <button class="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
+            <span class="mobile-menu-button-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+    </header>
+    <button class="mobile-nav-backdrop" type="button" aria-label="Close navigation"></button>
+
+    <!-- Sidebar -->
+    <div class="sidebar-rail">
+    <aside class="sidebar" id="appSidebar">
+
+        <div class="logo">Fit<span>Lah</span></div>
+
+        <nav class="nav-group">
+            <a href="/" class="nav-item active">
+                Dashboard
+            </a>
+
+            <a href="/group" class="nav-item ">
+                Group
+            </a>
+
+            <a href="/calendar" class="nav-item ">
+                Calendar
+            </a>
+
+            <a href="/analytics" class="nav-item ">
+                Analytics
+            </a>
+        </nav>
+
+        <!-- Footer -->
+        <a class="sidebar-footer" href="/settings" aria-label="Open settings">
+
+            <img class="soldier-img"
+                 src="/static/icons/soldier.jpg"
+                 alt="Soldier">
+
+            <div class="user-info">
+                <div class="name">
+                    FitLah User
+                </div>
+
+                <div class="role">
+                    Soldier
+                </div>
+
+                
+            </div>
+
+        </a>
+
+    </aside>
+    </div>
+
+    <!-- Main -->
+    <div class="main-workspace">
+        <div class="main-content">
+            
+
+<div class="dashboard-page">
+
+    <div class="dashboard-header">
+        <div>
+            <h1>Dashboard</h1>
+
+            <p>
+                Manage your IPPT training sessions, sync outdoor runs,
+                and review recent activities
+            </p>
+        </div>
+
+    </div>
+
+    <div class="dashboard-grid">
+
+        <section class="panel training-panel">
+
+            <div class="panel-kicker">
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 19V5"></path>
+                    <path d="M4 19h16"></path>
+                    <path d="M8 15l3-4 3 2 4-7"></path>
+                </svg>
+                TRAINING MODULE
+            </div>
+
+            <div class="action-stack ">
+
+                <div class="action-card" id="webcamLaunchCard">
+                    <div>
+                        <h3>Push up & Sit up</h3>
+
+                        <p>
+                            Begin a live webcam session to track your form
+                        </p>
+                    </div>
+
+                    <button class="primary-btn" onclick="triggerWebcamStation()">
+                        Launch Session
+                    </button>
+                </div>
+
+                
+                    <div class="action-card">
+                        <div>
+                            <h3>2.4km Run</h3>
+
+                            <p>
+                                Connect recent outdoor run data
+                            </p>
+                        </div>
+
+                        <div class="action-meta">
+                            <span class="action-dot strava"></span>
+                            Strava Integration
+                            <details class="strava-help-popover">
+                                <summary aria-label="Strava setup help">!</summary>
+                                <div>
+                                    Add your Strava Client ID and API key in Settings, then reconnect from here.
+                                </div>
+                            </details>
+                        </div>
+
+                        <button class="primary-btn strava" onclick="triggerStravaModal()">
+                            Sync Strava
+                        </button>
+                    </div>
+                
+
+            </div>
+
+            
+
+
+
+        </section>
+
+        <aside class="side-stack">
+            <section class="panel ippt-panel">
+                <div class="ippt-title-row">
+                    <div>
+                        <h3>Potential IPPT Score</h3>
+                        <p>
+                            Personal bests from your latest training records.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="score-hero award-silver" id="ipptScoreHero" style="--score-percent: 72">
+                    <div class="score-ring">
+                        <div class="score-total">
+                            <strong id="ipptTotalPoints">72</strong>
+                            <span>pts</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="score-line">
+                            <div class="award-pill silver" id="ipptAward">
+                                Silver
+                            </div>
+                            <span class="score-scale">/100</span>
+                        </div>
+
+                        <p class="score-note" id="ipptScoreNote">
+                            
+                        </p>
+                    </div>
+                </div>
+
+                <div class="station-grid">
+                    <div class="station-card">
+                        <div>
+                            <span>Push-up</span>
+                            <strong id="ipptPushups">42 reps</strong>
+                        </div>
+                        <small><span id="ipptPushupPoints">20</span> pts</small>
+                    </div>
+
+                    <div class="station-card">
+                        <div>
+                            <span>Sit-up</span>
+                            <strong id="ipptSitups">44 reps</strong>
+                        </div>
+                        <small><span id="ipptSitupPoints">21</span> pts</small>
+                    </div>
+
+                    <div class="station-card">
+                        <div>
+                            <span>2.4km</span>
+                            <strong id="ipptRunTime">11:58</strong>
+                        </div>
+                        <small><span id="ipptRunPoints">31</span> pts</small>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel recent-panel">
+
+                <div class="panel-title recent-activity-title">
+                    Recent Activity
+                </div>
+
+                <div class="recent-list">
+
+                    
+                        
+
+                        <div class="recent-item">
+                            <strong>
+                                Push-up webcam session
+                            </strong>
+
+                            <span>
+                                2026-06-03
+
+                                
+                                    · 42 reps
+                                
+
+                                
+                            </span>
+                        </div>
+
+                        
+
+                        <div class="recent-item">
+                            <strong>
+                                2.4km Strava run
+                            </strong>
+
+                            <span>
+                                2026-06-02
+
+                                
+
+                                
+                                    · 11:58
+                                
+                            </span>
+                        </div>
+
+                        
+                    
+
+                </div>
+
+            </section>
+
+        </aside>
+
+    </div>
+
+</div>
+
+<script>
+    window.FitLahDashboardConfig = {
+        exerciseSetupUrl: "/exercise-setup",
+        stravaConnected: false,
+        stravaAuthorizeUrl: "",
+        stravaSyncUrl: "/strava-sync",
+        stravaPreviewRunUrl: "/previewstravarun"
+    };
+</script>
+<script src="/static/js/pages/dashboard.js?v=1780438297"></script>
+
+
+            <style>
+                .main-content :where(h1) {
+                    font-size: calc(40px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h2) {
+                    font-size: calc(34px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h3) {
+                    font-size: calc(26px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h4, h5, h6) {
+                    font-size: calc(22px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                    font-size: max(calc(18px * var(--font-scale)), 1em) !important;
+                    line-height: 1.5;
+                }
+
+                .main-content :where(span) {
+                    font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+                    line-height: 1.35;
+                }
+
+                .main-content :where(.panel-title, .panel-kicker, .action-meta, .award-pill, .strava-btn, .primary-btn, .calendar-day, .weekday-label, .agenda-date, .metric-label-small, .legend-item, .status-badge-pill) {
+                    font-size: calc(18px * var(--font-scale)) !important;
+                }
+
+                @media (max-width: 900px) {
+                    .main-content :where(h1) {
+                        font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+                    }
+
+                    .main-content :where(h2) {
+                        font-size: clamp(24px, calc(28px * var(--font-scale)), 30px) !important;
+                    }
+
+                    .main-content :where(h3) {
+                        font-size: clamp(20px, calc(24px * var(--font-scale)), 26px) !important;
+                    }
+
+                    .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                        font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+                    }
+                }
+            </style>
+        </div>
+    </div>
+
+</div>
+<script>
+    (function () {
+        const body = document.body;
+        const menuButton = document.querySelector('.mobile-menu-button');
+        const backdrop = document.querySelector('.mobile-nav-backdrop');
+        const navLinks = document.querySelectorAll('.sidebar a');
+
+        function setNavOpen(open) {
+            body.classList.toggle('nav-open', open);
+            if (menuButton) {
+                menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+                menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+            }
+        }
+
+        if (menuButton) {
+            menuButton.addEventListener('click', () => setNavOpen(!body.classList.contains('nav-open')));
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', () => setNavOpen(false));
+        }
+        navLinks.forEach(link => link.addEventListener('click', () => setNavOpen(false)));
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') setNavOpen(false);
+        });
+    })();
+</script>
+</body>
+</html>

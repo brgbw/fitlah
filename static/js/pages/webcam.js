@@ -107,9 +107,11 @@ let currentMode = 'pushup';
 
     function setCameraMessage(message, type = '') {
         if (!cameraStatus) return;
-        cameraStatus.textContent = message;
+        const shouldShow = type === 'error';
+        cameraStatus.textContent = shouldShow ? message : '';
+        cameraStatus.classList.toggle('visible', shouldShow);
         cameraStatus.classList.toggle('error', type === 'error');
-        cameraStatus.classList.toggle('success', type === 'success');
+        cameraStatus.classList.toggle('success', false);
     }
 
     function mediaUnsupportedMessage() {

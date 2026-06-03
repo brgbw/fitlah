@@ -62,6 +62,12 @@
                         <div class="action-meta">
                             <span class="action-dot strava"></span>
                             Strava Integration
+                            <details class="strava-help-popover">
+                                <summary aria-label="Strava setup help">!</summary>
+                                <div>
+                                    Add your Strava Client ID and API key in Settings, then reconnect from here.
+                                </div>
+                            </details>
                         </div>
 
                         <button class="primary-btn strava" onclick="triggerStravaModal()">
@@ -91,7 +97,7 @@
                     <div class="score-ring">
                         <div class="score-total">
                             <strong id="ipptTotalPoints">{{ ippt_score.total_points }}</strong>
-                            <span>/100</span>
+                            <span>pts</span>
                         </div>
                     </div>
 
@@ -100,6 +106,7 @@
                             <div class="award-pill {{ ippt_score.award.code }}" id="ipptAward">
                                 {{ ippt_score.award.label }}
                             </div>
+                            <span class="score-scale">/100</span>
                         </div>
 
                         <p class="score-note" id="ipptScoreNote">

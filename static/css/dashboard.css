@@ -131,6 +131,7 @@
         font-size: 12px;
         font-weight: 500;
         margin-top: auto;
+        position: relative;
     }
 
     .action-dot {
@@ -142,6 +143,47 @@
 
     .action-dot.strava {
         background: #FC4C02;
+    }
+
+    .strava-help-popover {
+        margin-left: auto;
+        position: relative;
+    }
+
+    .strava-help-popover summary {
+        width: 24px;
+        height: 24px;
+        min-height: 24px;
+        border: 1px solid #FED7AA;
+        border-radius: 999px;
+        background: #FFF7ED;
+        color: #C2410C;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .strava-help-popover summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .strava-help-popover div {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 8px);
+        z-index: 10;
+        width: min(230px, 72vw);
+        border: 1px solid #FED7AA;
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: #475569;
+        padding: 10px 12px;
+        font-size: 13px;
+        line-height: 1.4;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
     }
 
     .primary-btn {
@@ -332,7 +374,10 @@
     .score-total {
         display: flex;
         align-items: baseline;
+        justify-content: center;
         gap: 4px;
+        width: 100%;
+        padding: 0 10px;
     }
 
     .score-total strong {
@@ -346,6 +391,13 @@
         color: #64748B;
         font-size: 13px;
         font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .score-scale {
+        color: #64748B;
+        font-size: 13px;
+        font-weight: 700;
     }
 
     .award-pill {
@@ -416,7 +468,7 @@
         align-items: center;
     }
 
-    .station-card span {
+    .station-card > div > span {
         display: block;
         color: #64748B;
         font-size: 12px;
@@ -436,6 +488,15 @@
         font-size: 12px;
         text-align: right;
         font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .station-card small span {
+        display: inline;
+        margin: 0;
+        color: inherit;
+        font-size: inherit;
+        font-weight: inherit;
     }
 
     .strava-preview-list {
@@ -631,6 +692,9 @@
         }
 
         .score-line {
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
             margin-bottom: 6px;
         }
 
@@ -640,7 +704,15 @@
         }
 
         .score-total strong {
-            font-size: 22px;
+            font-size: 20px;
+        }
+
+        .score-total span {
+            font-size: 11px;
+        }
+
+        .score-scale {
+            font-size: 12px;
         }
 
         .award-pill {
@@ -676,7 +748,7 @@
             text-align: left;
         }
 
-        .station-card span {
+        .station-card > div > span {
             font-size: 11px;
             margin-bottom: 2px;
         }

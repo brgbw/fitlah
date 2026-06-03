@@ -137,6 +137,33 @@
         line-height: 1.5;
     }
 
+    .strava-instructions {
+        margin-top: 14px;
+        border: 1px solid #E2E8F0;
+        border-left: 4px solid #FC4C02;
+        border-radius: 8px;
+        background: #FFF7ED;
+        padding: 14px 16px;
+        color: #475569;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .strava-instructions strong {
+        display: block;
+        color: #0F172A;
+        margin-bottom: 6px;
+    }
+
+    .strava-instructions ol {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .strava-instructions li {
+        margin-bottom: 4px;
+    }
+
     .settings-actions {
         display: flex;
         align-items: center;
@@ -266,7 +293,17 @@
         <section class="settings-section">
             <div class="section-title">
                 <h2><img src="{{ url_for('static', filename='icons/strava.png') }}" alt="Strava" style="height:20px;vertical-align:middle;margin-right:8px">Strava</h2>
-                <span>OAuth credentials are server-controlled; connect your account from the Strava page.</span>
+                <span>Use your Strava app credentials to enable run imports.</span>
+            </div>
+
+            <div class="strava-instructions">
+                <strong>How to add your Strava API key</strong>
+                <ol>
+                    <li>Open Strava API settings and create an app.</li>
+                    <li>Copy the Client ID into Strava ID.</li>
+                    <li>Copy the Client Secret into Client secret / API key.</li>
+                    <li>Use your Vercel domain as the callback domain, then save and reconnect Strava.</li>
+                </ol>
             </div>
 
             <div class="field-row">
