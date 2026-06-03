@@ -10,6 +10,7 @@ from .auth import current_user
 from .config import BASE_DIR
 from ..data_access.database import close_db, ensure_tables, session_scope
 from ..data_access.repositories import get_setting
+from ..integrations.ai_coach import get_gemini_config
 from ..routes import register_routes
 from .web_security import configure_security
 
@@ -107,9 +108,23 @@ def healthz_db():
     return jsonify({"success": True, "database": "ok"}), 200
 
 
+@app.route("/healthz/ai")
+def healthz_ai():
+    config = get_gemini_config()
+    success = bool(config.get("api_key_present")) and bool(config.get("sdk_available"))
+    return jsonify({
+        "success": success,
+        "provider": "gemini",
+        "model": config.get("model"),
+        "api_key_present": bool(config.get("api_key_present")),
+        "sdk_available": bool(config.get("sdk_available")),
+        "sdk_import_error": config.get("sdk_import_error", ""),
+    }), 200 if success else 503
+
+
 @app.before_request
 def ensure_database_ready():
-    if request.endpoint in {"healthz", "healthz_db", "static"}:
+    if request.endpoint in {"healthz", "healthz_db", "healthz_ai", "static"}:
         return None
     if os.environ.get("FITLAH_PRODUCTION", "").strip().lower() in {"1", "true", "yes", "on"}:
         if not (os.environ.get("FITLAH_SECRET_KEY") or "").strip():
