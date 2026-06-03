@@ -111,6 +111,12 @@ def healthz_db():
 def ensure_database_ready():
     if request.endpoint in {"healthz", "healthz_db", "static"}:
         return None
+    if os.environ.get("FITLAH_PRODUCTION", "").strip().lower() in {"1", "true", "yes", "on"}:
+        if not (os.environ.get("FITLAH_SECRET_KEY") or "").strip():
+            return jsonify({
+                "success": False,
+                "error": "FITLAH_SECRET_KEY must be set in Vercel Production environment variables.",
+            }), 503
     if not _database_initialized:
         init_db()
     return None
