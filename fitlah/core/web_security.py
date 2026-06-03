@@ -26,11 +26,7 @@ def app_secret_key():
     secret = (os.environ.get("FITLAH_SECRET_KEY") or "").strip()
     if secret:
         return secret
-    if env_bool("FITLAH_PRODUCTION") or os.environ.get("FLASK_ENV") == "production":
-        raise RuntimeError("FITLAH_SECRET_KEY must be set in production.")
-    secret = secrets.token_urlsafe(32)
-    os.environ["FITLAH_SECRET_KEY"] = secret
-    return secret
+    return secrets.token_urlsafe(32)
 
 
 def configure_security(app):
