@@ -6,7 +6,7 @@ This script will:
 - For each user with an existing `strava_connections` row, if `athlete_id` is empty,
   populate it from the global client id. It never copies app client secrets into user access tokens.
 
-Run with the project's Python environment (ensure env vars in .env are set):
+Run with the project's Python environment and required environment variables:
 
     python -m fitlah.maintenance.migrate_strava_settings
 

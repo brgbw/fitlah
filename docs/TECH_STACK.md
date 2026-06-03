@@ -15,7 +15,7 @@ FitLah is a Flask web app deployed on Vercel with Neon PostgreSQL. It combines a
 | Language | Python 3.12 | Backend application code and integrations |
 | Database access | SQLAlchemy 2 | Neon/PostgreSQL connection management and SQL execution |
 | Database driver | psycopg2-binary | PostgreSQL adapter for Python |
-| Config loading | Environment variables / python-dotenv | Vercel uses dashboard env vars; dotenv remains available for non-production tooling |
+| Config loading | Environment variables | Vercel dashboard values configure the app |
 | HTTP client | requests | Calls Strava APIs |
 | AI client | google-genai | Optional Gemini coaching responses |
 | Secret encryption | cryptography / Fernet | Encrypts stored app secrets and OAuth tokens |
@@ -114,8 +114,6 @@ api/index.py
 ```python
 from fitlah.core.application import app
 ```
-
-The root `app.py` file re-exports the same object for compatibility.
 
 Core production environment values:
 

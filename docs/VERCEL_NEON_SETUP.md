@@ -31,8 +31,6 @@ Vercel loads the app through:
 api/index.py
 ```
 
-`app.py` only re-exports the Flask app object for compatibility.
-
 ## 3. Add Production Environment Variables
 
 Add these in **Project Settings -> Environment Variables** for **Production**:
@@ -106,7 +104,7 @@ Then create a new account in the deployed app and confirm Neon has a row in the 
 
 ## Runtime Notes
 
-- Vercel does not read local `.env` files.
+- Vercel reads environment variables from the project dashboard.
 - The database starts empty unless you migrate data intentionally.
 - FitLah creates required tables on first request.
 - Webcam recordings and attached videos are analysed in the browser. FitLah saves metrics to Neon and does not store video files on Vercel.

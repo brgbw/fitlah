@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from cryptography.fernet import Fernet, InvalidToken
-from dotenv import load_dotenv
 from flask import g
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
@@ -17,10 +16,9 @@ _SCHEMA_READY = False
 
 
 def database_url():
-    load_dotenv(os.path.join(BASE_DIR, ".env"))
     value = (os.environ.get("DATABASE_URL") or "").strip()
     if not value:
-        raise RuntimeError("DATABASE_URL must be set in .env or the environment.")
+        raise RuntimeError("DATABASE_URL must be set in the environment.")
     return _normalized_database_url(value)
 
 
@@ -70,7 +68,6 @@ def close_db(exception=None):
 
 
 def encryption():
-    load_dotenv(os.path.join(BASE_DIR, ".env"))
     key = os.environ.get("FIELD_ENCRYPTION_KEY")
     if key:
         try:

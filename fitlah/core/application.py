@@ -1,7 +1,6 @@
 import os
 import re
 
-from dotenv import load_dotenv
 from flask import Flask, jsonify, request, url_for
 from markupsafe import Markup, escape
 from sqlalchemy import text
@@ -13,8 +12,6 @@ from ..data_access.repositories import get_setting
 from ..integrations.ai_coach import get_gemini_config
 from ..routes import register_routes
 from .web_security import configure_security
-
-load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 app = Flask(
     __name__,

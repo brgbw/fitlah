@@ -27,7 +27,6 @@ FitLah is a cloud-deployed web app for Singapore IPPT training. It helps users t
 
 ```text
 api/index.py              Vercel Python entrypoint
-app.py                    Compatibility export for the Flask app object
 fitlah/core/              Flask app setup, security, auth helpers
 fitlah/data_access/       SQLAlchemy connection and repository helpers
 fitlah/domain/            IPPT scoring and activity logic
@@ -115,7 +114,7 @@ Expected results:
 
 ## Production Notes
 
-- Vercel does not read local `.env` files. Add values in the Vercel dashboard.
+- Vercel reads environment variables from the project dashboard.
 - Neon data starts empty unless you intentionally migrate existing data.
 - The app creates required database tables on first request.
 - Vercel functions have an ephemeral filesystem, so uploaded webcam videos are not long-term durable storage.

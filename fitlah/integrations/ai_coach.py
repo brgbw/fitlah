@@ -3,10 +3,6 @@ import logging
 import os
 import re
 
-from dotenv import load_dotenv
-
-from ..core.config import BASE_DIR
-
 try:
     from google import genai
     from google.genai import types as genai_types
@@ -21,7 +17,6 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 MAX_PROMPT_CHARS = 12000
 logger = logging.getLogger(__name__)
 REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]
-ENV_PATH = os.path.join(BASE_DIR, ".env")
 GEMINI_KEY_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY", "AI_API_KEY")
 
 
@@ -32,15 +27,8 @@ def _gemini_key_from_environment():
     )
 
 
-def load_project_env():
-    """Load the project-root .env regardless of the process current directory."""
-    loaded = load_dotenv(ENV_PATH, override=False)
-    if not _gemini_key_from_environment():
-        loaded = load_dotenv(ENV_PATH, override=True) or loaded
+def environment_status():
     return {
-        "env_path": ENV_PATH,
-        "env_file_exists": os.path.exists(ENV_PATH),
-        "env_loaded": loaded,
         "api_key_present": bool(_gemini_key_from_environment()),
     }
 
@@ -49,27 +37,12 @@ def _print_missing_env_warning(env_status):
     if env_status.get("api_key_present"):
         return
 
-    message = (
-        "\n"
-        "================================================================================\n"
-        " AI_COACH ERROR: GEMINI API KEY NOT FOUND\n"
-        f" Expected .env path: {env_status.get('env_path')}\n"
-        f" .env file exists: {env_status.get('env_file_exists')}\n"
-        f" .env loaded: {env_status.get('env_loaded')}\n"
-        " Add GEMINI_API_KEY=your_key to the environment and redeploy.\n"
-        "================================================================================\n"
-    )
-    print(f"\033[91m{message}\033[0m")
-    logger.error(message)
-
-
-_INITIAL_ENV_STATUS = load_project_env()
-_print_missing_env_warning(_INITIAL_ENV_STATUS)
+    logger.error("Gemini API key is not set. Add GEMINI_API_KEY to the Vercel environment and redeploy.")
 
 
 def get_gemini_config():
-    """Load Gemini API key and model from project-root .env/environment."""
-    env_status = load_project_env()
+    """Load Gemini API key and model from environment variables."""
+    env_status = environment_status()
     return {
         "api_key": _gemini_key_from_environment(),
         "model": (os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL).strip(),
@@ -140,7 +113,7 @@ def _call_gemini(system_prompt, user_prompt):
         content = getattr(response, "text", "") or ""
     except Exception as exc:
         logger.exception("Gemini request failed. debug=%s", debug)
-        hint = f" Check GEMINI_MODEL in .env (current: {config['model']})." if "model" in str(exc).lower() else ""
+        hint = f" Check GEMINI_MODEL in Vercel (current: {config['model']})." if "model" in str(exc).lower() else ""
         return {
             "success": False,
             "error": f"Could not reach Gemini API.{hint} {type(exc).__name__}: {str(exc)[:800]}",
