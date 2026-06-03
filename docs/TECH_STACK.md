@@ -12,7 +12,7 @@ FitLah is a local-first Flask web app for IPPT training. It combines account-bas
 | --- | --- | --- |
 | Web framework | Flask 3 | Routes, request handling, sessions, templates, API endpoints |
 | Language | Python 3.11+ | Backend application code and integrations |
-| Database access | SQLAlchemy 2 | PostgreSQL connection management and SQL execution |
+| Database access | SQLAlchemy 2 | PostgreSQL/Neon connection management and SQL execution |
 | Database driver | psycopg2-binary | PostgreSQL adapter for Python |
 | Config loading | python-dotenv | Loads `.env` values during local startup |
 | HTTP client | requests | Calls Strava and OpenRouter APIs |
@@ -55,7 +55,7 @@ static/icons/           App and integration icons
 
 | Technology | Purpose |
 | --- | --- |
-| PostgreSQL | Primary local database |
+| PostgreSQL / Neon | Primary local or hosted database |
 | Auto-created tables | Created on first app startup through `fitlah/data_access/database.py` |
 
 Main data areas:
@@ -74,6 +74,8 @@ Main data areas:
 | Strava API | OAuth login, recent run import, GPS stream fetching, 2.4km run analysis | Required for Strava sync |
 | OpenRouter API | Optional AI coaching summaries and recommendations | Optional |
 | Cloudflare Tunnel | Temporary public URL for hackathon demos and external user testing | Optional |
+| Vercel | Hosted Flask deployment and custom domain management | Optional |
+| Neon | Hosted PostgreSQL for Vercel deployments | Optional |
 
 ## Strava OAuth Flow
 
@@ -125,6 +127,21 @@ $env:FLASK_RUN_PORT=5001
 python app.py
 ```
 
+## Cloud Runtime
+
+For Vercel deployments, `app.py` exports the Flask `app` object that Vercel loads as the serverless entrypoint. Hosted deployments should use Neon PostgreSQL through `DATABASE_URL`, preferably with Neon's pooled connection string.
+
+Core production environment values:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST-pooler.REGION.aws.neon.tech/DB?sslmode=require&channel_binding=require
+FITLAH_PUBLIC_BASE_URL=https://your-domain.com
+FITLAH_ALLOWED_ORIGINS=https://your-domain.com,https://your-project.vercel.app
+FITLAH_PRODUCTION=true
+FITLAH_COOKIE_SECURE=true
+FITLAH_DB_DISABLE_POOL=true
+```
+
 ## Dependency Files
 
 | File | Purpose |
@@ -133,3 +150,4 @@ python app.py
 | `.env.example` | Safe local environment template |
 | `instructions.txt` | Full laptop setup guide for teammates |
 | `docs/POSTGRES_SETUP.md` | PostgreSQL installation and database walkthrough |
+| `docs/VERCEL_NEON_SETUP.md` | Vercel custom domain and Neon deployment checklist |

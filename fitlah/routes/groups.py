@@ -6,7 +6,6 @@ from ..core.auth import current_user, login_required
 from ..domain.activity_helpers import (
     create_invites_for_group,
     find_group,
-    get_personal_best,
     user_is_group_member,
 )
 from ..domain.ippt_scoring import age_profile_from_nric, calculate_from_personal_best

@@ -1,50 +1,16 @@
 from datetime import datetime
 from ..core.auth import current_user
-from .ippt_scoring import age_profile_from_nric, calculate_from_personal_best, format_run_time, parse_run_time
+from .ippt_scoring import age_profile_from_nric
 from ..data_access.repositories import (
-    activity_records as activity_records_for_nric,
-    add_group_member,
     create_invite,
-    get_user,
     list_group_members,
     list_groups,
     list_invites,
     list_users,
     personal_best,
-    save_personal_best,
     update_activity as update_activity_record,
 )
 
-def update_personal_best(nric, exercise_type, reps):
-    if exercise_type not in {"pushup", "situp"}:
-        return
-
-    best = get_personal_best(nric)
-    best.update(age_profile_from_nric(nric))
-    field = "pushups" if exercise_type == "pushup" else "situps"
-    if reps > int(best.get(field) or 0):
-        best[field] = reps
-        best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
-        save_personal_best(best["nric"], best)
-
-
-def update_run_personal_best(nric, run_time):
-    new_seconds = parse_run_time(run_time)
-    if not new_seconds:
-        return False
-
-    best = get_personal_best(nric)
-    best.update(age_profile_from_nric(nric))
-    current_seconds = parse_run_time(best.get("run_time"))
-
-    if current_seconds and current_seconds <= new_seconds:
-        return False
-
-    best["run_time"] = format_run_time(new_seconds)
-    best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
-    save_personal_best(best["nric"], best)
-
-    return True
 
 def save_ai_recommendation(db, session_id, nric, recommendation):
     """Persist AI coach output on unified activity records."""
@@ -61,14 +27,6 @@ def save_ai_recommendation(db, session_id, nric, recommendation):
 
     return update_activity_record(session_id, nric, {"ai_recommendation": ai_data})
 
-def attach_ai_to_activity_records(db, logs, nric):
-    """AI data is now directly on activity records, so this is a pass-through."""
-    return logs
-
-
-def find_user(nric):
-    normalized = (nric or "").strip().upper()
-    return get_user(normalized)
 
 def find_group(group_id):
     return next((g for g in list_groups() if g.get("id") == group_id), None)
@@ -93,22 +51,6 @@ def get_personal_best(nric):
         "run_time": "--:--",
         **age_profile_from_nric(normalized),
         "updated_at": None
-    }
-
-def member_with_personal_best(member):
-    best = get_personal_best(member.get("nric"))
-    score = calculate_from_personal_best(best, best.get("age_group"))
-    return {
-        **member,
-        "age": best.get("age"),
-        "age_group": best.get("age_group"),
-        "personal_best": best,
-        "ippt_score": score,
-        "ippt_points": score.get("total_points", 0),
-        "ippt_award": score.get("award", {}),
-        "pushups": best.get("pushups", 0),
-        "situps": best.get("situps", 0),
-        "run_time": best.get("run_time", "--:--")
     }
 
 def create_invites_for_group(db, group, invited_nrics):

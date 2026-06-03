@@ -970,7 +970,7 @@ let currentMode = 'pushup';
         if (ids) params.set('session_ids', ids);
         if (analysisIds) params.set('analysis_ids', analysisIds);
         const query = params.toString();
-        window.location.href = query ? `/ai-recommendations?${query}` : "/ai-recommendations";
+        window.location.href = query ? `/training-insights?${query}` : "/training-insights";
     }
 
     videoAttachmentInput.addEventListener('change', (event) => {

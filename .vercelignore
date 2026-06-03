@@ -1,0 +1,13 @@
+.git
+.cursor
+.venv
+venv
+__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+userdata/
+docs/
+instructions.txt
+version_control.txt

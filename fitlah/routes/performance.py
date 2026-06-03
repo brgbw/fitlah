@@ -1,7 +1,6 @@
 from flask import jsonify, redirect, render_template, request, url_for
 
 from ..core.auth import current_user, login_required
-from ..domain.activity_helpers import attach_ai_to_activity_records
 from ..data_access.repositories import (
     activity_records as activity_records_for_nric,
     create_activity as create_activity_record,
@@ -37,7 +36,6 @@ def register_performance_routes(app):
             activity_records_for_nric(nric),
             key=lambda x: (x.get("date", ""), x.get("id", 0)),
         )
-        logs = attach_ai_to_activity_records(None, logs, nric)
         return jsonify({"success": True, "logs": logs})
 
     @app.route("/api/activity-records", methods=["POST"])

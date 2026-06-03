@@ -2,11 +2,13 @@ import base64
 import hashlib
 import os
 from contextlib import contextmanager
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
 from flask import g
 from sqlalchemy import create_engine, text
+from sqlalchemy.pool import NullPool
 
 from ..core.config import BASE_DIR
 
@@ -19,14 +21,42 @@ def database_url():
     value = (os.environ.get("DATABASE_URL") or "").strip()
     if not value:
         raise RuntimeError("DATABASE_URL must be set in .env or the environment.")
-    return value
+    return _normalized_database_url(value)
 
 
 def engine():
     global _ENGINE
     if _ENGINE is None:
-        _ENGINE = create_engine(database_url(), future=True, pool_pre_ping=True)
+        _ENGINE = create_engine(database_url(), **_engine_options())
     return _ENGINE
+
+
+def _normalized_database_url(value):
+    if value.startswith("postgres://"):
+        value = f"postgresql://{value[len('postgres://'):]}"
+
+    parsed = urlparse(value)
+    hostname = parsed.hostname or ""
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    query_keys = {key.lower() for key, _ in query}
+    if hostname.endswith(".neon.tech") and "sslmode" not in query_keys:
+        query.append(("sslmode", "require"))
+        value = urlunparse(parsed._replace(query=urlencode(query)))
+    return value
+
+
+def _engine_options():
+    options = {"future": True, "pool_pre_ping": True}
+    if _env_bool("FITLAH_DB_DISABLE_POOL") or os.environ.get("VERCEL"):
+        options["poolclass"] = NullPool
+    return options
+
+
+def _env_bool(name):
+    value = os.environ.get(name)
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 @contextmanager

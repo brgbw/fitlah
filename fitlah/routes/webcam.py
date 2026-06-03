@@ -10,14 +10,11 @@ from ..integrations.ai_coach import generate_exercise_recommendation
 from ..core.auth import current_user, login_required
 from ..core.config import BASE_DIR
 from ..domain.activity_helpers import save_ai_recommendation
-from ..domain.ippt_scoring import age_profile_from_nric
 from ..data_access.repositories import (
     activity_records as activity_records_for_nric,
     create_activity as create_activity_record,
     delete_activity as delete_activity_record,
-    personal_best as repo_personal_best,
     recalculate_personal_best,
-    save_personal_best,
 )
 from ..core.web_security import bounded_int, json_too_large, limit_structure, rate_limit
 from ..domain.session_cleanup import clear_session_analysis_files
@@ -82,39 +79,6 @@ def attach_rep_metrics_csv(metrics):
     return metrics
 
 
-def attach_pushup_rep_metrics_csv(metrics):
-    return attach_rep_metrics_csv(metrics)
-
-
-def recalculate_exercise_best(db, nric, exercise_type):
-    field, _, _ = _exercise_labels(exercise_type)
-    best_reps = max(
-        [
-            int(record.get("valid_reps") or 0)
-            for record in activity_records_for_nric(nric)
-            if record.get("exercise") == exercise_type
-        ],
-        default=0,
-    )
-
-    personal_best = repo_personal_best(nric)
-    if not personal_best:
-        personal_best = {
-            "nric": nric,
-            "pushups": 0,
-            "situps": 0,
-            "run_time": "--:--",
-            **age_profile_from_nric(nric),
-            "updated_at": None,
-        }
-
-    personal_best[field] = best_reps
-    personal_best["updated_at"] = datetime.now().strftime("%Y-%m-%d")
-    save_personal_best(nric, personal_best)
-
-    return best_reps
-
-
 def delete_session_video(video_path):
     if not video_path:
         return False
@@ -144,9 +108,9 @@ def register_webcam_routes(app):
     def exercise_setup():
         return render_template("exercise_setup.html")
 
-    @app.route("/ai-recommendations")
+    @app.route("/training-insights")
     @login_required
-    def ai_recommendations():
+    def training_insights():
         user = current_user()
         nric = user.get("nric")
         raw_ids = request.args.get("session_ids", "")
@@ -189,12 +153,12 @@ def register_webcam_routes(app):
             if int(log.get("id") or 0) not in used_sessions
         ])
 
-        return render_template("ai_recommendations.html", recommendations=logs)
+        return render_template("training_insights.html", recommendations=logs)
 
-    @app.route("/ai-recommendations/dashboard", methods=["POST"])
+    @app.route("/training-insights/dashboard", methods=["POST"])
     @login_required
-    @rate_limit("ai-recommendations-cleanup", 20, 300)
-    def ai_recommendations_dashboard():
+    @rate_limit("training-insights-cleanup", 20, 300)
+    def training_insights_dashboard():
         clear_session_analysis_files()
         return redirect(url_for("dashboard"))
 
@@ -280,7 +244,6 @@ def register_webcam_routes(app):
         user = current_user()
         nric = user.get("nric")
         session_date = datetime.now().strftime("%Y-%m-%d")
-        session_time = datetime.now().strftime("%H:%M:%S")
 
         session_record = create_activity_record({
             "nric": nric,

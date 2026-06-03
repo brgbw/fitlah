@@ -2,12 +2,13 @@ import os
 import re
 
 from dotenv import load_dotenv
-from flask import Flask, url_for
+from flask import Flask, jsonify, request, url_for
 from markupsafe import Markup, escape
+from sqlalchemy import text
 
 from .auth import current_user
 from .config import BASE_DIR
-from ..data_access.database import close_db, ensure_tables
+from ..data_access.database import close_db, ensure_tables, session_scope
 from ..data_access.repositories import get_setting
 from ..routes import register_routes
 from .web_security import configure_security
@@ -73,10 +74,41 @@ def init_db():
     _database_initialized = True
 
 
+@app.route("/healthz")
+def healthz():
+    required = ["DATABASE_URL", "FITLAH_SECRET_KEY"]
+    recommended = ["FITLAH_PUBLIC_BASE_URL", "FITLAH_ALLOWED_ORIGINS"]
+    missing_required = [name for name in required if not (os.environ.get(name) or "").strip()]
+    missing_recommended = [name for name in recommended if not (os.environ.get(name) or "").strip()]
+    database = "not_configured" if "DATABASE_URL" in missing_required else "ok"
+    status = 200
+
+    if database == "ok":
+        try:
+            with session_scope() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception:
+            database = "connection_failed"
+            status = 503
+
+    if missing_required:
+        status = 503
+
+    return jsonify({
+        "success": status == 200,
+        "database": database,
+        "missing_required": missing_required,
+        "missing_recommended": missing_recommended,
+    }), status
+
+
 @app.before_request
 def ensure_database_ready():
+    if request.endpoint in {"healthz", "static"}:
+        return None
     if not _database_initialized:
         init_db()
+    return None
 
 
 register_routes(app)

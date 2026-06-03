@@ -61,6 +61,8 @@ For a complete friend handoff, use [`instructions.txt`](instructions.txt). It in
 
 For an architecture and dependency overview, see [`docs/TECH_STACK.md`](docs/TECH_STACK.md).
 
+For cloud deployment, custom domain setup, and Neon PostgreSQL configuration, see [`docs/VERCEL_NEON_SETUP.md`](docs/VERCEL_NEON_SETUP.md).
+
 ## GitHub Publishing Notes
 
 Before publishing, keep generated local files out of the repository:
@@ -139,6 +141,12 @@ http://127.0.0.1:5000
 ```
 
 Keep the terminal running while using the app.
+
+## Vercel + Neon Deployment
+
+FitLah can deploy to Vercel as a Flask app and use Neon as the hosted PostgreSQL database. Add the Neon pooled connection string as `DATABASE_URL`, set `FITLAH_PUBLIC_BASE_URL` to your Vercel custom domain, and include that domain in `FITLAH_ALLOWED_ORIGINS`.
+
+See [`docs/VERCEL_NEON_SETUP.md`](docs/VERCEL_NEON_SETUP.md) for the full setup checklist.
 
 ## Strava Setup
 
