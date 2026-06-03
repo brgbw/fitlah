@@ -447,6 +447,10 @@ let currentMode = 'pushup';
         cvMetrics = webcamMetrics.createMetrics(currentMode);
     }
 
+    function metadataOnlyUploads() {
+        return window.FitLahRuntime?.metadataOnlyUploads !== false;
+    }
+
     function noteFormFlag(flag) {
         if (!cvMetrics || !isRecording) return;
         if (!cvMetrics.form_flags.includes(flag)) {
@@ -591,46 +595,49 @@ let currentMode = 'pushup';
             SoundManager.playSessionStartSound();
         }
         
-        const canvasStream = poseCanvas.captureStream(30);
-        const mimeType = ['video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
-        mediaRecorder = mimeType
-            ? new MediaRecorder(canvasStream, { mimeType })
-            : new MediaRecorder(canvasStream);
-        mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-        };
-        mediaRecorder.onstop = () => {
-            if (discardRecordingOnStop) {
-                discardRecordingOnStop = false;
-                recordedChunks = [];
-                videoBlob = null;
-                lastSessionMetrics = null;
+        if (!metadataOnlyUploads()) {
+            const canvasStream = poseCanvas.captureStream(POSE_TARGET_FPS);
+            const mimeType = ['video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+            mediaRecorder = mimeType
+                ? new MediaRecorder(canvasStream, { mimeType })
+                : new MediaRecorder(canvasStream);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = () => {
+                if (discardRecordingOnStop) {
+                    discardRecordingOnStop = false;
+                    recordedChunks = [];
+                    videoBlob = null;
+                    lastSessionMetrics = null;
+                    isRecording = false;
+                    sessionStarted = false;
+                    sessionArmed = false;
+                    return;
+                }
+                videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                lastSessionMetrics = finalizeSessionMetrics();
+                if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
+                videoObjectUrl = URL.createObjectURL(videoBlob);
+                playbackVideo.src = videoObjectUrl;
+                playbackVideo.muted = true;
+                playbackVideo.style.display = 'none';
+                poseCanvas.style.display = 'block';
+                stopRecBtn.style.display = 'none';
+                startRecBtn.style.display = 'none';
+                timerDisplay.style.display = 'none';
                 isRecording = false;
-                sessionStarted = false;
                 sessionArmed = false;
-                return;
-            }
-            videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-            lastSessionMetrics = finalizeSessionMetrics();
-            if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
-            videoObjectUrl = URL.createObjectURL(videoBlob);
-            playbackVideo.src = videoObjectUrl;
-            playbackVideo.muted = true;
-            playbackVideo.style.display = 'none';
-            poseCanvas.style.display = 'block';
-            stopRecBtn.style.display = 'none';
-            startRecBtn.style.display = 'none';
-            timerDisplay.style.display = 'none';
-            isRecording = false;
-            sessionArmed = false;
-            
-            // Play session end sound
-            if (window.SoundManager) {
-                SoundManager.playSessionEndSound();
-            }
-            
-            startPlaybackReplay({ analyze: false });
-        };
+
+                if (window.SoundManager) {
+                    SoundManager.playSessionEndSound();
+                }
+
+                startPlaybackReplay({ analyze: false });
+            };
+        } else {
+            mediaRecorder = null;
+        }
 
         isRecording = true;
         startRecBtn.style.display = 'none';
@@ -650,7 +657,9 @@ let currentMode = 'pushup';
             }
             if (timeLeft <= 0) stopRecording();
         }, 1000);
-        mediaRecorder.start(250);
+        if (mediaRecorder) {
+            mediaRecorder.start(250);
+        }
         setWarning('Recording started. 1 minute on the clock!');
     }
 
@@ -753,11 +762,31 @@ let currentMode = 'pushup';
         clearInterval(timerInterval);
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
-        } else if (sessionStarted && !videoBlob) {
+        } else if (sessionStarted) {
+            if (discardRecordingOnStop) {
+                discardRecordingOnStop = false;
+                videoBlob = null;
+                lastSessionMetrics = null;
+                isRecording = false;
+                sessionStarted = false;
+                sessionArmed = false;
+                return;
+            }
+            if (!videoBlob) {
+                videoBlob = new Blob([], { type: 'application/octet-stream' });
+            }
+            lastSessionMetrics = finalizeSessionMetrics();
             uploadBtn.style.display = 'inline-block';
+            startRecBtn.style.display = 'none';
             stopRecBtn.style.display = 'none';
             timerDisplay.style.display = 'none';
             isRecording = false;
+            sessionStarted = false;
+            sessionArmed = false;
+            if (window.SoundManager) {
+                SoundManager.playSessionEndSound();
+            }
+            setWarning('Session complete. Save the session when ready.');
         }
     }
 
@@ -854,8 +883,7 @@ let currentMode = 'pushup';
         uploadBtn.style.pointerEvents = 'none';
 
         const formData = new FormData();
-        const metadataOnlyUploads = window.FitLahRuntime?.metadataOnlyUploads !== false;
-        if (metadataOnlyUploads) {
+        if (metadataOnlyUploads()) {
             formData.append('metadata_only', 'true');
             formData.append('video_name', attachedVideoFile?.name || 'recording.webm');
             formData.append('video_type', videoBlob.type || attachedVideoFile?.type || '');

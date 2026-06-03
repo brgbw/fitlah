@@ -1,7 +1,8 @@
 import json
 import logging
-import os
 import re
+
+from ..core.config import get_config
 
 try:
     from google import genai
@@ -17,14 +18,10 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 MAX_PROMPT_CHARS = 12000
 logger = logging.getLogger(__name__)
 REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]
-GEMINI_KEY_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY", "AI_API_KEY")
 
 
 def _gemini_key_from_environment():
-    return next(
-        ((os.environ.get(name) or "").strip() for name in GEMINI_KEY_NAMES if (os.environ.get(name) or "").strip()),
-        "",
-    )
+    return get_config().gemini_api_key
 
 
 def environment_status():
@@ -45,7 +42,7 @@ def get_gemini_config():
     env_status = environment_status()
     return {
         "api_key": _gemini_key_from_environment(),
-        "model": (os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL).strip(),
+        "model": get_config().gemini_model,
         "sdk_available": genai is not None and genai_types is not None,
         "sdk_import_error": str(GENAI_IMPORT_ERROR)[:800] if GENAI_IMPORT_ERROR else "",
         **env_status,
@@ -135,8 +132,6 @@ def _call_gemini(system_prompt, user_prompt):
             },
         }
     
-    print(content)
-
     parsed = _parse_coach_json(content)
     if not parsed:
         parsed = _parse_coach_text(content)
@@ -378,7 +373,7 @@ def generate_exercise_recommendation(metrics):
         return _fallback_exercise_recommendation(metrics)
 
     result = _call_gemini(_build_system_prompt(), _build_user_prompt(metrics))
-    if not result.get("success") and os.environ.get("FITLAH_AI_FALLBACK", "1").lower() in {"1", "true", "yes"}:
+    if not result.get("success") and get_config().ai_fallback:
         return _fallback_exercise_recommendation(metrics)
     return result
 

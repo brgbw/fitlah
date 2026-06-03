@@ -131,11 +131,25 @@ FITLAH_DB_DISABLE_POOL=true
 ```text
 /healthz
 /healthz/db
+/healthz/ai
 ```
 
 `/healthz` confirms required environment variables exist.
 
 `/healthz/db` confirms the Vercel function can connect to Neon.
+
+`/healthz/ai` confirms Gemini API key presence and SDK availability.
+
+## User Workflow
+
+1. User signs up or logs in.
+2. Flask stores the session in a signed cookie using `FITLAH_SECRET_KEY`.
+3. Protected routes use `login_required`.
+4. Webcam sessions are analysed in the browser using MediaPipe.
+5. The app sends rep counts and movement metrics to Flask.
+6. Flask stores session records in Neon.
+7. Gemini coaching is generated and saved back onto the activity record.
+8. Calendar, Analytics, and Training Insights read saved records from Neon.
 
 ## Dependency Files
 

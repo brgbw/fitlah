@@ -1,12 +1,13 @@
-import os
 import time
 from datetime import datetime
 from urllib.parse import urlencode, urlparse
 
-from flask import jsonify, render_template, request, url_for
+from flask import g, jsonify, render_template, request, url_for
 
 from ..integrations.ai_coach import generate_ippt_run_recommendation
 from ..core.auth import current_user, login_required
+from ..core.config import get_config
+from ..core.responses import api_error
 from ..domain.ippt_scoring import age_profile_from_nric, run_station_points
 from ..data_access.repositories import (
     create_activity as create_activity_record,
@@ -38,9 +39,6 @@ from ..integrations.strava_client import (
     process_ippt_24,
     refresh_access_token,
 )
-
-STRAVA_CACHE_TTL_SECONDS = 180
-_STRAVA_CACHE = {}
 
 
 def register_strava_routes(app):
@@ -241,7 +239,7 @@ def register_strava_routes(app):
         result = strava_ippt_result(nric, activity_id)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-        recommendation = _cache_get(("ippt_recommendation", nric, activity_id))
+        recommendation = (result or {}).get("ai_recommendation") or _cache_get(("ippt_recommendation", nric, activity_id))
         streams = None
         if recommendation is None and result:
             try:
@@ -274,23 +272,13 @@ def strava_connection_context():
 
 
 def _cache_get(key):
-    cached = _STRAVA_CACHE.get(key)
-    if cached is None:
-        return None
-    expires_at, value = cached
-    if expires_at <= time.time():
-        _STRAVA_CACHE.pop(key, None)
-        return None
-    return value
+    return getattr(g, "_strava_request_cache", {}).get(key)
 
 
-def _cache_set(key, value, ttl=STRAVA_CACHE_TTL_SECONDS):
-    _STRAVA_CACHE[key] = (time.time() + ttl, value)
-    if len(_STRAVA_CACHE) > 128:
-        now = time.time()
-        for item_key, (expires_at, _) in list(_STRAVA_CACHE.items()):
-            if expires_at <= now:
-                _STRAVA_CACHE.pop(item_key, None)
+def _cache_set(key, value):
+    if not hasattr(g, "_strava_request_cache"):
+        g._strava_request_cache = {}
+    g._strava_request_cache[key] = value
     return value
 
 
@@ -326,6 +314,10 @@ def _cached_ippt_result(nric, activity_id, user):
     if cached:
         return dict(cached)
 
+    saved = strava_ippt_result(nric, activity_id)
+    if saved:
+        return dict(_cache_set(cache_key, saved))
+
     activity, streams = _cached_activity_details(nric, activity_id)
     result = process_ippt_24(activity, streams)
     age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
@@ -338,6 +330,8 @@ def _cached_ippt_recommendation(nric, activity_id, result, age_group, streams=No
     recommendation = _cache_get(cache_key)
     if recommendation is not None:
         return recommendation
+    if result and result.get("ai_recommendation"):
+        return _cache_set(cache_key, result["ai_recommendation"])
 
     return _cache_set(cache_key, _build_ippt_recommendation(result, age_group, streams))
 
@@ -363,13 +357,13 @@ def _strava_authorize_url():
 
 
 def _strava_redirect_uri():
-    explicit_uri = (os.environ.get("FITLAH_STRAVA_REDIRECT_URI") or "").strip().rstrip("/")
+    config = get_config()
+    explicit_uri = config.strava_redirect_uri
     if explicit_uri:
         return explicit_uri
 
-    public_base_url = (os.environ.get("FITLAH_PUBLIC_BASE_URL") or "").strip().rstrip("/")
-    if public_base_url:
-        return f"{public_base_url}{url_for('strava_sync')}"
+    if config.public_base_url:
+        return f"{config.public_base_url}{url_for('strava_sync')}"
 
     stored_uri = (get_setting("strava_redirect_uri") or "").strip().rstrip("/")
     if stored_uri:
@@ -558,4 +552,4 @@ def _usable_token_record():
 
 
 def _error(message, status_code):
-    return jsonify({"success": False, "error": message}), status_code
+    return api_error(message, status_code)

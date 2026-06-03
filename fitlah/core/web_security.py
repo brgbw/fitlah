@@ -1,7 +1,5 @@
 import html
 import logging
-import os
-import secrets
 import time
 from collections import defaultdict, deque
 from functools import wraps
@@ -10,32 +8,30 @@ from urllib.parse import urlparse
 
 from flask import jsonify, request, session
 
+from .config import env_bool as config_env_bool, get_config
+from .responses import api_error
+
 
 logger = logging.getLogger(__name__)
 _RATE_LIMITS = defaultdict(deque)
 
 
 def env_bool(name, default=False):
-    value = os.environ.get(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+    return config_env_bool(name, default)
 
 
 def app_secret_key():
-    secret = (os.environ.get("FITLAH_SECRET_KEY") or "").strip()
-    if secret:
-        return secret
-    return secrets.token_urlsafe(32)
+    return get_config().runtime_secret_key
 
 
 def configure_security(app):
+    config = get_config()
     app.secret_key = app_secret_key()
     app.config.update(
-        MAX_CONTENT_LENGTH=int(os.environ.get("FITLAH_MAX_UPLOAD_BYTES", 300 * 1024 * 1024)),
+        MAX_CONTENT_LENGTH=config.max_upload_bytes,
         SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE=os.environ.get("FITLAH_COOKIE_SAMESITE", "Lax"),
-        SESSION_COOKIE_SECURE=env_bool("FITLAH_COOKIE_SECURE", env_bool("FITLAH_PRODUCTION")),
+        SESSION_COOKIE_SAMESITE=config.cookie_samesite,
+        SESSION_COOKIE_SECURE=config.cookie_secure,
     )
 
     @app.before_request
@@ -47,7 +43,7 @@ def configure_security(app):
         referer = request.headers.get("Referer")
         source = origin or _origin_from_url(referer)
         if source and not _origin_allowed(source, allowed):
-            return jsonify({"success": False, "error": "Request origin is not allowed."}), 403
+            return api_error("Request origin is not allowed.", 403)
         return None
 
     @app.after_request
@@ -69,12 +65,12 @@ def configure_security(app):
 
     @app.errorhandler(413)
     def request_too_large(error):
-        return jsonify({"success": False, "error": "Uploaded file is too large."}), 413
+        return api_error("Uploaded file is too large.", 413)
 
     @app.errorhandler(500)
     def internal_error(error):
         logger.exception("Unhandled application error")
-        return jsonify({"success": False, "error": "An internal error occurred."}), 500
+        return api_error("An internal error occurred.", 500)
 
 
 def _client_key(scope):
@@ -84,8 +80,7 @@ def _client_key(scope):
 
 
 def _allowed_origins():
-    configured = os.environ.get("FITLAH_ALLOWED_ORIGINS", "")
-    return {item.strip().rstrip("/") for item in configured.split(",") if item.strip()}
+    return set(get_config().allowed_origins)
 
 
 def _origin_allowed(source, allowed):

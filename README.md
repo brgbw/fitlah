@@ -51,6 +51,32 @@ Short version:
 6. Redeploy the Production deployment.
 7. Confirm `/healthz` and `/healthz/db` both return success.
 
+## Use The Deployed App
+
+Open the production URL:
+
+```text
+https://fitlah.vercel.app
+```
+
+Recommended first run:
+
+1. Create a new account. Existing laptop/local accounts are not available unless you migrated data into Neon.
+2. Open **Dashboard** to confirm the account session works.
+3. Open **Exercise Recording Station**.
+4. Choose **Push-Up** or **Sit-Up**.
+5. Use **Start Camera** for a live browser camera session, or **Attach Video** to analyse an existing clip.
+6. Save the session. FitLah stores rep counts, movement metrics, personal bests, and AI notes in Neon.
+7. Open **Done** to review the session analysis.
+8. Open **Calendar** or **Analytics** to see saved activity history.
+
+Camera and video notes:
+
+- Browser camera access requires HTTPS, which Vercel provides.
+- The browser analyses the video locally with MediaPipe.
+- Raw video files are not stored on Vercel.
+- Neon stores the workout record, movement analysis, and AI recommendation.
+
 ## Required Environment Variables
 
 Set these in **Vercel -> Project -> Settings -> Environment Variables** for **Production**:
@@ -100,6 +126,7 @@ After every production redeploy, open:
 ```text
 https://fitlah.vercel.app/healthz
 https://fitlah.vercel.app/healthz/db
+https://fitlah.vercel.app/healthz/ai
 ```
 
 Expected results:
@@ -112,6 +139,12 @@ Expected results:
 {"database":"ok","success":true}
 ```
 
+For AI:
+
+```json
+{"api_key_present":true,"model":"gemini-2.5-flash","provider":"gemini","sdk_available":true,"success":true}
+```
+
 ## Production Notes
 
 - Vercel reads environment variables from the project dashboard.
@@ -120,3 +153,11 @@ Expected results:
 - Vercel functions have an ephemeral filesystem, so uploaded webcam videos are not long-term durable storage.
 - Webcam recordings and attached videos are analysed in the browser; FitLah saves session metrics and AI notes to Neon rather than storing video files on Vercel.
 - Do not commit `.env`, secrets, API keys, virtual environments, or user uploads.
+
+## Quick Troubleshooting
+
+- **Logged in but buttons return to Login:** confirm `FITLAH_SECRET_KEY` is set in Vercel Production, redeploy, then clear browser cookies.
+- **Database save fails:** check `/healthz/db` and verify `DATABASE_URL` uses the Neon pooled connection string.
+- **AI does not respond:** check `/healthz/ai`, confirm `GEMINI_API_KEY` is set in Vercel Production, and redeploy.
+- **Camera does not start:** use `https://fitlah.vercel.app`, allow browser camera permissions, and avoid protected preview deployment URLs.
+- **Strava redirect fails:** confirm `FITLAH_PUBLIC_BASE_URL` matches the deployed domain and Strava callback domain is the domain only.

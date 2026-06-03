@@ -6,7 +6,8 @@ from markupsafe import Markup, escape
 from sqlalchemy import text
 
 from .auth import current_user
-from .config import BASE_DIR
+from .config import BASE_DIR, get_config
+from .responses import api_error
 from ..data_access.database import close_db, ensure_tables, session_scope
 from ..data_access.repositories import get_setting
 from ..integrations.ai_coach import get_gemini_config
@@ -74,14 +75,15 @@ def init_db():
 
 @app.route("/healthz")
 def healthz():
-    required = ["DATABASE_URL", "FITLAH_SECRET_KEY"]
-    recommended = ["FITLAH_PUBLIC_BASE_URL", "FITLAH_ALLOWED_ORIGINS"]
-    missing_required = [name for name in required if not (os.environ.get(name) or "").strip()]
-    missing_recommended = [name for name in recommended if not (os.environ.get(name) or "").strip()]
+    config = get_config()
+    missing_required = config.missing_required
+    missing_recommended = config.missing_recommended
 
     return jsonify({
         "success": not missing_required,
-        "database": "configured" if "DATABASE_URL" not in missing_required else "not_configured",
+        "database": "configured" if config.database_url else "not_configured",
+        "auto_migrate": config.auto_migrate,
+        "environment": "production" if config.production else "development",
         "missing_required": missing_required,
         "missing_recommended": missing_recommended,
     }), 200 if not missing_required else 503
@@ -89,7 +91,7 @@ def healthz():
 
 @app.route("/healthz/db")
 def healthz_db():
-    if not (os.environ.get("DATABASE_URL") or "").strip():
+    if not get_config().database_url:
         return jsonify({"success": False, "database": "not_configured"}), 503
 
     try:
@@ -123,12 +125,13 @@ def healthz_ai():
 def ensure_database_ready():
     if request.endpoint in {"healthz", "healthz_db", "healthz_ai", "static"}:
         return None
-    if os.environ.get("FITLAH_PRODUCTION", "").strip().lower() in {"1", "true", "yes", "on"}:
-        if not (os.environ.get("FITLAH_SECRET_KEY") or "").strip():
-            return jsonify({
-                "success": False,
-                "error": "FITLAH_SECRET_KEY must be set in Vercel Production environment variables.",
-            }), 503
+    config = get_config()
+    if config.missing_required:
+        return api_error(
+            f"Missing required environment variables: {', '.join(config.missing_required)}.",
+            503,
+            code="configuration_error",
+        )
     if not _database_initialized:
         init_db()
     return None

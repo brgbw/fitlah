@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import os
 from contextlib import contextmanager
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -9,14 +8,14 @@ from flask import g
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 
-from ..core.config import BASE_DIR
+from ..core.config import get_config
 
 _ENGINE = None
 _SCHEMA_READY = False
 
 
 def database_url():
-    value = (os.environ.get("DATABASE_URL") or "").strip()
+    value = get_config().database_url
     if not value:
         raise RuntimeError("DATABASE_URL must be set in the environment.")
     return _normalized_database_url(value)
@@ -45,16 +44,9 @@ def _normalized_database_url(value):
 
 def _engine_options():
     options = {"future": True, "pool_pre_ping": True}
-    if _env_bool("FITLAH_DB_DISABLE_POOL") or os.environ.get("VERCEL"):
+    if get_config().db_disable_pool:
         options["poolclass"] = NullPool
     return options
-
-
-def _env_bool(name):
-    value = os.environ.get(name)
-    if value is None:
-        return False
-    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 @contextmanager
@@ -68,13 +60,14 @@ def close_db(exception=None):
 
 
 def encryption():
-    key = os.environ.get("FIELD_ENCRYPTION_KEY")
+    config = get_config()
+    key = config.field_encryption_key
     if key:
         try:
             return Fernet(key.encode())
         except (TypeError, ValueError):
             pass
-    seed = os.environ.get("FITLAH_SECRET_KEY")
+    seed = config.secret_key
     if not seed:
         raise RuntimeError("Set FIELD_ENCRYPTION_KEY or FITLAH_SECRET_KEY before encrypting secrets.")
     seed = seed.encode()
@@ -96,9 +89,12 @@ def decrypt_value(value):
         return ""
 
 
-def ensure_tables():
+def ensure_tables(force=False):
     global _SCHEMA_READY
-    if _SCHEMA_READY:
+    if _SCHEMA_READY and not force:
+        return
+    if not force and not get_config().auto_migrate:
+        _SCHEMA_READY = True
         return
     with session_scope() as conn:
         for statement in SCHEMA:

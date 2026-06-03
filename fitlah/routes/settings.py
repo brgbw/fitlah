@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, url_for
 
 from ..core.auth import current_user, login_required
+from ..core.config import get_config
 from ..core.constants import SIGNUP_RANKS
 from ..data_access.repositories import (
     get_setting,
@@ -9,7 +10,7 @@ from ..data_access.repositories import (
     strava_connection,
     update_user,
 )
-from ..core.web_security import clean_text, env_bool, rate_limit
+from ..core.web_security import clean_text, rate_limit
 
 
 def register_settings_routes(app):
@@ -21,7 +22,7 @@ def register_settings_routes(app):
         strava_connection = _strava_connection_for_user(user.get("nric"))
         strava_config = get_settings(["strava_client_id", "strava_client_secret"])
         font_scale = _current_font_scale()
-        can_update_strava_settings = env_bool("FITLAH_ALLOW_STRAVA_SETTINGS_WRITE", False)
+        can_update_strava_settings = get_config().allow_strava_settings_write
         error = None
         saved = request.args.get("saved") == "1"
 

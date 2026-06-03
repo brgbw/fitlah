@@ -113,6 +113,7 @@ Open these URLs:
 
    https://fitlah.vercel.app/healthz
    https://fitlah.vercel.app/healthz/db
+   https://fitlah.vercel.app/healthz/ai
 
 Expected /healthz response:
 
@@ -121,6 +122,10 @@ Expected /healthz response:
 Expected /healthz/db response:
 
    {"database":"ok","success":true}
+
+Expected /healthz/ai response when Gemini is enabled:
+
+   {"api_key_present":true,"model":"gemini-2.5-flash","provider":"gemini","sdk_available":true,"success":true}
 
 8. Configure Strava
 
@@ -154,7 +159,31 @@ Then check Neon:
 - Confirm a new row exists in users.
 - Confirm app-created tables such as personal_bests and activity_records exist.
 
-10. Troubleshooting
+10. Use the app
+
+Open:
+
+   https://fitlah.vercel.app
+
+Recommended demo flow:
+- Sign up with a new account.
+- Open Dashboard and confirm the account stays logged in.
+- Open Exercise Recording Station.
+- Select Push-Up or Sit-Up.
+- Use Start Camera for a live session, or Attach Video for an existing clip.
+- Save Session.
+- Wait for AI coaching if Gemini is enabled.
+- Click Done to open the session analysis page.
+- Open Calendar or Analytics to confirm the saved activity appears.
+- Connect Strava from the Strava page if Strava credentials are configured.
+
+Important webcam behaviour:
+- Camera access works only on HTTPS.
+- MediaPipe analyses video in the browser.
+- Raw video files are not stored on Vercel.
+- FitLah saves rep counts, movement analysis, personal bests, and AI notes to Neon.
+
+11. Troubleshooting
 
 If /healthz says DATABASE_URL is missing:
 - Add DATABASE_URL under Vercel Production environment variables.
@@ -165,6 +194,16 @@ If /healthz/db says connection_failed:
 - Confirm sslmode=require is present.
 - Confirm the Neon project is active.
 
+If /healthz/ai says api_key_present is false:
+- Add GEMINI_API_KEY under Vercel Production environment variables.
+- Use GEMINI_MODEL=gemini-2.5-flash.
+- Redeploy Production.
+
+If login works but the next button returns to Login:
+- Confirm FITLAH_SECRET_KEY exists in Vercel Production.
+- Redeploy Production.
+- Clear browser cookies for fitlah.vercel.app and sign in again.
+
 If signup succeeds but Strava redirects fail:
 - Confirm FITLAH_PUBLIC_BASE_URL matches the final deployed domain.
 - Confirm Strava Authorization Callback Domain is the domain only.
@@ -172,3 +211,8 @@ If signup succeeds but Strava redirects fail:
 If attached videos do not appear in Neon:
 - FitLah analyses videos in the browser and saves workout metrics to Neon.
 - Raw video files are not stored on Vercel.
+
+If Start Camera does not work:
+- Use the production HTTPS domain, not a protected preview URL.
+- Allow camera permission in the browser.
+- Close other apps that may be using the webcam.

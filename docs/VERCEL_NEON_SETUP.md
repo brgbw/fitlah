@@ -88,6 +88,7 @@ Open:
 ```text
 https://fitlah.vercel.app/healthz
 https://fitlah.vercel.app/healthz/db
+https://fitlah.vercel.app/healthz/ai
 ```
 
 Expected:
@@ -100,7 +101,26 @@ Expected:
 {"database":"ok","success":true}
 ```
 
+AI should return success when `GEMINI_API_KEY` is configured:
+
+```json
+{"api_key_present":true,"model":"gemini-2.5-flash","provider":"gemini","sdk_available":true,"success":true}
+```
+
 Then create a new account in the deployed app and confirm Neon has a row in the `users` table.
+
+## 7. First User Test
+
+1. Open `https://fitlah.vercel.app`.
+2. Sign up with a new account.
+3. Open Dashboard, Calendar, Analytics, Group, and Settings to confirm the session persists.
+4. Open Exercise Recording Station.
+5. Use **Start Camera** or **Attach Video**.
+6. Save a session.
+7. Open **Done** and confirm the session analysis appears.
+8. Check Neon for new rows in `activity_records` and `personal_bests`.
+
+If navigation returns to Login after signing in, `FITLAH_SECRET_KEY` is missing or changed between deployments. Add it to Vercel Production, redeploy, and clear browser cookies.
 
 ## Runtime Notes
 
