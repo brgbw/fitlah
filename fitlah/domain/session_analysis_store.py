@@ -11,7 +11,11 @@ TEMP_ANALYSIS_TTL_SECONDS = 60 * 60
 
 def temp_analysis_dir():
     path = os.path.join(BASE_DIR, "userdata", "temp_analysis")
-    os.makedirs(path, exist_ok=True)
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError:
+        path = os.path.join("/tmp", "fitlah", "temp_analysis")
+        os.makedirs(path, exist_ok=True)
     return path
 
 
@@ -24,7 +28,11 @@ def temp_analysis_path(analysis_id):
 
 def cleanup_expired_temp_analysis(ttl_seconds=TEMP_ANALYSIS_TTL_SECONDS):
     now = time.time()
-    for filename in os.listdir(temp_analysis_dir()):
+    try:
+        filenames = os.listdir(temp_analysis_dir())
+    except OSError:
+        return
+    for filename in filenames:
         if not filename.endswith(".json"):
             continue
         path = os.path.join(temp_analysis_dir(), filename)
@@ -42,12 +50,15 @@ def save_temp_analysis(nric, log):
     cleanup_expired_temp_analysis()
     analysis_id = uuid.uuid4().hex
     path = temp_analysis_path(analysis_id)
-    with open(path, "w") as file:
-        json.dump({
-            "nric": nric,
-            "created_at": datetime.now().isoformat(),
-            "log": log,
-        }, file)
+    try:
+        with open(path, "w") as file:
+            json.dump({
+                "nric": nric,
+                "created_at": datetime.now().isoformat(),
+                "log": log,
+            }, file)
+    except OSError:
+        return None
     return analysis_id
 
 

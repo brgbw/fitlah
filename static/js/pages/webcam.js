@@ -854,7 +854,15 @@ let currentMode = 'pushup';
         uploadBtn.style.pointerEvents = 'none';
 
         const formData = new FormData();
-        formData.append('video', videoBlob, attachedVideoFile?.name || 'recording.webm');
+        const metadataOnlyUploads = window.FitLahRuntime?.metadataOnlyUploads !== false;
+        if (metadataOnlyUploads) {
+            formData.append('metadata_only', 'true');
+            formData.append('video_name', attachedVideoFile?.name || 'recording.webm');
+            formData.append('video_type', videoBlob.type || attachedVideoFile?.type || '');
+            formData.append('video_size', String(videoBlob.size || attachedVideoFile?.size || 0));
+        } else {
+            formData.append('video', videoBlob, attachedVideoFile?.name || 'recording.webm');
+        }
         formData.append('exercise', currentMode);
         formData.append('valid_reps', validReps);
         formData.append('duration_seconds', lastSessionMetrics?.duration_seconds || sessionDurationSeconds());

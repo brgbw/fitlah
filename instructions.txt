@@ -70,7 +70,7 @@ Add these variables for Production:
    FITLAH_ALLOWED_ORIGINS=https://fitlah.vercel.app
    FITLAH_ALLOW_STRAVA_SETTINGS_WRITE=false
    GEMINI_API_KEY=
-   GEMINI_MODEL=gemini-3.1-flash-lite
+   GEMINI_MODEL=gemini-2.5-flash
 
 Optional:
 
@@ -169,6 +169,6 @@ If signup succeeds but Strava redirects fail:
 - Confirm FITLAH_PUBLIC_BASE_URL matches the final deployed domain.
 - Confirm Strava Authorization Callback Domain is the domain only.
 
-If uploaded webcam videos disappear:
-- This is expected on Vercel serverless functions.
-- Use object storage such as Vercel Blob or S3 for durable uploaded videos.
+If attached videos do not appear in Neon:
+- FitLah analyses videos in the browser and saves workout metrics to Neon.
+- Raw video files are not stored on Vercel.

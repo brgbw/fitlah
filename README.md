@@ -66,7 +66,7 @@ FITLAH_PUBLIC_BASE_URL=https://fitlah.vercel.app
 FITLAH_ALLOWED_ORIGINS=https://fitlah.vercel.app
 FITLAH_ALLOW_STRAVA_SETTINGS_WRITE=false
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 `FIELD_ENCRYPTION_KEY` is optional. If omitted, FitLah derives encryption from `FITLAH_SECRET_KEY`.
@@ -119,4 +119,5 @@ Expected results:
 - Neon data starts empty unless you intentionally migrate existing data.
 - The app creates required database tables on first request.
 - Vercel functions have an ephemeral filesystem, so uploaded webcam videos are not long-term durable storage.
+- Webcam recordings and attached videos are analysed in the browser; FitLah saves session metrics and AI notes to Neon rather than storing video files on Vercel.
 - Do not commit `.env`, secrets, API keys, virtual environments, or user uploads.

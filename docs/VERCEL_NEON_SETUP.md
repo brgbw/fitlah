@@ -48,7 +48,7 @@ FITLAH_PUBLIC_BASE_URL=https://fitlah.vercel.app
 FITLAH_ALLOWED_ORIGINS=https://fitlah.vercel.app
 FITLAH_ALLOW_STRAVA_SETTINGS_WRITE=false
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Redeploy Production after saving environment variables.
@@ -109,4 +109,4 @@ Then create a new account in the deployed app and confirm Neon has a row in the 
 - Vercel does not read local `.env` files.
 - The database starts empty unless you migrate data intentionally.
 - FitLah creates required tables on first request.
-- Vercel functions use ephemeral filesystem storage. Use object storage for durable uploaded videos.
+- Webcam recordings and attached videos are analysed in the browser. FitLah saves metrics to Neon and does not store video files on Vercel.

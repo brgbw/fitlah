@@ -17,12 +17,12 @@ except Exception as exc:
 else:
     GENAI_IMPORT_ERROR = None
 
-DEFAULT_MODEL = "gemini-3.1-flash-lite"
+DEFAULT_MODEL = "gemini-2.5-flash"
 MAX_PROMPT_CHARS = 12000
 logger = logging.getLogger(__name__)
 REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]
 ENV_PATH = os.path.join(BASE_DIR, ".env")
-GEMINI_KEY_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY")
+GEMINI_KEY_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY", "AI_API_KEY")
 
 
 def _gemini_key_from_environment():
@@ -56,7 +56,7 @@ def _print_missing_env_warning(env_status):
         f" Expected .env path: {env_status.get('env_path')}\n"
         f" .env file exists: {env_status.get('env_file_exists')}\n"
         f" .env loaded: {env_status.get('env_loaded')}\n"
-        " Add GEMINI_API_KEY=your_key to the project-root .env file and restart app.py.\n"
+        " Add GEMINI_API_KEY=your_key to the environment and redeploy.\n"
         "================================================================================\n"
     )
     print(f"\033[91m{message}\033[0m")
@@ -73,6 +73,8 @@ def get_gemini_config():
     return {
         "api_key": _gemini_key_from_environment(),
         "model": (os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL).strip(),
+        "sdk_available": genai is not None and genai_types is not None,
+        "sdk_import_error": str(GENAI_IMPORT_ERROR)[:800] if GENAI_IMPORT_ERROR else "",
         **env_status,
     }
 
@@ -116,8 +118,7 @@ def _call_gemini(system_prompt, user_prompt):
         return {
             "success": False,
             "error": (
-                "Gemini API key is not set. Add GEMINI_API_KEY to your .env file "
-                "and restart the server."
+                "Gemini API key is not set. Add GEMINI_API_KEY to the Vercel environment and redeploy."
             ),
             "debug": {
                 **debug,

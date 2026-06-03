@@ -359,13 +359,14 @@ def create_activity(record):
                 user_id, exercise, source, title, score, valid_reps, invalid_reps,
                 duration_seconds, run_time_seconds, distance_km, moving_time, elapsed_time,
                 pace, started_at, ended_at, logged_at, video_file, video_path,
-                is_personal_best, source_external_id, notes, ai_recommendation
+                is_personal_best, source_external_id, notes, ai_recommendation, movement_analysis
             )
             VALUES (
                 :user_id, :exercise, :source, :title, :score, :valid_reps, :invalid_reps,
                 :duration_seconds, :run_time_seconds, :distance_km, :moving_time, :elapsed_time,
                 :pace, :started_at, :ended_at, :logged_at, :video_file, :video_path,
-                :is_personal_best, :source_external_id, :notes, CAST(:ai_recommendation AS JSONB)
+                :is_personal_best, :source_external_id, :notes, CAST(:ai_recommendation AS JSONB),
+                CAST(:movement_analysis AS JSONB)
             )
             RETURNING id
         """), {
@@ -391,6 +392,7 @@ def create_activity(record):
             "source_external_id": record.get("source_external_id"),
             "notes": record.get("notes"),
             "ai_recommendation": json.dumps(record.get("ai_recommendation")) if record.get("ai_recommendation") else None,
+            "movement_analysis": json.dumps(record.get("movement_analysis")) if record.get("movement_analysis") else None,
         }).scalar_one()
     return record
 

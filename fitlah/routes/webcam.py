@@ -123,14 +123,11 @@ def register_webcam_routes(app):
                 continue
 
         temp_logs = load_temp_analysis_logs(raw_analysis_ids, nric)
-
-        ai_logs = [
-            log for log in activity_records_for_nric(nric)
-            if log.get("ai_recommendation")
-        ]
+        records = activity_records_for_nric(nric)
+        ai_logs = [log for log in records if log.get("ai_recommendation") or log.get("movement_analysis")]
         if session_ids:
             allowed = set(session_ids)
-            ai_logs = [log for log in ai_logs if int(log.get("id") or 0) in allowed]
+            ai_logs = [log for log in records if int(log.get("id") or 0) in allowed]
             order = {session_id: index for index, session_id in enumerate(session_ids)}
             ai_logs.sort(key=lambda log: order.get(int(log.get("id") or 0), 999))
             temp_logs.sort(key=lambda log: order.get(int(log.get("session_id") or 0), 999))
@@ -197,10 +194,11 @@ def register_webcam_routes(app):
     @login_required
     @rate_limit("upload-video", 12, 300)
     def upload_video():
-        if "video" not in request.files:
+        metadata_only = str(request.form.get("metadata_only") or "").lower() in {"1", "true", "yes", "on"}
+        if "video" not in request.files and not metadata_only:
             return jsonify({"success": False, "error": "No video file provided"}), 400
 
-        file = request.files["video"]
+        file = request.files.get("video")
         exercise_type = request.form.get("exercise", "pushup")
         if exercise_type not in {"pushup", "situp"}:
             return jsonify({"success": False, "error": "Invalid exercise type"}), 400
@@ -220,27 +218,30 @@ def register_webcam_routes(app):
             except (TypeError, ValueError):
                 movement_analysis = None
 
-        if file.filename == "":
+        if file and file.filename == "":
             return jsonify({"success": False, "error": "No selected file"}), 400
-        original_extension = os.path.splitext(file.filename or "")[1].lower()
-        extension = ALLOWED_VIDEO_MIMES.get((file.mimetype or "").lower())
-        if not extension and original_extension in ALLOWED_VIDEO_EXTENSIONS:
-            extension = ".mov" if original_extension == ".m4v" else original_extension
-        if not extension:
-            return jsonify({"success": False, "error": "Unsupported video file type"}), 400
+        filename = ""
+        relative_video_path = ""
+        if file:
+            original_extension = os.path.splitext(file.filename or "")[1].lower()
+            extension = ALLOWED_VIDEO_MIMES.get((file.mimetype or "").lower())
+            if not extension and original_extension in ALLOWED_VIDEO_EXTENSIONS:
+                extension = ".mov" if original_extension == ".m4v" else original_extension
+            if not extension:
+                return jsonify({"success": False, "error": "Unsupported video file type"}), 400
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{exercise_type}_{timestamp}_{uuid.uuid4().hex[:12]}{extension}"
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{exercise_type}_{timestamp}_{uuid.uuid4().hex[:12]}{extension}"
         pb_field, label, folder = _exercise_labels(exercise_type)
-        relative_video_path = os.path.join("userdata", folder, filename)
-        save_path = os.path.join(BASE_DIR, relative_video_path)
-        userdata_root = os.path.abspath(os.path.join(BASE_DIR, "userdata"))
-        save_path = os.path.abspath(save_path)
-        if not save_path.startswith(userdata_root + os.sep):
-            return jsonify({"success": False, "error": "Invalid upload path"}), 400
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        file.save(save_path)
+        if file and not metadata_only:
+            relative_video_path = os.path.join("userdata", folder, filename)
+            save_path = os.path.join(BASE_DIR, relative_video_path)
+            userdata_root = os.path.abspath(os.path.join(BASE_DIR, "userdata"))
+            save_path = os.path.abspath(save_path)
+            if not save_path.startswith(userdata_root + os.sep):
+                return jsonify({"success": False, "error": "Invalid upload path"}), 400
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            file.save(save_path)
         user = current_user()
         nric = user.get("nric")
         session_date = datetime.now().strftime("%Y-%m-%d")
@@ -256,7 +257,8 @@ def register_webcam_routes(app):
             "date": session_date,
             "notes": (
                 f"Computer vision session. Valid: {valid_reps}, "
-                f"duration: {duration_seconds}s. Video: {filename}."
+                f"duration: {duration_seconds}s."
+                + (f" Video: {filename}." if filename and relative_video_path else " Video was analysed in browser and not stored.")
             ),
             "exercise": exercise_type,
             "valid_reps": valid_reps,
@@ -268,6 +270,7 @@ def register_webcam_routes(app):
             "video_path": relative_video_path.replace("\\", "/"),
             "source": "webcam",
             "ai_recommendation": None,
+            "movement_analysis": movement_analysis,
         })
         best = recalculate_personal_best(nric)
         session_id = session_record["id"]

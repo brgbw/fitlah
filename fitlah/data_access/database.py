@@ -204,9 +204,11 @@ SCHEMA = [
         is_personal_best BOOLEAN NOT NULL DEFAULT FALSE,
         source_external_id TEXT,
         notes TEXT,
-        ai_recommendation JSONB
+        ai_recommendation JSONB,
+        movement_analysis JSONB
     )
     """,
+    "ALTER TABLE activity_records ADD COLUMN IF NOT EXISTS movement_analysis JSONB",
     """
     CREATE TABLE IF NOT EXISTS strava_connections (
         user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
