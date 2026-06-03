@@ -2,7 +2,3 @@ __pycache__
 .cursor
 .venv
 .vscode
-venv
-!.env.example
-userdata/
-*.pyc
