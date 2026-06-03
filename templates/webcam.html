@@ -5,10 +5,17 @@
 
 {% block content %}
 <script>
+    document.body.classList.add('webcam-route');
     window.FitLahRuntime = {
         metadataOnlyUploads: true
     };
 </script>
+
+<div class="landscape-required-panel" aria-live="polite">
+    <div class="landscape-phone-mark" aria-hidden="true"></div>
+    <h2>Rotate your phone</h2>
+    <p>Use landscape mode for camera tracking so FitLah can see your full side profile clearly.</p>
+</div>
 
 <div class="header-section webcam-header">
     <div class="webcam-title-row">
@@ -43,10 +50,6 @@
     </div>
 </div>
 
-<div class="camera-status-card" id="cameraStatus" role="status" aria-live="polite">
-    Start the camera or attach a recorded video. On mobile, allow camera access and keep your full body in frame.
-</div>
-
 <div class="control-strip">
     <div class="control-actions">
         <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
@@ -58,6 +61,10 @@
         <button type="button" class="stop-btn complete-disabled" id="completeBtn" onclick="saveAndReturn()">Done</button>
     </div>
     <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
+</div>
+
+<div class="camera-status-card" id="cameraStatus" role="status" aria-live="polite">
+    Start the camera or attach a recorded video. On mobile, rotate to landscape and keep your full body in frame.
 </div>
 
 <script src="{{ asset_url('js/sound_manager.js') }}"></script>

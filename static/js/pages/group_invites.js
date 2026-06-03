@@ -30,15 +30,20 @@
 
     function renderRoster(groupId) {
         const tableBody = document.getElementById('groupTableBody');
+        const mobileList = document.getElementById('mobileLeaderboardList');
         activeGroupId = Number(groupId);
         const selected = groupRosterData.find(item => item.group.id === Number(groupId));
 
         if (!selected || selected.members.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">No roster records available for this group yet.</td></tr>';
+            if (mobileList) {
+                mobileList.innerHTML = '<div class="mobile-empty-state">No roster records available for this group yet.</div>';
+            }
             return;
         }
 
-        tableBody.innerHTML = sortedMembers(selected.members).map(member => {
+        const members = sortedMembers(selected.members);
+        tableBody.innerHTML = members.map(member => {
             const best = member.personal_best || {};
             const score = member.ippt_score || {};
             const award = score.award || {};
@@ -76,6 +81,41 @@
                     </td>
                 </tr>`;
         }).join('');
+
+        if (mobileList) {
+            mobileList.innerHTML = members.map(member => mobileLeaderCard(member)).join('');
+        }
+    }
+
+    function mobileLeaderCard(member) {
+        const best = member.personal_best || {};
+        const score = member.ippt_score || {};
+        const award = score.award || {};
+        const points = score.total_points ?? member.ippt_points ?? 0;
+        return `
+            <article class="leader-card">
+                <div class="leader-card-top">
+                    <div class="leader-name">
+                        <strong>${escapeHtml(member.name || 'NSman')}</strong>
+                        <span class="user-id-tag">${escapeHtml(member.nric || '')}</span>
+                    </div>
+                    <div class="leader-score">
+                        <strong>${escapeHtml(points)}</strong>
+                        <span>points</span>
+                    </div>
+                </div>
+                <div class="leader-meta-row">
+                    <span>${escapeHtml(member.age || '--')} yrs · ${escapeHtml(member.age_group || 'Age Band')}</span>
+                    <span class="status-badge-pill ${escapeHtml(award.code || 'fail')}">
+                        ${escapeHtml(award.label || 'Fail')}
+                    </span>
+                </div>
+                <div class="leader-metrics">
+                    <div class="leader-metric"><span>Push</span><strong>${escapeHtml(best.pushups || '--')}</strong></div>
+                    <div class="leader-metric"><span>Sit</span><strong>${escapeHtml(best.situps || '--')}</strong></div>
+                    <div class="leader-metric"><span>Run</span><strong>${escapeHtml(best.run_time || '--:--')}</strong></div>
+                </div>
+            </article>`;
     }
 
     function escapeHtml(value) {
@@ -93,7 +133,7 @@
         const pills = document.querySelectorAll('.filter-pill:not(.create-group-pill)');
         pills.forEach(p => p.classList.remove('active'));
         tabElement.classList.add('active');
-        document.getElementById('tableTitleContext').innerText = `${tabElement.innerText} Roster Records - Personal Bests`;
+        document.getElementById('tableTitleContext').innerText = `${tabElement.innerText} IPPT Score Points`;
         renderRoster(tabElement.dataset.groupId);
     }
 

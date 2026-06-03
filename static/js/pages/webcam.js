@@ -923,6 +923,65 @@ let currentMode = 'pushup';
         setWarning(message || 'Session stopped. The current recording was deleted.');
     }
 
+    function resetWebcamStation(message) {
+        clearInterval(timerInterval);
+        stopPoseLoop();
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        sourceVideo.pause();
+        sourceVideo.srcObject = null;
+        sourceVideo.style.display = 'none';
+        playbackVideo.pause();
+        playbackVideo.removeAttribute('src');
+        playbackVideo.load();
+        playbackVideo.onloadeddata = null;
+        playbackVideo.onloadedmetadata = null;
+        playbackVideo.onended = null;
+        playbackVideo.style.display = 'none';
+
+        if (videoObjectUrl) {
+            URL.revokeObjectURL(videoObjectUrl);
+            videoObjectUrl = null;
+        }
+
+        mediaRecorder = null;
+        recordedChunks = [];
+        videoBlob = null;
+        attachedVideoFile = null;
+        lastSessionMetrics = null;
+        lastSessionId = null;
+        sessionStartedAt = null;
+        isRecording = false;
+        sessionStarted = false;
+        sessionArmed = false;
+        isReplayMode = false;
+        analyzeReplayMode = false;
+        timeLeft = 60;
+        discardRecordingOnStop = false;
+
+        resetRepState();
+        unlockEntryMode();
+        cameraPlaceholder.textContent = 'Camera off';
+        cameraPlaceholder.style.display = 'block';
+        poseCanvas.style.display = 'none';
+        ctx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
+        startRecBtn.style.display = 'none';
+        stopRecBtn.style.display = 'none';
+        uploadBtn.style.display = 'none';
+        timerDisplay.style.display = 'none';
+        timerDisplay.classList.remove('timer-active');
+        startRecBtn.textContent = 'Stop Session';
+        uploadBtn.innerText = 'Save Session';
+        uploadBtn.style.pointerEvents = 'auto';
+        aiCoach.reset();
+        setCameraMessage(message || 'Session stopped. Start the camera or attach a video to try again.');
+        setWarning(message || 'Session stopped. Start again when ready.');
+    }
+
     async function deleteSavedSession(sessionId) {
         const response = await fetch(`/api/workout-session/${sessionId}`, {
             method: 'DELETE'
@@ -935,15 +994,16 @@ let currentMode = 'pushup';
     }
 
     async function stopSession() {
-        if (!stream && !videoBlob && !attachedVideoFile) return;
-
         const sessionsToDelete = savedSessionIds.length
             ? savedSessionIds.slice()
             : (lastSavedSessionId ? [{ id: lastSavedSessionId, exercise: lastSavedExercise }] : []);
 
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             discardRecordingOnStop = true;
+            mediaRecorder.ondataavailable = null;
+            mediaRecorder.onstop = null;
             mediaRecorder.stop();
+            mediaRecorder = null;
         }
 
         try {
@@ -960,12 +1020,12 @@ let currentMode = 'pushup';
                 lastSavedSessionId = null;
                 lastSavedExercise = null;
                 checkCompletion();
-                clearCurrentRecordingUi('Saved session stopped and deleted, including recorded data and video.');
+                resetWebcamStation('Session stopped and reset. Saved session data was deleted.');
             } else {
-                clearCurrentRecordingUi('Session stopped. The current recording was deleted.');
+                resetWebcamStation('Session stopped and reset. Start the camera or attach a video to try again.');
             }
         } catch (err) {
-            clearCurrentRecordingUi('Local session stopped. Saved session deletion failed: ' + err.message);
+            resetWebcamStation('Session reset locally. Saved session deletion failed: ' + err.message);
         }
     }
 

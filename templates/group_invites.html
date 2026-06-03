@@ -71,12 +71,13 @@
         background-color: #FFFFFF;
         padding: 12px;
         border: 1px solid #E2E8F0;
-        border-radius: 12px;
+        border-radius: 8px;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
         margin-bottom: 20px;
     }
     .inline-add-member input {
         flex: 1;
+        min-width: 0;
         padding: 8px 12px;
         border: 1px solid #E2E8F0;
         border-radius: 6px;
@@ -99,6 +100,7 @@
         border-radius: 6px;
         cursor: pointer;
         transition: all 0.2s ease;
+        white-space: nowrap;
     }
     .inline-add-member button:hover {
         background-color: #0a5cad;
@@ -143,7 +145,7 @@
     .sync-table-container {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 12px;
+        border-radius: 8px;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
         overflow: hidden;
         margin-bottom: 32px;
@@ -152,6 +154,10 @@
         width: 100%;
         border-collapse: collapse;
         text-align: left;
+    }
+
+    .mobile-leaderboard-list {
+        display: none;
     }
     .sync-table th {
         background-color: #F8FAFC;
@@ -239,7 +245,7 @@
     .panel-box {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 20px;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
     }
@@ -514,7 +520,6 @@
     }
 
     @media (max-width: 640px) {
-        .inline-add-member,
         .leaderboard-bar,
         .token-input-row,
         .modal-footer {
@@ -522,7 +527,47 @@
             align-items: stretch;
         }
 
-        .inline-add-member button,
+        .header-section {
+            margin-bottom: 16px;
+        }
+
+        .header-section p {
+            display: none;
+        }
+
+        .right-panel-column.no-pending-invites {
+            display: none;
+        }
+
+        .filter-row {
+            margin-bottom: 12px;
+            padding: 6px;
+            border-radius: 8px;
+        }
+
+        .create-group-pill {
+            margin-left: 0;
+        }
+
+        .inline-add-member {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 18px;
+        }
+
+        .inline-add-member input {
+            min-height: 44px;
+            font-size: 16px;
+        }
+
+        .inline-add-member button {
+            min-height: 44px;
+            width: auto;
+            padding-inline: 14px;
+        }
+
         .btn-add-token,
         .btn-modal-cancel,
         .btn-modal-submit {
@@ -530,50 +575,144 @@
             width: 100%;
         }
 
-        .sync-table,
-        .sync-table thead,
-        .sync-table tbody,
-        .sync-table tr,
-        .sync-table th,
-        .sync-table td {
-            display: block;
+        .leaderboard-bar {
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .sync-table thead {
+        .section-title {
+            margin-bottom: 0;
+        }
+
+        .sort-control {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            width: 100%;
+        }
+
+        .sort-control select {
+            width: 100%;
+        }
+
+        .sync-table {
             display: none;
         }
 
-        .sync-table tr {
-            border-bottom: 1px solid #E2E8F0;
-            padding: 12px 14px;
+        .sync-table-container {
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            overflow: visible;
+            margin-bottom: 20px;
         }
 
-        .sync-table tr:last-child {
-            border-bottom: 0;
-        }
-
-        .sync-table td {
-            border-bottom: 0;
+        .mobile-leaderboard-list {
             display: grid;
-            grid-template-columns: 126px minmax(0, 1fr);
             gap: 10px;
-            padding: 8px 0;
+        }
+
+        .leader-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 14px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
+        .leader-card-top {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .leader-name {
+            min-width: 0;
+        }
+
+        .leader-name strong {
+            display: block;
+            color: #0F172A;
+            font-size: 17px;
+            line-height: 1.2;
             overflow-wrap: anywhere;
         }
 
-        .sync-table td:nth-child(1)::before { content: "Name"; color: #64748B; font-weight: 800; }
-        .sync-table td:nth-child(2)::before { content: "Age"; color: #64748B; font-weight: 800; }
-        .sync-table td:nth-child(3)::before { content: "PB Push-ups"; color: #64748B; font-weight: 800; }
-        .sync-table td:nth-child(4)::before { content: "PB Sit-ups"; color: #64748B; font-weight: 800; }
-        .sync-table td:nth-child(5)::before { content: "PB 2.4km"; color: #64748B; font-weight: 800; }
-        .sync-table td:nth-child(6)::before { content: "IPPT Score"; color: #64748B; font-weight: 800; }
-        .sync-table td:nth-child(7)::before { content: "Award"; color: #64748B; font-weight: 800; }
-
-        .sync-table td[colspan] {
-            display: block;
+        .leader-score {
+            display: grid;
+            justify-items: end;
+            gap: 4px;
+            min-width: 72px;
         }
-        .sync-table td[colspan]::before {
-            content: none;
+
+        .leader-score strong {
+            color: #0F172A;
+            font-size: 28px;
+            font-weight: 850;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .leader-score span {
+            color: #64748B;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .leader-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .leader-metric {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 10px 8px;
+        }
+
+        .leader-metric span {
+            display: block;
+            color: #64748B;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .leader-metric strong {
+            color: #0F172A;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
+        }
+
+        .leader-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #64748B;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .mobile-empty-state {
+            background: #FFFFFF;
+            border: 1px dashed #CBD5E1;
+            border-radius: 8px;
+            color: #64748B;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .panel-box {
+            padding: 14px;
         }
 
         .modal-overlay {
@@ -591,7 +730,7 @@
 
 <div class="header-section">
     <h1>Groups</h1>
-    <p>Review your training entries by date.</p>
+    <p>Compare IPPT score points and personal bests with your training group.</p>
 </div>
 
 <!-- Modal -->
@@ -657,7 +796,7 @@
         </div>
 
         <div class="leaderboard-bar">
-            <div class="section-title" id="tableTitleContext">Leaderboard</div>
+            <div class="section-title" id="tableTitleContext">IPPT Score Points</div>
 
             <label class="sort-control">
                 Sort
@@ -726,11 +865,41 @@
                     {% endif %}
                 </tbody>
             </table>
+            <div class="mobile-leaderboard-list" id="mobileLeaderboardList">
+                {% if group_data %}
+                    {% for member in group_data[0].members %}
+                    <article class="leader-card">
+                        <div class="leader-card-top">
+                            <div class="leader-name">
+                                <strong>{{ member.name }}</strong>
+                                <span class="user-id-tag">{{ member.nric }}</span>
+                            </div>
+                            <div class="leader-score">
+                                <strong>{{ member.ippt_score.total_points }}</strong>
+                                <span>points</span>
+                            </div>
+                        </div>
+                        <div class="leader-meta-row">
+                            <span>{{ member.age or '--' }} yrs · {{ member.age_group or 'Age Band' }}</span>
+                            <span class="status-badge-pill {{ member.ippt_score.award.code }}">{{ member.ippt_score.award.label }}</span>
+                        </div>
+                        <div class="leader-metrics">
+                            <div class="leader-metric"><span>Push</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
+                            <div class="leader-metric"><span>Sit</span><strong>{{ member.personal_best.situps or '--' }}</strong></div>
+                            <div class="leader-metric"><span>Run</span><strong>{{ member.personal_best.run_time or '--:--' }}</strong></div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <div class="mobile-empty-state">No groups available. Create a group to get started.</div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <!-- Right Panel Column -->
-    <div class="right-panel-column">
+    {% set pending_invites = invites|selectattr('status', 'equalto', 'Pending')|list %}
+    <div class="right-panel-column {% if not pending_invites %}no-pending-invites{% endif %}">
         <div class="section-title">Incoming Invites</div>
         <div class="panel-box">
             <div class="invite-stack" id="inviteStackContainer">
@@ -750,7 +919,7 @@
                     {% endif %}
                     {% endfor %}
                 {% endif %}
-                <div id="emptyState" class="invite-empty-state" style="{% if invites|selectattr('status', 'equalto', 'Pending')|list %}display:none;{% endif %}">No pending invitations found.</div>
+                <div id="emptyState" class="invite-empty-state" style="{% if pending_invites %}display:none;{% endif %}">No pending invitations found.</div>
             </div>
         </div>
     </div>
