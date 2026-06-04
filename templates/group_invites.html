@@ -93,9 +93,17 @@
     }
 
     .icon-action-button:hover {
-        border-color: #00A86B;
-        box-shadow: 0 8px 18px rgba(0, 168, 107, 0.14);
+        border-color: #CBD5E1;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
         transform: translateY(-1px);
+    }
+
+    .icon-action-button:focus,
+    .icon-action-button:focus-visible {
+        outline: 2px solid #94A3B8;
+        outline-offset: 2px;
+        border-color: #CBD5E1;
+        box-shadow: none;
     }
 
     .icon-action-button:disabled {
@@ -212,6 +220,18 @@
         letter-spacing: 0;
         color: #64748B;
         border-bottom: 1px solid #E2E8F0;
+    }
+    .sync-table th.metric-heading-pushup,
+    .metric-label-pushup {
+        color: var(--marker-pushup);
+    }
+    .sync-table th.metric-heading-situp,
+    .metric-label-situp {
+        color: var(--marker-situp);
+    }
+    .sync-table th.metric-heading-run,
+    .metric-label-run {
+        color: var(--marker-run);
     }
     .sync-table td {
         padding: 16px;
@@ -838,6 +858,18 @@
             margin-bottom: 3px;
         }
 
+        .leader-metric .metric-label-pushup {
+            color: var(--marker-pushup);
+        }
+
+        .leader-metric .metric-label-situp {
+            color: var(--marker-situp);
+        }
+
+        .leader-metric .metric-label-run {
+            color: var(--marker-run);
+        }
+
         .leader-metric strong {
             color: #102033;
             font-size: 16px;
@@ -1032,9 +1064,9 @@
                     <tr>
                         <th class="rank-column">#</th>
                         <th>Name</th>
-                        <th>Pushup</th>
-                        <th>Situp</th>
-                        <th>Run</th>
+                        <th class="metric-heading-pushup">Pushup</th>
+                        <th class="metric-heading-situp">Situp</th>
+                        <th class="metric-heading-run">Run</th>
                         <th>Score</th>
                         <th>Award</th>
                         <th></th>
@@ -1102,9 +1134,9 @@
                             <span class="status-badge-pill group-award-badge {{ member.ippt_score.award.code }}">{{ member.ippt_score.award.label }}</span>
                         </div>
                         <div class="leader-metrics">
-                            <div class="leader-metric"><span>Pushup</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
-                            <div class="leader-metric"><span>Situp</span><strong>{{ member.personal_best.situps or '--' }}</strong></div>
-                            <div class="leader-metric"><span>Run</span><strong>{{ member.personal_best.run_time or '--:--' }}</strong></div>
+                            <div class="leader-metric"><span class="metric-label-pushup">Pushup</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
+                            <div class="leader-metric"><span class="metric-label-situp">Situp</span><strong>{{ member.personal_best.situps or '--' }}</strong></div>
+                            <div class="leader-metric"><span class="metric-label-run">Run</span><strong>{{ member.personal_best.run_time or '--:--' }}</strong></div>
                         </div>
                         {% if member.can_be_removed %}
                         <div class="member-card-actions">

@@ -130,7 +130,6 @@
         color: #64748B;
         font-size: 12px;
         font-weight: 500;
-        margin-top: auto;
         position: relative;
     }
 
@@ -146,7 +145,6 @@
     }
 
     .strava-help-popover {
-        margin-left: auto;
         position: relative;
     }
 
@@ -200,8 +198,21 @@
         transition: 0.2s ease;
     }
 
+    .action-button-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: auto;
+    }
+
     .action-card .primary-btn {
         align-self: flex-end;
+        margin-top: auto;
+    }
+
+    .action-button-row .primary-btn {
+        margin-top: 0;
     }
 
     .primary-btn:hover {
@@ -672,6 +683,15 @@
         .primary-btn {
             width: 100%;
             align-self: stretch;
+        }
+
+        .action-button-row {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .action-button-row .primary-btn {
+            flex: 1;
         }
 
         .strava-sync-preview {

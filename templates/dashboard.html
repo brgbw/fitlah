@@ -62,6 +62,12 @@
                         <div class="action-meta">
                             <span class="action-dot strava"></span>
                             Strava Integration
+                        </div>
+
+                        <div class="action-button-row">
+                            <button class="primary-btn strava" onclick="triggerStravaModal()">
+                                Sync Strava
+                            </button>
                             <details class="strava-help-popover">
                                 <summary aria-label="Strava setup help">!</summary>
                                 <div>
@@ -69,10 +75,6 @@
                                 </div>
                             </details>
                         </div>
-
-                        <button class="primary-btn strava" onclick="triggerStravaModal()">
-                            Sync Strava
-                        </button>
                     </div>
                 {% endif %}
 

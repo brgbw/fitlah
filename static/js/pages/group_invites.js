@@ -137,9 +137,9 @@
                     </span>
                 </div>
                 <div class="leader-metrics">
-                    <div class="leader-metric"><span>Pushup</span><strong>${escapeHtml(best.pushups || '--')}</strong></div>
-                    <div class="leader-metric"><span>Situp</span><strong>${escapeHtml(best.situps || '--')}</strong></div>
-                    <div class="leader-metric"><span>Run</span><strong>${escapeHtml(best.run_time || '--:--')}</strong></div>
+                    <div class="leader-metric"><span class="metric-label-pushup">Pushup</span><strong>${escapeHtml(best.pushups || '--')}</strong></div>
+                    <div class="leader-metric"><span class="metric-label-situp">Situp</span><strong>${escapeHtml(best.situps || '--')}</strong></div>
+                    <div class="leader-metric"><span class="metric-label-run">Run</span><strong>${escapeHtml(best.run_time || '--:--')}</strong></div>
                 </div>
                 ${member.can_be_removed ? `
                     <div class="member-card-actions">
