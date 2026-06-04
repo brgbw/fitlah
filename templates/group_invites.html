@@ -70,19 +70,9 @@
     .group-action-bar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+        justify-content: flex-start;
+        gap: 10px;
         margin-bottom: 20px;
-    }
-
-    .qr-invite-card {
-        flex: 1;
-        min-width: 0;
-        background-color: #FFFFFF;
-        padding: 12px;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
     }
 
     .qr-invite-toolbar {
@@ -699,40 +689,29 @@
 
         .group-action-bar {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             align-items: center;
             margin-bottom: 18px;
             gap: 10px;
         }
 
-        .qr-invite-card {
-            padding: 12px;
-            border-color: #D9E4EC;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        }
-
-        .invite-action-copy {
-            font-size: 14px;
+        .qr-invite-toolbar {
+            display: contents;
         }
 
         .icon-action-button {
-            flex: 0 0 56px;
-            width: 56px;
+            width: 100%;
             height: 56px;
             aspect-ratio: 1 / 1;
             border-color: #D1E3E6;
             background: #F8FAFC;
         }
 
-        .qr-action-label {
-            font-size: 12px;
-        }
-
         .group-danger-button {
-            min-height: 44px;
-            padding: 0 12px;
-            width: fit-content;
-            justify-self: end;
+            min-height: 56px;
+            width: 100%;
+            padding: 0 10px;
+            justify-self: stretch;
             border-color: #F7CFCF;
             box-shadow: none;
         }
@@ -1021,22 +1000,13 @@
         </div>
 
         <div class="group-action-bar">
-            <div class="qr-invite-cluster">
-                <div class="invite-action-copy">Invite by QR</div>
-                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
-                    <div class="qr-action-item">
-                        <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                            <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
-                        </button>
-                        <span class="qr-action-label">My QR</span>
-                    </div>
-                    <div class="qr-action-item">
-                        <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
-                            <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
-                        </button>
-                        <span class="qr-action-label">Scan</span>
-                    </div>
-                </div>
+            <div class="qr-invite-toolbar" aria-label="Invite people by QR">
+                <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                    <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+                </button>
+                <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
+                    <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+                </button>
             </div>
             <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
                 Leave
