@@ -19,7 +19,7 @@ def register_settings_routes(app):
     @rate_limit("settings", 20, 300)
     def settings():
         user = current_user()
-        strava_connection = _strava_connection_for_user(user.get("nric"))
+        strava_record = _strava_connection_for_user(user.get("nric"))
         strava_config = get_settings(["strava_client_id", "strava_client_secret"])
         font_scale = _current_font_scale()
         can_update_strava_settings = get_config().allow_strava_settings_write
@@ -61,7 +61,7 @@ def register_settings_routes(app):
         return render_template(
             "settings.html",
             user=user,
-            strava_connection=strava_connection or {},
+            strava_connection=strava_record or {},
             strava_config=strava_config,
             has_strava_client_secret=bool(strava_config.get("strava_client_secret")),
             can_update_strava_settings=can_update_strava_settings,

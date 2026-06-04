@@ -6,7 +6,7 @@ from datetime import datetime
 
 from flask import jsonify, redirect, render_template, request, url_for
 
-from ..integrations.ai_coach import generate_exercise_recommendation
+from ..integrations.ai_coach import attach_rep_metrics_csv, generate_exercise_recommendation
 from ..core.auth import current_user, login_required
 from ..core.config import BASE_DIR
 from ..domain.activity_helpers import save_ai_recommendation
@@ -32,51 +32,10 @@ ALLOWED_VIDEO_MIMES = {
 
 ALLOWED_VIDEO_EXTENSIONS = {".webm", ".mp4", ".mov", ".m4v", ".avi"}
 
-REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]
-
-
 def _exercise_labels(exercise_type):
     if exercise_type == "pushup":
         return "pushups", "Push Ups", "pushup_videos"
     return "situps", "Sit Ups", "situp_videos"
-
-
-def rep_metrics_csv(data):
-    if not isinstance(data, list):
-        return ",".join(REP_METRIC_KEYS)
-
-    rows = []
-    for index, item in enumerate(data):
-        if not isinstance(item, dict):
-            continue
-        rep = item.get("rep") or index + 1
-        amplitude = item.get("amplitude")
-        if amplitude is None:
-            amplitude = item.get("amplitude_angle_deg")
-        if amplitude is None:
-            amplitude = item.get("amplitude_px")
-        period = item.get("period_s")
-        cells = [
-            str(rep),
-            f"{amplitude:.3f}" if isinstance(amplitude, (int, float)) else "",
-            f"{period:.3f}" if isinstance(period, (int, float)) else "",
-        ]
-        rows.append(",".join(cells))
-    return ",".join(REP_METRIC_KEYS) + ("\n" + "\n".join(rows) if rows else "")
-
-
-def attach_rep_metrics_csv(metrics):
-    if not isinstance(metrics, dict):
-        return metrics
-
-    rep_data = metrics.get("rep_metrics")
-    movement_analysis = metrics.get("movement_analysis")
-    if not rep_data and isinstance(movement_analysis, dict):
-        rep_data = movement_analysis.get("reps")
-    if rep_data:
-        metrics["rep_metrics"] = rep_data
-        metrics["rep_metrics_csv"] = rep_metrics_csv(rep_data)
-    return metrics
 
 
 def delete_session_video(video_path):

@@ -293,7 +293,7 @@ def _build_system_prompt():
     )
 
 
-def _rep_metrics_csv(data):
+def rep_metrics_csv(data):
     if not isinstance(data, list):
         return ",".join(REP_METRIC_KEYS)
 
@@ -317,6 +317,20 @@ def _rep_metrics_csv(data):
     return ",".join(REP_METRIC_KEYS) + ("\n" + "\n".join(rows) if rows else "")
 
 
+def attach_rep_metrics_csv(metrics):
+    if not isinstance(metrics, dict):
+        return metrics
+
+    rep_data = metrics.get("rep_metrics")
+    movement_analysis = metrics.get("movement_analysis")
+    if not rep_data and isinstance(movement_analysis, dict):
+        rep_data = movement_analysis.get("reps")
+    if rep_data:
+        metrics["rep_metrics"] = rep_data
+        metrics["rep_metrics_csv"] = rep_metrics_csv(rep_data)
+    return metrics
+
+
 def _compact_metrics_for_prompt(metrics):
     compact = dict(metrics)
     rep_data = compact.get("rep_metrics")
@@ -324,7 +338,7 @@ def _compact_metrics_for_prompt(metrics):
     if not rep_data and isinstance(movement_analysis, dict):
         rep_data = movement_analysis.get("reps")
     if rep_data:
-        compact["rep_metrics_csv"] = _rep_metrics_csv(rep_data)
+        compact["rep_metrics_csv"] = rep_metrics_csv(rep_data)
     compact.pop("rep_metrics", None)
     if isinstance(movement_analysis, dict):
         compact["movement_analysis"] = {

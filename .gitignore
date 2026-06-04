@@ -7,5 +7,6 @@ venv
 .env.*
 !.env.example
 userdata/
+static/_mobile_previews/
 *.pyc
 .vercel
