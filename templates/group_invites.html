@@ -85,36 +85,9 @@
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
     }
 
-    .qr-invite-cluster {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .invite-action-copy {
-        color: #0F172A;
-        font-size: 13px;
-        font-weight: 800;
-        line-height: 1.1;
-    }
-
     .qr-invite-toolbar {
         display: flex;
         gap: 10px;
-    }
-
-    .qr-action-item {
-        display: grid;
-        justify-items: center;
-        gap: 5px;
-    }
-
-    .qr-action-label {
-        color: #64748B;
-        font-size: 11px;
-        font-weight: 750;
-        line-height: 1.1;
     }
 
     .icon-action-button {
@@ -225,9 +198,9 @@
     /* Leaderboard Table */
     .sync-table-container {
         background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        border: 1px solid #DDE5EE;
         border-radius: 8px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         overflow: hidden;
         margin-bottom: 32px;
     }
@@ -241,26 +214,68 @@
         display: none;
     }
     .sync-table th {
-        background-color: #F8FAFC;
-        padding: 14px 20px;
+        background-color: #FFFFFF;
+        padding: 12px 16px;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0;
         color: #64748B;
         border-bottom: 1px solid #E2E8F0;
     }
     .sync-table td {
-        padding: 14px 20px;
+        padding: 16px;
         font-size: 13px;
         color: #0F172A;
         border-bottom: 1px solid #E2E8F0;
+        vertical-align: middle;
     }
     .sync-table tr:last-child td {
         border-bottom: none;
     }
     .sync-table tr:hover {
-        background-color: #F8FAFC;
+        background-color: #FBFDFE;
+    }
+    .rank-column {
+        width: 54px;
+    }
+    .rank-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        color: #475569;
+        display: inline-grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 850;
+        font-variant-numeric: tabular-nums;
+    }
+    .member-name-cell strong {
+        display: block;
+        color: #0F172A;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+    .score-pill {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+        padding: 7px 10px;
+        border-radius: 8px;
+        background: #E8F8F2;
+        color: #047857;
+        font-weight: 850;
+        font-variant-numeric: tabular-nums;
+    }
+    .score-pill span {
+        color: #047857;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
     }
     .pb-cell {
         min-width: 104px;
@@ -437,6 +452,12 @@
         display: flex;
         flex-direction: column;
         gap: 18px;
+    }
+    .modal-description {
+        color: #475569;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.45;
     }
     .form-element-block {
         display: flex;
@@ -692,11 +713,6 @@
 
         .invite-action-copy {
             font-size: 14px;
-            color: #1E293B;
-        }
-
-        .qr-invite-toolbar {
-            justify-content: flex-start;
         }
 
         .icon-action-button {
@@ -710,7 +726,6 @@
 
         .qr-action-label {
             font-size: 12px;
-            color: #526173;
         }
 
         .group-danger-button {
@@ -781,9 +796,9 @@
 
         .leader-card-top {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: start;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
             margin-bottom: 10px;
         }
 
@@ -804,14 +819,10 @@
             justify-items: end;
             gap: 4px;
             min-width: 72px;
-            padding: 9px 10px;
-            border-radius: 8px;
-            background: #102033;
-            border: 1px solid #18344F;
         }
 
         .leader-score strong {
-            color: #FFFFFF;
+            color: #0F172A;
             font-size: 28px;
             font-weight: 850;
             line-height: 1;
@@ -819,7 +830,7 @@
         }
 
         .leader-score span {
-            color: #9AD7D0;
+            color: #64748B;
             font-size: 11px;
             font-weight: 800;
             text-transform: uppercase;
@@ -836,7 +847,7 @@
             background: #F3F8FA;
             border: 1px solid #DCE8EE;
             border-radius: 8px;
-            padding: 10px 8px;
+            padding: 9px 8px;
         }
 
         .leader-metric span {
@@ -965,6 +976,7 @@
             <button class="close-icon-btn" onclick="closeModal('myQrModal')">&times;</button>
         </div>
         <div class="modal-body">
+            <p class="modal-description">Show this QR so a teammate can invite you to their selected group.</p>
             <div class="qr-preview-frame">
                 <div id="myQrCanvas" class="qr-code-target" aria-label="Your group invite QR code"></div>
             </div>
@@ -980,6 +992,7 @@
             <button class="close-icon-btn" onclick="closeModal('scanQrModal')">&times;</button>
         </div>
         <div class="modal-body">
+            <p class="modal-description">Scan a teammate's QR to invite them into the selected group.</p>
             <div class="scan-video-frame">
                 <video id="qrScanVideo" playsinline muted></video>
                 <canvas id="qrScanCanvas"></canvas>
@@ -1008,22 +1021,20 @@
         </div>
 
         <div class="group-action-bar">
-            <div class="qr-invite-card">
-                <div class="qr-invite-cluster">
-                    <div class="invite-action-copy">Invite by QR</div>
-                    <div class="qr-invite-toolbar" aria-label="Invite people by QR">
-                        <div class="qr-action-item">
-                            <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                                <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
-                            </button>
-                            <span class="qr-action-label">My QR</span>
-                        </div>
-                        <div class="qr-action-item">
-                            <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
-                                <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
-                            </button>
-                            <span class="qr-action-label">Scan</span>
-                        </div>
+            <div class="qr-invite-cluster">
+                <div class="invite-action-copy">Invite by QR</div>
+                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
+                    <div class="qr-action-item">
+                        <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                            <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+                        </button>
+                        <span class="qr-action-label">My QR</span>
+                    </div>
+                    <div class="qr-action-item">
+                        <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
+                            <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+                        </button>
+                        <span class="qr-action-label">Scan</span>
                     </div>
                 </div>
             </div>
@@ -1049,11 +1060,12 @@
             <table class="sync-table">
                 <thead>
                     <tr>
+                        <th class="rank-column">#</th>
                         <th>Name</th>
-                        <th>PB Push-Ups</th>
-                        <th>PB Sit-Ups</th>
-                        <th>PB 2.4km Run</th>
-                        <th>IPPT Score</th>
+                        <th>Pushup</th>
+                        <th>Situp</th>
+                        <th>Run</th>
+                        <th>Score</th>
                         <th>Award</th>
                         <th></th>
                 
@@ -1063,7 +1075,8 @@
                     {% if group_data %}
                         {% for member in group_data[0].members %}
                         <tr>
-                            <td>
+                            <td class="rank-column"><span class="rank-badge">{{ loop.index }}</span></td>
+                            <td class="member-name-cell">
                                 <strong>{{ member.name }}</strong>
                             </td>
                             <td class="pb-cell">
@@ -1079,11 +1092,10 @@
                                 <span class="pb-unit">Minutes</span>
                             </td>
                             <td class="pb-cell">
-                                <div class="pb-value">{{ member.ippt_score.total_points }}</div>
-                                <span class="pb-unit">Points</span>
+                                <span class="score-pill">{{ member.ippt_score.total_points }} <span>pts</span></span>
                             </td>
                             <td>
-                                <span class="status-badge-pill {{ member.ippt_score.award.code }}">
+                                <span class="status-badge-pill group-award-badge {{ member.ippt_score.award.code }}">
                                     {{ member.ippt_score.award.label }}
                                 </span>
                             </td>
@@ -1097,7 +1109,7 @@
                         {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="7" class="empty-state">No groups available. Create a group to get started.</td>
+                        <td colspan="8" class="empty-state">No groups available. Create a group to get started.</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -1107,16 +1119,17 @@
                     {% for member in group_data[0].members %}
                     <article class="leader-card">
                         <div class="leader-card-top">
+                            <span class="rank-badge">{{ loop.index }}</span>
                             <div class="leader-name">
                                 <strong>{{ member.name }}</strong>
                             </div>
                             <div class="leader-score">
                                 <strong>{{ member.ippt_score.total_points }}</strong>
-                                <span>points</span>
+                                <span>pts</span>
                             </div>
                         </div>
                         <div class="leader-meta-row">
-                            <span class="status-badge-pill {{ member.ippt_score.award.code }}">{{ member.ippt_score.award.label }}</span>
+                            <span class="status-badge-pill group-award-badge {{ member.ippt_score.award.code }}">{{ member.ippt_score.award.label }}</span>
                         </div>
                         <div class="leader-metrics">
                             <div class="leader-metric"><span>Pushup</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
