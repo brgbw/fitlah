@@ -64,9 +64,10 @@
         color: #ffffff !important;
     }
 
-    .qr-invite-toolbar {
+    .group-action-bar {
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
         background-color: #FFFFFF;
         padding: 12px;
@@ -74,6 +75,11 @@
         border-radius: 8px;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
         margin-bottom: 20px;
+    }
+
+    .qr-invite-toolbar {
+        display: flex;
+        gap: 10px;
     }
 
     .icon-action-button {
@@ -105,6 +111,43 @@
         width: 30px;
         height: 30px;
         object-fit: contain;
+    }
+
+    .group-danger-button,
+    .member-action-button {
+        border: 1px solid #FECACA;
+        background: #FFFFFF;
+        color: #DC2626;
+        border-radius: 8px;
+        font-weight: 750;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .group-danger-button {
+        padding: 0 16px;
+        min-height: 52px;
+    }
+
+    .member-action-button {
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .group-danger-button:hover,
+    .member-action-button:hover {
+        background: #FEF2F2;
+        border-color: #FCA5A5;
+    }
+
+    .group-danger-button:disabled,
+    .member-action-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+        background: #FFFFFF;
+        border-color: #E2E8F0;
+        color: #94A3B8;
     }
 
     .section-title {
@@ -200,15 +243,6 @@
         text-transform: uppercase;
         letter-spacing: 0;
     }
-    
-    .user-id-tag {
-        font-size: 11px;
-        color: #64748B;
-        font-family: monospace;
-        display: block;
-        margin-top: 2px;
-    }
-
     .status-badge-pill {
         display: inline-flex;
         align-items: center;
@@ -573,16 +607,23 @@
             margin-left: 0;
         }
 
-        .qr-invite-toolbar {
-            justify-content: stretch;
+        .group-action-bar {
+            align-items: center;
+            justify-content: space-between;
             padding: 8px;
             margin-bottom: 18px;
         }
 
         .icon-action-button {
-            flex: 1;
-            width: auto;
-            height: 52px;
+            flex: 0 0 56px;
+            width: 56px;
+            height: 56px;
+            aspect-ratio: 1 / 1;
+        }
+
+        .group-danger-button {
+            min-height: 44px;
+            padding: 0 12px;
         }
 
         .btn-modal-cancel,
@@ -598,6 +639,9 @@
 
         .section-title {
             margin-bottom: 0;
+            color: #0F172A;
+            text-transform: none;
+            font-size: 24px;
         }
 
         .sort-control {
@@ -631,7 +675,7 @@
             background: #FFFFFF;
             border: 1px solid #E2E8F0;
             border-radius: 8px;
-            padding: 14px;
+            padding: 12px;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
@@ -640,7 +684,7 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 12px;
             align-items: start;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .leader-name {
@@ -681,7 +725,7 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 10px;
         }
 
         .leader-metric {
@@ -716,6 +760,12 @@
             color: #64748B;
             font-size: 12px;
             line-height: 1.4;
+        }
+
+        .member-card-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
         }
 
         .mobile-empty-state {
@@ -824,17 +874,22 @@
             <div class="filter-pill create-group-pill" onclick="openModal('createGroupModal')">+ Create Group</div>
         </div>
 
-        <div class="qr-invite-toolbar" aria-label="Group QR invite actions">
-            <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my QR" aria-label="Show my QR">
-                <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
-            </button>
-            <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan buddy QR" aria-label="Scan buddy QR" {% if not group_data %}disabled{% endif %}>
-                <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+        <div class="group-action-bar">
+            <div class="qr-invite-toolbar" aria-label="Group QR invite actions">
+                <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my QR" aria-label="Show my QR">
+                    <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+                </button>
+                <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan buddy QR" aria-label="Scan buddy QR" {% if not group_data %}disabled{% endif %}>
+                    <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+                </button>
+            </div>
+            <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
+                Leave
             </button>
         </div>
 
         <div class="leaderboard-bar">
-            <div class="section-title" id="tableTitleContext">IPPT Score Points</div>
+            <div class="section-title" id="tableTitleContext">{{ group_data[0].group.name if group_data else 'Groups' }}</div>
 
             <label class="sort-control">
                 Sort
@@ -851,12 +906,12 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Age</th>
                         <th>PB Push-Ups</th>
                         <th>PB Sit-Ups</th>
                         <th>PB 2.4km Run</th>
                         <th>IPPT Score</th>
                         <th>Award</th>
+                        <th></th>
                 
                     </tr>
                 </thead>
@@ -866,11 +921,6 @@
                         <tr>
                             <td>
                                 <strong>{{ member.name }}</strong>
-                                <span class="user-id-tag">{{ member.nric }}</span>
-                            </td>
-                            <td class="pb-cell">
-                                <div class="pb-value">{{ member.age or '--' }}</div>
-                                <span class="pb-unit">{{ member.age_group or 'Age Band' }}</span>
                             </td>
                             <td class="pb-cell">
                                 <div class="pb-value">{{ member.personal_best.pushups or '--' }}</div>
@@ -893,6 +943,11 @@
                                     {{ member.ippt_score.award.label }}
                                 </span>
                             </td>
+                            <td>
+                                {% if member.can_be_removed %}
+                                <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})">Remove</button>
+                                {% endif %}
+                            </td>
                         
                         </tr>
                         {% endfor %}
@@ -910,7 +965,6 @@
                         <div class="leader-card-top">
                             <div class="leader-name">
                                 <strong>{{ member.name }}</strong>
-                                <span class="user-id-tag">{{ member.nric }}</span>
                             </div>
                             <div class="leader-score">
                                 <strong>{{ member.ippt_score.total_points }}</strong>
@@ -918,14 +972,18 @@
                             </div>
                         </div>
                         <div class="leader-meta-row">
-                            <span>{{ member.age or '--' }} yrs · {{ member.age_group or 'Age Band' }}</span>
                             <span class="status-badge-pill {{ member.ippt_score.award.code }}">{{ member.ippt_score.award.label }}</span>
                         </div>
                         <div class="leader-metrics">
-                            <div class="leader-metric"><span>Push</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
-                            <div class="leader-metric"><span>Sit</span><strong>{{ member.personal_best.situps or '--' }}</strong></div>
+                            <div class="leader-metric"><span>Pushup</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
+                            <div class="leader-metric"><span>Situp</span><strong>{{ member.personal_best.situps or '--' }}</strong></div>
                             <div class="leader-metric"><span>Run</span><strong>{{ member.personal_best.run_time or '--:--' }}</strong></div>
                         </div>
+                        {% if member.can_be_removed %}
+                        <div class="member-card-actions">
+                            <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})">Remove</button>
+                        </div>
+                        {% endif %}
                     </article>
                     {% endfor %}
                 {% else %}

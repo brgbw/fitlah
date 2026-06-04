@@ -7,6 +7,8 @@
         qrPayload: '/api/group-qr-payload',
         scanInvite: '/api/scan-invite',
         pendingInvites: '/api/pending-invites',
+        leaveGroup: '/api/leave-group',
+        removeGroupMember: '/api/remove-group-member',
         acceptInvite: (inviteId) => `/api/accept-invite/${inviteId}`,
         declineInvite: (inviteId) => `/api/decline-invite/${inviteId}`
     };
@@ -79,11 +81,6 @@
                 <tr>
                     <td>
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
-                        <span class="user-id-tag">${escapeHtml(member.nric || '')}</span>
-                    </td>
-                    <td class="pb-cell">
-                        <div class="pb-value">${member.age || '--'}</div>
-                        <span class="pb-unit">${escapeHtml(member.age_group || 'Age Band')}</span>
                     </td>
                     <td class="pb-cell">
                         <div class="pb-value">${best.pushups || '--'}</div>
@@ -106,6 +103,9 @@
                             ${escapeHtml(award.label || 'Fail')}
                         </span>
                     </td>
+                    <td>
+                        ${member.can_be_removed ? `<button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})">Remove</button>` : ''}
+                    </td>
                 </tr>`;
         }).join('');
 
@@ -124,7 +124,6 @@
                 <div class="leader-card-top">
                     <div class="leader-name">
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
-                        <span class="user-id-tag">${escapeHtml(member.nric || '')}</span>
                     </div>
                     <div class="leader-score">
                         <strong>${escapeHtml(points)}</strong>
@@ -132,16 +131,19 @@
                     </div>
                 </div>
                 <div class="leader-meta-row">
-                    <span>${escapeHtml(member.age || '--')} yrs · ${escapeHtml(member.age_group || 'Age Band')}</span>
                     <span class="status-badge-pill ${escapeHtml(award.code || 'fail')}">
                         ${escapeHtml(award.label || 'Fail')}
                     </span>
                 </div>
                 <div class="leader-metrics">
-                    <div class="leader-metric"><span>Push</span><strong>${escapeHtml(best.pushups || '--')}</strong></div>
-                    <div class="leader-metric"><span>Sit</span><strong>${escapeHtml(best.situps || '--')}</strong></div>
+                    <div class="leader-metric"><span>Pushup</span><strong>${escapeHtml(best.pushups || '--')}</strong></div>
+                    <div class="leader-metric"><span>Situp</span><strong>${escapeHtml(best.situps || '--')}</strong></div>
                     <div class="leader-metric"><span>Run</span><strong>${escapeHtml(best.run_time || '--:--')}</strong></div>
                 </div>
+                ${member.can_be_removed ? `
+                    <div class="member-card-actions">
+                        <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})">Remove</button>
+                    </div>` : ''}
             </article>`;
     }
 
@@ -160,7 +162,7 @@
         const pills = document.querySelectorAll('.filter-pill:not(.create-group-pill)');
         pills.forEach(p => p.classList.remove('active'));
         tabElement.classList.add('active');
-        document.getElementById('tableTitleContext').innerText = `${tabElement.innerText} IPPT Score Points`;
+        document.getElementById('tableTitleContext').innerText = tabElement.innerText;
         renderRoster(tabElement.dataset.groupId);
     }
 
@@ -364,6 +366,63 @@
         element.className = `qr-status ${state || ''}`.trim();
     }
 
+    function leaveActiveGroup() {
+        if (!activeGroupId) {
+            alert('Select a group first.');
+            return;
+        }
+        const selected = groupRosterData.find(item => item.group.id === Number(activeGroupId));
+        const groupName = selected?.group?.name || 'this group';
+        if (!window.confirm(`Leave ${groupName}?`)) return;
+
+        fetch(api.leaveGroup, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ group_id: Number(activeGroupId) })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Could not leave group.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Could not leave group.');
+        });
+    }
+
+    function removeGroupMember(memberId) {
+        if (!activeGroupId || !memberId) return;
+        const selected = groupRosterData.find(item => item.group.id === Number(activeGroupId));
+        const member = selected?.members?.find(item => item.id === Number(memberId));
+        const name = member?.name || 'this member';
+        if (!window.confirm(`Remove ${name} from the group?`)) return;
+
+        fetch(api.removeGroupMember, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                group_id: Number(activeGroupId),
+                member_id: Number(memberId)
+            })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Could not remove member.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Could not remove member.');
+        });
+    }
+
     function acceptInvite(inviteId) {
         fetch(api.acceptInvite(inviteId), {
             method: 'POST',
@@ -469,6 +528,8 @@
     window.submitCreateGroup = submitCreateGroup;
     window.openMyQr = openMyQr;
     window.openQrScanner = openQrScanner;
+    window.leaveActiveGroup = leaveActiveGroup;
+    window.removeGroupMember = removeGroupMember;
     window.acceptInvite = acceptInvite;
     window.declineInvite = declineInvite;
 })();

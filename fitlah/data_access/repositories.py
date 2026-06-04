@@ -636,6 +636,7 @@ def list_groups():
     with session_scope() as conn:
         return _all(conn.execute(text("""
             SELECT g.id, g.name, COALESCE(u.name, 'NSman') created_by,
+                   u.nric created_by_nric,
                    to_char(g.created_at, 'YYYY-MM-DD') created_date
             FROM fitness_groups g
             LEFT JOIN users u ON u.id = g.created_by_user_id
@@ -681,6 +682,18 @@ def add_group_member(group_id, nric):
             ON CONFLICT (group_id, user_id) DO NOTHING
         """), {"group_id": group_id, "user_id": user["id"]})
     return True
+
+
+def remove_group_member(group_id, nric):
+    user = get_user(nric)
+    if not user:
+        return False
+    with session_scope() as conn:
+        result = conn.execute(text("""
+            DELETE FROM group_members
+            WHERE group_id = :group_id AND user_id = :user_id
+        """), {"group_id": group_id, "user_id": user["id"]})
+    return result.rowcount > 0
 
 
 def list_invites():
