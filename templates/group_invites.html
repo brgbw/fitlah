@@ -77,9 +77,36 @@
         margin-bottom: 20px;
     }
 
+    .qr-invite-cluster {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .invite-action-copy {
+        color: #0F172A;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
     .qr-invite-toolbar {
         display: flex;
         gap: 10px;
+    }
+
+    .qr-action-item {
+        display: grid;
+        justify-items: center;
+        gap: 5px;
+    }
+
+    .qr-action-label {
+        color: #64748B;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.1;
     }
 
     .icon-action-button {
@@ -614,11 +641,19 @@
             margin-bottom: 18px;
         }
 
+        .invite-action-copy {
+            font-size: 14px;
+        }
+
         .icon-action-button {
             flex: 0 0 56px;
             width: 56px;
             height: 56px;
             aspect-ratio: 1 / 1;
+        }
+
+        .qr-action-label {
+            font-size: 12px;
         }
 
         .group-danger-button {
@@ -875,13 +910,22 @@
         </div>
 
         <div class="group-action-bar">
-            <div class="qr-invite-toolbar" aria-label="Group QR invite actions">
-                <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my QR" aria-label="Show my QR">
-                    <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
-                </button>
-                <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan buddy QR" aria-label="Scan buddy QR" {% if not group_data %}disabled{% endif %}>
-                    <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
-                </button>
+            <div class="qr-invite-cluster">
+                <div class="invite-action-copy">Invite by QR</div>
+                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
+                    <div class="qr-action-item">
+                        <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                            <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+                        </button>
+                        <span class="qr-action-label">My QR</span>
+                    </div>
+                    <div class="qr-action-item">
+                        <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
+                            <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+                        </button>
+                        <span class="qr-action-label">Scan</span>
+                    </div>
+                </div>
             </div>
             <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
                 Leave
