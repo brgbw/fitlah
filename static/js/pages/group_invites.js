@@ -4,20 +4,47 @@
 
     const api = {
         createGroup: '/api/create-group',
-        addMember: '/api/add-member',
+        qrPayload: '/api/group-qr-payload',
+        scanInvite: '/api/scan-invite',
+        pendingInvites: '/api/pending-invites',
         acceptInvite: (inviteId) => `/api/accept-invite/${inviteId}`,
         declineInvite: (inviteId) => `/api/decline-invite/${inviteId}`
     };
 
     let activeGroupId = groupRosterData[0]?.group?.id || null;
     let leaderboardSort = document.getElementById('leaderboardSort')?.value || 'desc';
+    let scanStream = null;
+    let scanLoopId = null;
+    let isScanning = false;
+    let knownInviteIds = new Set(
+        Array.from(document.querySelectorAll('[data-invite-id]'))
+            .map(card => String(card.dataset.inviteId))
+            .filter(Boolean)
+    );
+    const loadedScripts = new Map();
+
+    function loadScript(src) {
+        if (loadedScripts.has(src)) return loadedScripts.get(src);
+        const promise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+        });
+        loadedScripts.set(src, promise);
+        return promise;
+    }
 
     function openModal(modalId) {
         document.getElementById(modalId).classList.add('active');
     }
 
     function closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('active');
+        const modal = document.getElementById(modalId);
+        if (modal) modal.classList.remove('active');
+        if (modalId === 'scanQrModal') stopQrScanner();
     }
 
     function sortedMembers(members) {
@@ -147,32 +174,8 @@
         }
     }
 
-    function addChipToken() {
-        const input = document.getElementById('modalTokenInput');
-        const val = input.value.trim().toUpperCase();
-        if (!val) return;
-
-        const tray = document.getElementById('modalTokenTray');
-        const chip = document.createElement('div');
-        const removeButton = document.createElement('span');
-
-        chip.className = 'identity-chip';
-        chip.dataset.nric = val;
-        chip.append(document.createTextNode(`${val} `));
-
-        removeButton.innerHTML = '&times;';
-        removeButton.addEventListener('click', () => chip.remove());
-        chip.appendChild(removeButton);
-
-        tray.appendChild(chip);
-        input.value = '';
-    }
-
     function submitCreateGroup() {
         const groupName = document.getElementById('newGroupName').value.trim();
-        const invitedNrics = Array.from(document.querySelectorAll('#modalTokenTray .identity-chip'))
-            .map(chip => chip.dataset.nric)
-            .filter(Boolean);
         if (!groupName) {
             alert('Please enter a group name.');
             return;
@@ -181,7 +184,7 @@
         fetch(api.createGroup, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ group_name: groupName, invited_nrics: invitedNrics })
+            body: JSON.stringify({ group_name: groupName })
         })
         .then(res => res.json())
         .then(data => {
@@ -197,40 +200,173 @@
         });
     }
 
-    function addMemberToGroup() {
-        const input = document.getElementById('memberIdInput');
-        const val = input.value.trim().toUpperCase();
-        const activeTab = document.querySelector('.filter-pill.active:not(.create-group-pill)');
-        if (!val) {
-            alert('Please enter a member identifier.');
-            return;
+    async function openMyQr() {
+        openModal('myQrModal');
+        setQrStatus('myQrStatus', 'Generating QR...', '');
+        try {
+            const response = await fetch(api.qrPayload);
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Could not generate QR');
+
+            await loadScript('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js');
+            await new Promise((resolve, reject) => {
+                window.QRCode.toCanvas(
+                    document.getElementById('myQrCanvas'),
+                    data.payload,
+                    {
+                        width: 220,
+                        margin: 2,
+                        color: {
+                            dark: '#0F172A',
+                            light: '#FFFFFF'
+                        }
+                    },
+                    error => error ? reject(error) : resolve()
+                );
+            });
+            setQrStatus('myQrStatus', `${data.name || 'Your'} QR is ready.`, 'success');
+        } catch (error) {
+            console.error(error);
+            setQrStatus('myQrStatus', 'QR generator unavailable. Check your connection and try again.', 'error');
         }
+    }
+
+    async function openQrScanner() {
+        const activeTab = document.querySelector('.filter-pill.active:not(.create-group-pill)');
         if (!activeTab) {
             alert('Create or select a group first.');
             return;
         }
+        activeGroupId = Number(activeTab.dataset.groupId);
+        openModal('scanQrModal');
+        await startQrScanner();
+    }
 
-        fetch(api.addMember, {
+    async function startQrScanner() {
+        stopQrScanner();
+        const video = document.getElementById('qrScanVideo');
+        const canvas = document.getElementById('qrScanCanvas');
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setQrStatus('scanQrStatus', 'Camera access is not available in this browser.', 'error');
+            return;
+        }
+
+        try {
+            setQrStatus('scanQrStatus', 'Starting camera...', '');
+            scanStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } },
+                audio: false
+            });
+            video.srcObject = scanStream;
+            await video.play();
+            isScanning = true;
+            setQrStatus('scanQrStatus', 'Scanning...', '');
+
+            if ('BarcodeDetector' in window) {
+                const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                scanWithBarcodeDetector(detector, video);
+            } else {
+                await loadScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js');
+                scanWithJsQr(video, canvas);
+            }
+        } catch (error) {
+            console.error(error);
+            setQrStatus('scanQrStatus', 'Camera permission is needed to scan QR codes.', 'error');
+            stopQrScanner();
+        }
+    }
+
+    async function scanWithBarcodeDetector(detector, video) {
+        if (!isScanning) return;
+        try {
+            const codes = await detector.detect(video);
+            if (codes.length > 0 && codes[0].rawValue) {
+                handleScannedPayload(codes[0].rawValue);
+                return;
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        scanLoopId = requestAnimationFrame(() => scanWithBarcodeDetector(detector, video));
+    }
+
+    function scanWithJsQr(video, canvas) {
+        if (!isScanning) return;
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        if (width && height && window.jsQR) {
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, width, height);
+            const imageData = context.getImageData(0, 0, width, height);
+            const code = window.jsQR(imageData.data, width, height);
+            if (code?.data) {
+                handleScannedPayload(code.data);
+                return;
+            }
+        }
+        scanLoopId = requestAnimationFrame(() => scanWithJsQr(video, canvas));
+    }
+
+    function stopQrScanner() {
+        isScanning = false;
+        if (scanLoopId) {
+            cancelAnimationFrame(scanLoopId);
+            scanLoopId = null;
+        }
+        if (scanStream) {
+            scanStream.getTracks().forEach(track => track.stop());
+            scanStream = null;
+        }
+        const video = document.getElementById('qrScanVideo');
+        if (video) video.srcObject = null;
+    }
+
+    function handleScannedPayload(qrPayload) {
+        if (!isScanning) return;
+        isScanning = false;
+        setQrStatus('scanQrStatus', 'Sending invite...', '');
+
+        fetch(api.scanInvite, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                group_id: Number(activeTab.dataset.groupId),
-                nric: val
+                group_id: activeGroupId,
+                qr_payload: qrPayload
             })
         })
         .then(res => res.json().then(data => ({ ok: res.ok, data })))
         .then(({ ok, data }) => {
             if (ok && data.success) {
-                alert(`Invitation sent to ${val}.`);
-                input.value = '';
+                setQrStatus('scanQrStatus', `Invitation sent to ${data.recipient_name || 'teammate'}.`, 'success');
+                setTimeout(() => closeModal('scanQrModal'), 900);
             } else {
-                alert(data.error || 'Could not send invite.');
+                setQrStatus('scanQrStatus', data.error || 'Could not send invite.', 'error');
+                setTimeout(() => {
+                    if (document.getElementById('scanQrModal')?.classList.contains('active')) {
+                        isScanning = true;
+                        const video = document.getElementById('qrScanVideo');
+                        if ('BarcodeDetector' in window) {
+                            scanWithBarcodeDetector(new BarcodeDetector({ formats: ['qr_code'] }), video);
+                        } else {
+                            scanWithJsQr(video, document.getElementById('qrScanCanvas'));
+                        }
+                    }
+                }, 1400);
             }
         })
         .catch(err => {
             console.error(err);
-            alert('Could not send invite.');
+            setQrStatus('scanQrStatus', 'Could not send invite.', 'error');
         });
+    }
+
+    function setQrStatus(elementId, message, state) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        element.textContent = message;
+        element.className = `qr-status ${state || ''}`.trim();
     }
 
     function acceptInvite(inviteId) {
@@ -261,22 +397,83 @@
         .catch(err => console.error('Error:', err));
     }
 
+    function renderPendingInvites(invites, focusNew) {
+        const stack = document.getElementById('inviteStackContainer');
+        const panel = document.getElementById('pendingInvitePanel');
+        if (!stack || !panel) return;
+
+        const pending = Array.isArray(invites) ? invites : [];
+        const newInviteIds = pending
+            .map(invite => String(invite.id))
+            .filter(inviteId => !knownInviteIds.has(inviteId));
+
+        panel.classList.toggle('no-pending-invites', pending.length === 0);
+        if (pending.length === 0) {
+            stack.innerHTML = '<div id="emptyState" class="invite-empty-state">No pending invitations found.</div>';
+            knownInviteIds = new Set();
+            return;
+        }
+
+        stack.innerHTML = pending.map(invite => inviteCard(invite, newInviteIds.includes(String(invite.id)))).join('');
+        knownInviteIds = new Set(pending.map(invite => String(invite.id)));
+
+        if (focusNew && newInviteIds.length > 0) {
+            if (document.getElementById('myQrModal')?.classList.contains('active')) {
+                closeModal('myQrModal');
+            }
+            const card = document.getElementById(`invite-${newInviteIds[0]}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.focus({ preventScroll: true });
+                setTimeout(() => card.classList.remove('is-new'), 4500);
+            }
+        }
+    }
+
+    function inviteCard(invite, isNew) {
+        const inviteId = escapeHtml(invite.id);
+        return `
+            <div class="invite-card ${isNew ? 'is-new' : ''}" id="invite-${inviteId}" data-invite-id="${inviteId}" tabindex="-1">
+                <div class="invite-meta">
+                    <div class="sender">${escapeHtml(invite.sender || 'NSman')}</div>
+                    <div class="group-target">wants you to join "${escapeHtml(invite.group_name || 'Group')}"</div>
+                </div>
+                <div class="invite-actions">
+                    <button class="btn-accept" onclick="acceptInvite(${inviteId})">Accept</button>
+                    <button class="btn-decline" onclick="declineInvite(${inviteId})">Decline</button>
+                </div>
+            </div>`;
+    }
+
+    function pollPendingInvites(focusNew = true) {
+        fetch(api.pendingInvites)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) renderPendingInvites(data.invites, focusNew);
+            })
+            .catch(err => console.error('Invite poll failed:', err));
+    }
+
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                
-                modal.classList.remove('active');
+                closeModal(modal.id);
             }
         });
     });
+
+    pollPendingInvites(false);
+    window.setInterval(() => {
+        if (!document.hidden) pollPendingInvites(true);
+    }, 4000);
 
     window.openModal = openModal;
     window.closeModal = closeModal;
     window.selectTab = selectTab;
     window.setLeaderboardSort = setLeaderboardSort;
-    window.addChipToken = addChipToken;
     window.submitCreateGroup = submitCreateGroup;
-    window.addMemberToGroup = addMemberToGroup;
+    window.openMyQr = openMyQr;
+    window.openQrScanner = openQrScanner;
     window.acceptInvite = acceptInvite;
     window.declineInvite = declineInvite;
 })();

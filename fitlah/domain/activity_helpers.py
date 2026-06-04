@@ -53,40 +53,31 @@ def get_personal_best(nric):
         "updated_at": None
     }
 
-def create_invites_for_group(db, group, invited_nrics):
-    created = 0
+def create_group_invite_for_user(group, recipient_nric):
     sender = current_user()
     invites = list_invites()
     users = list_users()
+    normalized = (recipient_nric or "").strip().upper()
 
-    for raw_nric in invited_nrics:
-        recipient_nric = (raw_nric or "").strip().upper()
-        if not recipient_nric or recipient_nric == sender.get("nric"):
-            continue
+    if not sender or not normalized:
+        return False, "Invitation recipient was not found"
+    if normalized == sender.get("nric"):
+        return False, "You cannot invite yourself"
 
-        recipient = next((u for u in users if u.get("nric") == recipient_nric), None)
-        already_invited = any(
-            invite.get("group_id") == group.get("id")
-            and invite.get("recipient_nric") == recipient_nric
-            and invite.get("status") == "Pending"
-            for invite in invites
-        )
+    recipient = next((u for u in users if u.get("nric") == normalized), None)
+    if not recipient:
+        return False, "Invitation recipient was not found"
 
-        if not recipient or already_invited or user_is_group_member(group.get("id"), recipient_nric):
-            continue
+    already_invited = any(
+        invite.get("group_id") == group.get("id")
+        and invite.get("recipient_nric") == normalized
+        and invite.get("status") == "Pending"
+        for invite in invites
+    )
+    if already_invited:
+        return False, "This teammate already has a pending invitation"
+    if user_is_group_member(group.get("id"), normalized):
+        return False, "This teammate is already in the group"
 
-        invite = {
-            "sender": sender.get("name", "NSman"),
-            "sender_nric": sender.get("nric"),
-            "recipient_nric": recipient_nric,
-            "recipient_name": recipient.get("name", "NSman"),
-            "group_id": group.get("id"),
-            "group_name": group.get("name"),
-            "invited_on": datetime.now().strftime("%Y-%m-%d"),
-            "status": "Pending"
-        }
-        create_invite(group.get("id"), sender.get("nric"), recipient_nric)
-        invites.append(invite)
-        created += 1
-
-    return created
+    create_invite(group.get("id"), sender.get("nric"), normalized)
+    return True, recipient.get("name", "NSman")

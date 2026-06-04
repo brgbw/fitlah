@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from flask import jsonify, render_template, request
+from flask import current_app, jsonify, render_template, request
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from ..core.auth import current_user, login_required
 from ..domain.activity_helpers import (
-    create_invites_for_group,
+    create_group_invite_for_user,
     find_group,
     user_is_group_member,
 )
@@ -19,7 +20,12 @@ from ..data_access.repositories import (
     update_invite,
 )
 from ..core.web_security import clean_text, json_too_large, rate_limit
-from ..core.validation import nric_check
+
+QR_TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+
+
+def _qr_serializer():
+    return URLSafeTimedSerializer(current_app.secret_key, salt="fitlah-group-invite-qr")
 
 
 def _default_best(nric):
@@ -127,52 +133,44 @@ def register_group_routes(app):
                 return jsonify({"success": True})
         return jsonify({"success": False, "error": "Invite not found"}), 404
 
-    @app.route("/api/create-group", methods=["POST"])
+    @app.route("/api/group-qr-payload")
     @login_required
-    @rate_limit("create-group", 10, 300)
-    def create_group():
-        if json_too_large(20000):
-            return jsonify({"success": False, "error": "Request body is too large"}), 413
-        data = request.get_json() or {}
-        group_name = clean_text(data.get("group_name"), 80)
-        invited_nrics = data.get("invited_nrics", [])
-        if not isinstance(invited_nrics, list):
-            invited_nrics = []
-        invited_nrics = [
-            str(nric).strip().upper()
-            for nric in invited_nrics[:20]
-            if nric_check(str(nric).strip().upper())
-        ]
-
-        if not group_name:
-            return jsonify({"success": False, "error": "Group name required"}), 400
-
+    @rate_limit("group-qr-payload", 60, 300)
+    def group_qr_payload():
         user = current_user()
-        group_id = repo_create_group(group_name, user.get("nric"))
-        new_group = {
-            "id": group_id,
-            "name": group_name,
-            "created_by": user.get("name", "NSman"),
-            "created_date": datetime.now().strftime("%Y-%m-%d"),
-        }
-        created_invites = create_invites_for_group(None, new_group, invited_nrics)
-        repo_add_group_member(group_id, user.get("nric"))
-        return jsonify({"success": True, "group_id": new_group["id"], "invites_created": created_invites})
+        token = _qr_serializer().dumps({
+            "nric": user.get("nric"),
+            "name": user.get("name", "NSman"),
+        })
+        return jsonify({
+            "success": True,
+            "payload": token,
+            "name": user.get("name", "NSman"),
+        })
 
-    @app.route("/api/add-member", methods=["POST"])
+    @app.route("/api/pending-invites")
     @login_required
-    @rate_limit("add-member", 20, 300)
-    def add_member():
+    @rate_limit("pending-invites", 120, 300)
+    def pending_invites():
+        user = current_user()
+        invites = [
+            invite for invite in list_invites()
+            if invite.get("recipient_nric") == user.get("nric") and invite.get("status") == "Pending"
+        ]
+        return jsonify({"success": True, "invites": invites})
+
+    @app.route("/api/scan-invite", methods=["POST"])
+    @login_required
+    @rate_limit("scan-invite", 30, 300)
+    def scan_invite():
         if json_too_large(20000):
             return jsonify({"success": False, "error": "Request body is too large"}), 413
         data = request.get_json() or {}
         group_id = data.get("group_id")
-        nric = str(data.get("nric") or "").strip().upper()
+        qr_payload = str(data.get("qr_payload") or "").strip()
 
-        if not all([group_id, nric]):
-            return jsonify({"success": False, "error": "Missing required fields"}), 400
-        if not nric_check(nric):
-            return jsonify({"success": False, "error": "Invalid NRIC"}), 400
+        if not all([group_id, qr_payload]):
+            return jsonify({"success": False, "error": "Missing group or QR payload"}), 400
 
         try:
             group_id = int(group_id)
@@ -187,11 +185,42 @@ def register_group_routes(app):
         if not fitness_group:
             return jsonify({"success": False, "error": "Group not found"}), 404
 
-        created = create_invites_for_group(None, fitness_group, [nric])
-        if created == 0:
-            return jsonify({
-                "success": False,
-                "error": "Invite already exists, user is already in the group, or NRIC is unknown",
-            }), 400
+        try:
+            decoded = _qr_serializer().loads(qr_payload, max_age=QR_TOKEN_MAX_AGE_SECONDS)
+        except SignatureExpired:
+            return jsonify({"success": False, "error": "This QR code has expired. Ask your teammate to refresh it."}), 400
+        except BadSignature:
+            return jsonify({"success": False, "error": "This QR code is not a valid FitLah invite code."}), 400
 
-        return jsonify({"success": True, "invites_created": created})
+        created, result = create_group_invite_for_user(fitness_group, decoded.get("nric"))
+        if not created:
+            return jsonify({"success": False, "error": result}), 400
+
+        return jsonify({
+            "success": True,
+            "recipient_name": result,
+            "group_name": fitness_group.get("name"),
+        })
+
+    @app.route("/api/create-group", methods=["POST"])
+    @login_required
+    @rate_limit("create-group", 10, 300)
+    def create_group():
+        if json_too_large(20000):
+            return jsonify({"success": False, "error": "Request body is too large"}), 413
+        data = request.get_json() or {}
+        group_name = clean_text(data.get("group_name"), 80)
+
+        if not group_name:
+            return jsonify({"success": False, "error": "Group name required"}), 400
+
+        user = current_user()
+        group_id = repo_create_group(group_name, user.get("nric"))
+        new_group = {
+            "id": group_id,
+            "name": group_name,
+            "created_by": user.get("name", "NSman"),
+            "created_date": datetime.now().strftime("%Y-%m-%d"),
+        }
+        repo_add_group_member(group_id, user.get("nric"))
+        return jsonify({"success": True, "group_id": new_group["id"]})

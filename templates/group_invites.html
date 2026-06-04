@@ -64,10 +64,10 @@
         color: #ffffff !important;
     }
 
-    /* Inline Add Member Form */
-    .inline-add-member {
+    .qr-invite-toolbar {
         display: flex;
-        gap: 6px;
+        justify-content: flex-end;
+        gap: 10px;
         background-color: #FFFFFF;
         padding: 12px;
         border: 1px solid #E2E8F0;
@@ -75,35 +75,36 @@
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
         margin-bottom: 20px;
     }
-    .inline-add-member input {
-        flex: 1;
-        min-width: 0;
-        padding: 8px 12px;
-        border: 1px solid #E2E8F0;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #0F172A;
-        outline: none;
-        background-color: #F8FAFC;
-    }
-    .inline-add-member input:focus {
-        border-color: #00A86B;
-        background-color: #FFFFFF;
-    }
-    .inline-add-member button {
-        background-color: #0A64BC;
-        color: #ffffff;
-        border: none;
-        padding: 8px 16px;
-        font-size: 12px;
-        font-weight: 600;
-        border-radius: 6px;
+
+    .icon-action-button {
+        width: 52px;
+        height: 52px;
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        background: #FFFFFF;
         cursor: pointer;
-        transition: all 0.2s ease;
-        white-space: nowrap;
+        display: inline-grid;
+        place-items: center;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
-    .inline-add-member button:hover {
-        background-color: #0a5cad;
+
+    .icon-action-button:hover {
+        border-color: #00A86B;
+        box-shadow: 0 8px 18px rgba(0, 168, 107, 0.14);
+        transform: translateY(-1px);
+    }
+
+    .icon-action-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .icon-action-icon {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
     }
 
     .section-title {
@@ -392,55 +393,73 @@
         border-color: #00A86B;
         background-color: #ffffff;
     }
-    
-    .token-input-row {
-        display: flex;
-        gap: 6px;
+
+    .qr-preview-frame {
+        display: grid;
+        place-items: center;
+        min-height: 260px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        background: #F8FAFC;
+        padding: 18px;
     }
-    .token-input-row input {
-        flex: 1;
+
+    .qr-preview-frame canvas {
+        width: min(220px, 70vw) !important;
+        height: min(220px, 70vw) !important;
+        background: #FFFFFF;
+        border: 10px solid #FFFFFF;
+        border-radius: 8px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
     }
-    .btn-add-token {
-        background-color: #0F172A;
-        color: #ffffff;
-        border: none;
-        padding: 0 16px;
-        border-radius: 6px;
-        font-size: 12px;
+
+    .scan-video-frame {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        background: #0F172A;
+        aspect-ratio: 1 / 1;
+    }
+
+    .scan-video-frame video,
+    .scan-video-frame canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .scan-video-frame canvas {
+        display: none;
+    }
+
+    .scan-frame-corners {
+        position: absolute;
+        inset: 14%;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        border-radius: 12px;
+        pointer-events: none;
+    }
+
+    .qr-status {
+        min-height: 24px;
+        color: #64748B;
+        font-size: 13px;
         font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
     }
-    .btn-add-token:hover {
-        background-color: #1A2332;
+
+    .qr-status.success {
+        color: #047857;
     }
-    .token-tray-box {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        min-height: 34px;
-        padding: 6px;
-        border: 1px dashed #E2E8F0;
-        border-radius: 6px;
-        background-color: #fafafa;
-    }
-    .identity-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background-color: #f1f5f9;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #475569;
-        font-family: monospace;
-    }
-    .identity-chip span {
+
+    .qr-status.error {
         color: #E11D48;
-        cursor: pointer;
-        font-weight: bold;
-        font-family: sans-serif;
+    }
+
+    .invite-card.is-new {
+        border-color: #00A86B;
+        box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.14);
     }
 
     .modal-footer {
@@ -521,7 +540,6 @@
 
     @media (max-width: 640px) {
         .leaderboard-bar,
-        .token-input-row,
         .modal-footer {
             flex-direction: column;
             align-items: stretch;
@@ -549,26 +567,18 @@
             margin-left: 0;
         }
 
-        .inline-add-member {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 8px;
+        .qr-invite-toolbar {
+            justify-content: stretch;
             padding: 8px;
             margin-bottom: 18px;
         }
 
-        .inline-add-member input {
-            min-height: 44px;
-            font-size: 16px;
-        }
-
-        .inline-add-member button {
-            min-height: 44px;
+        .icon-action-button {
+            flex: 1;
             width: auto;
-            padding-inline: 14px;
+            height: 52px;
         }
 
-        .btn-add-token,
         .btn-modal-cancel,
         .btn-modal-submit {
             min-height: 44px;
@@ -754,23 +764,42 @@
                     <option value="pullups">2.4Km Run Focus</option>
                 </select>
             </div>
-            <div class="form-element-block">
-                <label>Invite Buddies via NRIC</label>
-                <div class="token-input-row">
-                    <input type="text" id="modalTokenInput" class="form-input" placeholder="Enter NRIC">
-                    <button class="btn-add-token" onclick="addChipToken()">Invite</button>
-                </div>
-            </div>
-            <div class="form-element-block">
-                <label style="font-size: 10px;">Pending Invitations</label>
-                <div class="token-tray-box" id="modalTokenTray">
-                    <!-- Chips will be added here -->
-                </div>
-            </div>
         </div>
         <div class="modal-footer">
             <button class="btn-modal-cancel" onclick="closeModal('createGroupModal')">Cancel</button>
             <button class="btn-modal-submit" onclick="submitCreateGroup()">Launch Group</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="myQrModal">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3>My QR</h3>
+            <button class="close-icon-btn" onclick="closeModal('myQrModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="qr-preview-frame">
+                <canvas id="myQrCanvas" width="220" height="220" aria-label="Your group invite QR code"></canvas>
+            </div>
+            <div class="qr-status" id="myQrStatus" role="status"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="scanQrModal">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3>Scan QR</h3>
+            <button class="close-icon-btn" onclick="closeModal('scanQrModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="scan-video-frame">
+                <video id="qrScanVideo" playsinline muted></video>
+                <canvas id="qrScanCanvas"></canvas>
+                <div class="scan-frame-corners" aria-hidden="true"></div>
+            </div>
+            <div class="qr-status" id="scanQrStatus" role="status"></div>
         </div>
     </div>
 </div>
@@ -789,10 +818,13 @@
             <div class="filter-pill create-group-pill" onclick="openModal('createGroupModal')">+ Create Group</div>
         </div>
 
-        <!-- Inline Add Member Form -->
-        <div class="inline-add-member">
-            <input type="text" id="memberIdInput" class="form-input" placeholder="Enter NRIC" maxlength="9">
-            <button onclick="addMemberToGroup()">Send Invite</button>
+        <div class="qr-invite-toolbar" aria-label="Group QR invite actions">
+            <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my QR" aria-label="Show my QR">
+                <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+            </button>
+            <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan buddy QR" aria-label="Scan buddy QR" {% if not group_data %}disabled{% endif %}>
+                <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+            </button>
         </div>
 
         <div class="leaderboard-bar">
@@ -899,14 +931,14 @@
 
     <!-- Right Panel Column -->
     {% set pending_invites = invites|selectattr('status', 'equalto', 'Pending')|list %}
-    <div class="right-panel-column {% if not pending_invites %}no-pending-invites{% endif %}">
+    <div class="right-panel-column {% if not pending_invites %}no-pending-invites{% endif %}" id="pendingInvitePanel">
         <div class="section-title">Incoming Invites</div>
         <div class="panel-box">
             <div class="invite-stack" id="inviteStackContainer">
                 {% if invites %}
                     {% for invite in invites %}
                     {% if invite.status == 'Pending' %}
-                    <div class="invite-card" id="invite-{{ invite.id }}">
+                    <div class="invite-card" id="invite-{{ invite.id }}" data-invite-id="{{ invite.id }}" tabindex="-1">
                         <div class="invite-meta">
                             <div class="sender">{{ invite.sender }}</div>
                             <div class="group-target">wants you to join "{{ invite.group_name }}"</div>
