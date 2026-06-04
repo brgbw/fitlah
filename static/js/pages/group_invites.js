@@ -208,21 +208,16 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Could not generate QR');
 
-            await loadScript('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js');
-            await new Promise((resolve, reject) => {
-                window.QRCode.toCanvas(
-                    document.getElementById('myQrCanvas'),
-                    data.payload,
-                    {
-                        width: 220,
-                        margin: 2,
-                        color: {
-                            dark: '#0F172A',
-                            light: '#FFFFFF'
-                        }
-                    },
-                    error => error ? reject(error) : resolve()
-                );
+            await loadScript('/static/js/vendor/qrcode.min.js');
+            const target = document.getElementById('myQrCanvas');
+            target.innerHTML = '';
+            new window.QRCode(target, {
+                text: data.payload,
+                width: 220,
+                height: 220,
+                colorDark: '#0F172A',
+                colorLight: '#FFFFFF',
+                correctLevel: window.QRCode.CorrectLevel.M
             });
             setQrStatus('myQrStatus', `${data.name || 'Your'} QR is ready.`, 'success');
         } catch (error) {
@@ -266,7 +261,7 @@
                 const detector = new BarcodeDetector({ formats: ['qr_code'] });
                 scanWithBarcodeDetector(detector, video);
             } else {
-                await loadScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js');
+                await loadScript('/static/js/vendor/jsQR.js');
                 scanWithJsQr(video, canvas);
             }
         } catch (error) {

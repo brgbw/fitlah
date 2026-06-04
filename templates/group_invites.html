@@ -404,13 +404,19 @@
         padding: 18px;
     }
 
-    .qr-preview-frame canvas {
+    .qr-preview-frame canvas,
+    .qr-preview-frame img {
         width: min(220px, 70vw) !important;
         height: min(220px, 70vw) !important;
         background: #FFFFFF;
         border: 10px solid #FFFFFF;
         border-radius: 8px;
         box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    .qr-code-target {
+        display: grid;
+        place-items: center;
     }
 
     .scan-video-frame {
@@ -780,7 +786,7 @@
         </div>
         <div class="modal-body">
             <div class="qr-preview-frame">
-                <canvas id="myQrCanvas" width="220" height="220" aria-label="Your group invite QR code"></canvas>
+                <div id="myQrCanvas" class="qr-code-target" aria-label="Your group invite QR code"></div>
             </div>
             <div class="qr-status" id="myQrStatus" role="status"></div>
         </div>
