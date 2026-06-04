@@ -579,6 +579,26 @@
                     font-size: calc(18px * var(--font-scale)) !important;
                 }
 
+                .main-content :where(.score-pill) {
+                    font-size: max(calc(15px * var(--font-scale)), 15px) !important;
+                    line-height: 1.2;
+                }
+
+                .main-content :where(.rank-badge) {
+                    font-size: max(calc(13px * var(--font-scale)), 13px) !important;
+                    line-height: 1.2;
+                }
+
+                .main-content :where(.score-pill span, .leader-score span, .leader-metric span, .pb-unit, .group-award-badge) {
+                    font-size: max(calc(12px * var(--font-scale)), 12px) !important;
+                    line-height: 1.2;
+                }
+
+                .main-content :where(.modal-description) {
+                    font-size: max(calc(14px * var(--font-scale)), 14px) !important;
+                    line-height: 1.45;
+                }
+
                 @media (max-width: 900px) {
                     .main-content :where(h1) {
                         font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;

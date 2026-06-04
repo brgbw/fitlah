@@ -64,7 +64,7 @@
         const selected = groupRosterData.find(item => item.group.id === Number(groupId));
 
         if (!selected || selected.members.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">No roster records available for this group yet.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">No roster records available for this group yet.</td></tr>';
             if (mobileList) {
                 mobileList.innerHTML = '<div class="mobile-empty-state">No roster records available for this group yet.</div>';
             }
@@ -72,14 +72,15 @@
         }
 
         const members = sortedMembers(selected.members);
-        tableBody.innerHTML = members.map(member => {
+        tableBody.innerHTML = members.map((member, index) => {
             const best = member.personal_best || {};
             const score = member.ippt_score || {};
             const award = score.award || {};
 
             return `
                 <tr>
-                    <td>
+                    <td class="rank-column"><span class="rank-badge">${index + 1}</span></td>
+                    <td class="member-name-cell">
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
                     </td>
                     <td class="pb-cell">
@@ -95,11 +96,10 @@
                         <span class="pb-unit">Minutes</span>
                     </td>
                     <td class="pb-cell">
-                        <div class="pb-value">${score.total_points || 0}</div>
-                        <span class="pb-unit">Points</span>
+                        <span class="score-pill">${score.total_points || 0} <span>pts</span></span>
                     </td>
                     <td>
-                        <span class="status-badge-pill ${escapeHtml(award.code || 'fail')}">
+                        <span class="status-badge-pill group-award-badge ${escapeHtml(award.code || 'fail')}">
                             ${escapeHtml(award.label || 'Fail')}
                         </span>
                     </td>
@@ -110,11 +110,11 @@
         }).join('');
 
         if (mobileList) {
-            mobileList.innerHTML = members.map(member => mobileLeaderCard(member)).join('');
+            mobileList.innerHTML = members.map((member, index) => mobileLeaderCard(member, index)).join('');
         }
     }
 
-    function mobileLeaderCard(member) {
+    function mobileLeaderCard(member, index) {
         const best = member.personal_best || {};
         const score = member.ippt_score || {};
         const award = score.award || {};
@@ -122,16 +122,17 @@
         return `
             <article class="leader-card">
                 <div class="leader-card-top">
+                    <span class="rank-badge">${index + 1}</span>
                     <div class="leader-name">
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
                     </div>
                     <div class="leader-score">
                         <strong>${escapeHtml(points)}</strong>
-                        <span>points</span>
+                        <span>pts</span>
                     </div>
                 </div>
                 <div class="leader-meta-row">
-                    <span class="status-badge-pill ${escapeHtml(award.code || 'fail')}">
+                    <span class="status-badge-pill group-award-badge ${escapeHtml(award.code || 'fail')}">
                         ${escapeHtml(award.label || 'Fail')}
                     </span>
                 </div>
