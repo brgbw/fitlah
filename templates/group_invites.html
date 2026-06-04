@@ -63,18 +63,26 @@
         background-color: #00A86B;
         color: #ffffff !important;
     }
+    .create-group-short {
+        display: none;
+    }
 
     .group-action-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .qr-invite-card {
+        flex: 1;
+        min-width: 0;
         background-color: #FFFFFF;
         padding: 12px;
         border: 1px solid #E2E8F0;
         border-radius: 8px;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-        margin-bottom: 20px;
     }
 
     .qr-invite-cluster {
@@ -154,6 +162,8 @@
     .group-danger-button {
         padding: 0 16px;
         min-height: 52px;
+        background-color: #FFFFFF;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
     }
 
     .member-action-button {
@@ -628,21 +638,65 @@
             margin-bottom: 12px;
             padding: 6px;
             border-radius: 8px;
+            background: #F8FAFC;
+            border-color: #D9E4EC;
+            box-shadow: none;
+        }
+
+        .filter-pill {
+            border-radius: 7px;
+            color: #526173;
+        }
+
+        .filter-pill.active {
+            background: #FFFFFF;
+            color: #0F172A;
+            border-color: #D9E4EC;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
         }
 
         .create-group-pill {
             margin-left: 0;
+            width: 44px;
+            min-width: 44px;
+            justify-content: center;
+            padding: 0;
+            background: #0B766B;
+            color: #FFFFFF !important;
+            border-color: #0B766B;
+        }
+
+        .create-group-label {
+            display: none;
+        }
+
+        .create-group-short {
+            display: inline;
+            font-size: 24px;
+            line-height: 1;
         }
 
         .group-action-bar {
+            display: grid;
+            grid-template-columns: 1fr;
             align-items: center;
-            justify-content: space-between;
-            padding: 8px;
             margin-bottom: 18px;
+            gap: 10px;
+        }
+
+        .qr-invite-card {
+            padding: 12px;
+            border-color: #D9E4EC;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
         .invite-action-copy {
             font-size: 14px;
+            color: #1E293B;
+        }
+
+        .qr-invite-toolbar {
+            justify-content: flex-start;
         }
 
         .icon-action-button {
@@ -650,15 +704,22 @@
             width: 56px;
             height: 56px;
             aspect-ratio: 1 / 1;
+            border-color: #D1E3E6;
+            background: #F8FAFC;
         }
 
         .qr-action-label {
             font-size: 12px;
+            color: #526173;
         }
 
         .group-danger-button {
             min-height: 44px;
             padding: 0 12px;
+            width: fit-content;
+            justify-self: end;
+            border-color: #F7CFCF;
+            box-shadow: none;
         }
 
         .btn-modal-cancel,
@@ -674,7 +735,7 @@
 
         .section-title {
             margin-bottom: 0;
-            color: #0F172A;
+            color: #102033;
             text-transform: none;
             font-size: 24px;
         }
@@ -683,10 +744,14 @@
             display: grid;
             grid-template-columns: auto minmax(0, 1fr);
             width: 100%;
+            color: #526173;
         }
 
         .sort-control select {
             width: 100%;
+            border-color: #C9D8E3;
+            background: #FFFFFF;
+            color: #102033;
         }
 
         .sync-table {
@@ -703,15 +768,15 @@
 
         .mobile-leaderboard-list {
             display: grid;
-            gap: 10px;
+            gap: 12px;
         }
 
         .leader-card {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F7FBFC 100%);
+            border: 1px solid #D5E4EA;
             border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            padding: 14px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
         }
 
         .leader-card-top {
@@ -728,7 +793,7 @@
 
         .leader-name strong {
             display: block;
-            color: #0F172A;
+            color: #102033;
             font-size: 17px;
             line-height: 1.2;
             overflow-wrap: anywhere;
@@ -739,10 +804,14 @@
             justify-items: end;
             gap: 4px;
             min-width: 72px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            background: #102033;
+            border: 1px solid #18344F;
         }
 
         .leader-score strong {
-            color: #0F172A;
+            color: #FFFFFF;
             font-size: 28px;
             font-weight: 850;
             line-height: 1;
@@ -750,7 +819,7 @@
         }
 
         .leader-score span {
-            color: #64748B;
+            color: #9AD7D0;
             font-size: 11px;
             font-weight: 800;
             text-transform: uppercase;
@@ -764,15 +833,15 @@
         }
 
         .leader-metric {
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
+            background: #F3F8FA;
+            border: 1px solid #DCE8EE;
             border-radius: 8px;
             padding: 10px 8px;
         }
 
         .leader-metric span {
             display: block;
-            color: #64748B;
+            color: #526173;
             font-size: 11px;
             font-weight: 800;
             text-transform: uppercase;
@@ -780,7 +849,7 @@
         }
 
         .leader-metric strong {
-            color: #0F172A;
+            color: #102033;
             font-size: 16px;
             font-weight: 800;
             line-height: 1.15;
@@ -792,9 +861,35 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            color: #64748B;
+            color: #526173;
             font-size: 12px;
             line-height: 1.4;
+        }
+
+        .leader-card .status-badge-pill {
+            border-radius: 999px;
+            border: 1px solid #C9E7E1;
+            background: #EAF8F5;
+            color: #0B766B;
+        }
+
+        .leader-card .status-badge-pill.gold {
+            background: #FFF7E6;
+            color: #99670B;
+            border-color: #F3D08A;
+        }
+
+        .leader-card .status-badge-pill.silver {
+            background: #EEF4F7;
+            color: #475569;
+            border-color: #CBD5E1;
+        }
+
+        .leader-card .status-badge-pill.fail,
+        .leader-card .status-badge-pill.incomplete {
+            background: #FFF1F2;
+            color: #BE123C;
+            border-color: #FECDD3;
         }
 
         .member-card-actions {
@@ -805,9 +900,9 @@
 
         .mobile-empty-state {
             background: #FFFFFF;
-            border: 1px dashed #CBD5E1;
+            border: 1px dashed #B8CCD8;
             border-radius: 8px;
-            color: #64748B;
+            color: #526173;
             padding: 18px;
             text-align: center;
         }
@@ -906,24 +1001,29 @@
             {% for item in group_data %}
             <div class="filter-pill {% if loop.first %}active{% endif %}" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">{{ item.group.name }}</div>
             {% endfor %}
-            <div class="filter-pill create-group-pill" onclick="openModal('createGroupModal')">+ Create Group</div>
+            <div class="filter-pill create-group-pill" onclick="openModal('createGroupModal')" aria-label="Create group">
+                <span class="create-group-label">+ Create Group</span>
+                <span class="create-group-short" aria-hidden="true">+</span>
+            </div>
         </div>
 
         <div class="group-action-bar">
-            <div class="qr-invite-cluster">
-                <div class="invite-action-copy">Invite by QR</div>
-                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
-                    <div class="qr-action-item">
-                        <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                            <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
-                        </button>
-                        <span class="qr-action-label">My QR</span>
-                    </div>
-                    <div class="qr-action-item">
-                        <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
-                            <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
-                        </button>
-                        <span class="qr-action-label">Scan</span>
+            <div class="qr-invite-card">
+                <div class="qr-invite-cluster">
+                    <div class="invite-action-copy">Invite by QR</div>
+                    <div class="qr-invite-toolbar" aria-label="Invite people by QR">
+                        <div class="qr-action-item">
+                            <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                                <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+                            </button>
+                            <span class="qr-action-label">My QR</span>
+                        </div>
+                        <div class="qr-action-item">
+                            <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
+                                <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
+                            </button>
+                            <span class="qr-action-label">Scan</span>
+                        </div>
                     </div>
                 </div>
             </div>
