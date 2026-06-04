@@ -83,14 +83,104 @@ function loadingCard(label) {
     `;
 }
 
-function mountRouteMap(container, latlng) {
-    const coords = latlng.map(p => [p[0], p[1]]);
+function speedForIndex(streams, index) {
+    const velocity = streams.velocity_smooth || [];
+    const directSpeed = Number(velocity[index]);
+    if (Number.isFinite(directSpeed) && directSpeed > 0) return directSpeed;
+
+    const times = streams.time || [];
+    const distances = streams.distance || [];
+    if (index <= 0 || index >= times.length || index >= distances.length) return null;
+
+    const deltaTime = Number(times[index]) - Number(times[index - 1]);
+    const deltaDistance = Number(distances[index]) - Number(distances[index - 1]);
+    if (deltaTime <= 0 || deltaDistance < 0) return null;
+    return deltaDistance / deltaTime;
+}
+
+function percentile(values, ratio) {
+    if (!values.length) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * ratio)));
+    return sorted[index];
+}
+
+function colorForSpeed(speed, minSpeed, maxSpeed) {
+    if (!Number.isFinite(speed)) return '#94A3B8';
+    if (!Number.isFinite(minSpeed) || !Number.isFinite(maxSpeed) || maxSpeed <= minSpeed) return '#FC4C02';
+
+    const ratio = Math.max(0, Math.min(1, (speed - minSpeed) / (maxSpeed - minSpeed)));
+    if (ratio < 0.25) return '#DC2626';
+    if (ratio < 0.5) return '#F97316';
+    if (ratio < 0.75) return '#FACC15';
+    return '#16A34A';
+}
+
+function routeSpeedSegments(latlng, streams) {
+    const coords = latlng
+        .filter(point => Array.isArray(point) && point.length === 2)
+        .map(point => [Number(point[0]), Number(point[1])])
+        .filter(point => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+    if (coords.length < 2) return { coords, segments: [] };
+
+    const speeds = coords
+        .map((_, index) => speedForIndex(streams, index))
+        .filter(speed => Number.isFinite(speed) && speed > 0);
+    const minSpeed = percentile(speeds, 0.08);
+    const maxSpeed = percentile(speeds, 0.92);
+
+    const segments = [];
+    for (let index = 1; index < coords.length; index += 1) {
+        const speed = speedForIndex(streams, index);
+        const color = colorForSpeed(speed, minSpeed, maxSpeed);
+        const previous = segments[segments.length - 1];
+        if (previous && previous.color === color) {
+            previous.points.push(coords[index]);
+        } else {
+            segments.push({
+                points: [coords[index - 1], coords[index]],
+                color
+            });
+        }
+    }
+
+    return { coords, segments };
+}
+
+function hasUsableGpsRoute(latlng) {
+    return (latlng || []).filter(point => (
+        Array.isArray(point) &&
+        point.length === 2 &&
+        Number.isFinite(Number(point[0])) &&
+        Number.isFinite(Number(point[1]))
+    )).length >= 2;
+}
+
+function mountRouteMap(container, streams) {
+    const { coords, segments } = routeSpeedSegments(streams.latlng || [], streams);
+    if (coords.length < 2) return;
+
     const map = L.map('stravaRouteMap', { scrollWheelZoom: false, zoomControl: true });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
     }).addTo(map);
-    const poly = L.polyline(coords, { color: '#FC4C02', weight: 4, opacity: 0.95 }).addTo(map);
-    map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+
+    const routeLayer = L.featureGroup().addTo(map);
+    if (segments.length) {
+        segments.forEach(segment => {
+            L.polyline(segment.points, {
+                color: segment.color,
+                weight: 5,
+                opacity: 0.95,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(routeLayer);
+        });
+    } else {
+        L.polyline(coords, { color: '#FC4C02', weight: 4, opacity: 0.95 }).addTo(routeLayer);
+    }
+
+    map.fitBounds(routeLayer.getBounds(), { padding: [20, 20] });
     L.circleMarker(coords[0], { radius: 5, color: '#10B981', fillColor: '#10B981' }).addTo(map);
     L.circleMarker(coords[coords.length - 1], { radius: 5, color: '#2563EB', fillColor: '#2563EB' }).addTo(map);
     container._leafletMap = map;
@@ -176,7 +266,7 @@ async function loadPreview() {
         const activity = data.activity;
         const streams = data.streams || {};
         const latlng = streams.latlng || [];
-        const hasGps = latlng && latlng.length && latlng[0] && latlng[0].length === 2;
+        const hasGps = hasUsableGpsRoute(latlng);
 
         container.innerHTML = `
             <div class="strava-preview-top">
@@ -191,7 +281,16 @@ async function loadPreview() {
                     <div><span>Pace</span><strong>${escapeHtml(activity.pace || '--/km')}</strong></div>
                 </div>
             </div>
-            ${hasGps ? '<div id="stravaRouteMap" class="strava-route-map"></div>' : '<div class="strava-empty-map">No GPS route available for this activity.</div>'}
+            ${hasGps ? `
+                <div class="strava-route-map-wrap">
+                    <div id="stravaRouteMap" class="strava-route-map"></div>
+                    <div class="strava-speed-legend" aria-label="Route speed colour legend">
+                        <span>Slower</span>
+                        <i></i>
+                        <span>Faster</span>
+                    </div>
+                </div>
+            ` : '<div class="strava-empty-map">No GPS route available for this activity.</div>'}
             <div id="stravaIpptArea"></div>
             <div id="stravaSaveResult"></div>
             <div class="strava-preview-footer">
@@ -203,7 +302,7 @@ async function loadPreview() {
         `;
 
         if (hasGps && typeof L !== 'undefined') {
-            mountRouteMap(container, latlng);
+            mountRouteMap(container, streams);
         }
 
         document.getElementById('stravaAnalyzeBtn').addEventListener('click', async (event) => {

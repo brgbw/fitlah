@@ -213,6 +213,10 @@
     font-weight: 700;
 }
 
+.strava-route-map-wrap {
+    position: relative;
+}
+
 .strava-route-map {
     width: 100%;
     height: min(58vh, 520px);
@@ -220,6 +224,31 @@
     border: 1px solid #E2E8F0;
     border-radius: 8px;
     overflow: hidden;
+}
+
+.strava-speed-legend {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(203, 213, 225, 0.92);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #475569;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 750;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.strava-speed-legend i {
+    width: 86px;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #DC2626 0%, #F97316 34%, #FACC15 66%, #16A34A 100%);
 }
 
 .strava-preview-footer {
