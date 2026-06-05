@@ -18,8 +18,8 @@
         --group-muted: #68758A;
         --group-line: #DCE5EF;
         --group-soft: #F5F8FC;
-        --group-green: #008C63;
-        --group-green-strong: #007A58;
+        --group-green: #00A86B;
+        --group-green-strong: #008F5B;
         --group-red: #C62828;
         width: 100%;
         max-width: 1180px;
@@ -1865,6 +1865,167 @@
             padding: 8px;
         }
     }
+
+    /* Final polish for app consistency and brand color. */
+    .group-tab,
+    .create-group-pill,
+    .quick-action strong,
+    .group-danger-button strong,
+    .sort-select-shell select,
+    .group-summary-card h2,
+    .leader-name strong,
+    .leader-score strong,
+    .leader-metric strong {
+        font-weight: 700;
+    }
+
+    .group-tab.active {
+        color: var(--group-green-strong);
+        background: #E8F8F2;
+        border-color: #BCEBD9;
+        box-shadow: 0 3px 8px rgba(0, 168, 107, 0.12);
+    }
+
+    .group-tab.active .group-tab-icon {
+        filter: none;
+    }
+
+    .group-tab:not(.active) {
+        color: var(--group-ink);
+        background: transparent;
+    }
+
+    .create-group-pill {
+        color: var(--group-ink);
+    }
+
+    .create-group-pill:hover,
+    .group-tab:hover {
+        border-color: #BCEBD9;
+        background: #F3FCF8;
+    }
+
+    .group-tab-icon-selected {
+        display: none !important;
+    }
+
+    .leader-rank-block:empty {
+        display: none;
+    }
+
+    .leader-card {
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+    }
+
+    .leader-card.no-trophy {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .leader-card.no-trophy .leader-main {
+        grid-column: 1 / 2;
+    }
+
+    .leader-card.no-trophy .leader-score {
+        grid-column: 2 / 3;
+    }
+
+    .trophy-icon {
+        width: 46px;
+        height: 46px;
+    }
+
+    .leader-name strong {
+        font-size: 20px !important;
+        text-transform: none;
+    }
+
+    .leader-score strong {
+        color: var(--group-green);
+        font-size: 38px !important;
+    }
+
+    .leader-score span,
+    .leader-metric span,
+    .award-pill {
+        font-weight: 650;
+    }
+
+    .leader-metric strong {
+        font-size: 22px !important;
+    }
+
+    .sort-select-shell {
+        gap: 0;
+        padding-left: 14px;
+    }
+
+    @media (max-width: 760px) {
+        .create-group-pill .create-group-label,
+        .quick-action .action-copy,
+        .group-danger-button .action-copy {
+            display: none;
+        }
+
+        .create-group-pill {
+            width: 44px;
+            min-width: 44px;
+            justify-content: center;
+            padding: 8px;
+        }
+
+        .create-group-icon {
+            width: 28px;
+            height: 28px;
+            flex-basis: 28px;
+        }
+
+        .quick-action,
+        .group-danger-button {
+            min-height: 58px;
+            padding: 8px;
+        }
+
+        .action-icon-shell {
+            width: 42px;
+            height: 42px;
+            flex-basis: 42px;
+        }
+
+        .action-icon-shell img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .leader-card {
+            grid-template-columns: 48px minmax(0, 1fr) auto;
+        }
+
+        .leader-card.no-trophy {
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .leader-card:not(.no-trophy) .leader-main {
+            grid-column: 2 / 3;
+        }
+
+        .leader-card:not(.no-trophy) .leader-score {
+            grid-column: 3 / 4;
+            grid-row: auto;
+        }
+
+        .trophy-icon {
+            width: 38px;
+            height: 38px;
+        }
+
+        .leader-name strong {
+            font-size: 17px !important;
+        }
+
+        .leader-score strong {
+            font-size: 32px !important;
+        }
+    }
 </style>
 
 <div class="groups-page">
@@ -1940,8 +2101,7 @@
             <div class="group-switcher" id="groupTabsRow" aria-label="Your groups">
                 {% for item in group_data %}
                 <button class="filter-pill group-tab {% if loop.first %}active{% endif %}" type="button" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">
-                    <img class="group-tab-icon group-tab-icon-default" src="{{ asset_url('icons/group.png') }}" alt="">
-                    <img class="group-tab-icon group-tab-icon-selected" src="{{ asset_url('icons/selectedgroup.png') }}" alt="">
+                    <img class="group-tab-icon" src="{{ asset_url('icons/group.png') }}" alt="">
                     <span>{{ item.group.name }}</span>
                 </button>
                 {% endfor %}
@@ -1955,42 +2115,37 @@
                 </button>
             </div>
 
-            <div class="group-action-bar">
-                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
-                    <button class="quick-action" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                        <span class="action-icon-shell"><img src="{{ asset_url('icons/qrcode.png') }}" alt=""></span>
-                        <span><strong>Invite QR</strong><small>Invite friends</small></span>
-                    </button>
-                    <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
-                        <span class="action-icon-shell"><img src="{{ asset_url('icons/scan.png') }}" alt=""></span>
-                        <span><strong>Scan</strong><small>Join group</small></span>
-                    </button>
-                </div>
-                <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
-                    <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
-                    <span><strong>Leave</strong><small>Exit group</small></span>
-                </button>
-            </div>
-
             <article class="group-summary-card" id="groupSummaryCard">
-                <span class="summary-icon" aria-hidden="true"><img src="{{ asset_url('icons/selectedgroup.png') }}" alt=""></span>
+                <span class="summary-icon" aria-hidden="true"><img src="{{ asset_url('icons/group.png') }}" alt=""></span>
                 <div>
                     <h2 id="tableTitleContext">{{ group_data[0].group.name if group_data else 'No group yet' }}</h2>
                     <p>
                         <span id="groupMemberCount">{{ (group_data[0].members|length) if group_data else 0 }} members</span>
-                        <span aria-hidden="true">|</span>
-                        <span class="status-dot" aria-hidden="true"></span>
-                        <span>Active now</span>
                     </p>
                 </div>
-                <span class="active-pill">Active</span>
             </article>
+
+            <div class="group-action-bar">
+                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
+                    <button class="quick-action" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                        <span class="action-icon-shell"><img src="{{ asset_url('icons/qrcode.png') }}" alt=""></span>
+                        <span class="action-copy"><strong>Invite QR</strong><small>Invite friends</small></span>
+                    </button>
+                    <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
+                        <span class="action-icon-shell"><img src="{{ asset_url('icons/scan.png') }}" alt=""></span>
+                        <span class="action-copy"><strong>Scan</strong><small>Join group</small></span>
+                    </button>
+                </div>
+                <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
+                    <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
+                    <span class="action-copy"><strong>Leave</strong><small>Exit group</small></span>
+                </button>
+            </div>
 
             <div class="leaderboard-bar">
                 <span>Sort by</span>
                 <label class="sort-control">
                     <span class="sort-select-shell">
-                        <img src="{{ asset_url('icons/championtrophy.png') }}" alt="">
                         <select id="leaderboardSort" onchange="setLeaderboardSort(this.value)" aria-label="Sort leaderboard">
                             <option value="desc" {% if sort_order != 'asc' %}selected{% endif %}>Highest score</option>
                             <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Lowest score</option>
@@ -2002,13 +2157,21 @@
 
             <div class="leaderboard-list" id="mobileLeaderboardList">
                 {% if group_data and group_data[0].members %}
+                    {% set top_score = namespace(value=0) %}
+                    {% for top_member in group_data[0].members %}
+                        {% if (top_member.ippt_score.total_points or 0) > top_score.value %}
+                            {% set top_score.value = top_member.ippt_score.total_points or 0 %}
+                        {% endif %}
+                    {% endfor %}
                     {% for member in group_data[0].members %}
                     {% set award_code = member.ippt_score.award.code %}
-                    <article class="leader-card leader-card-rank-{{ loop.index }}">
+                    {% set is_top_score = member.ippt_score.total_points == top_score.value and top_score.value > 0 %}
+                    <article class="leader-card leader-card-rank-{{ loop.index }} {% if not is_top_score %}no-trophy{% endif %}">
+                        {% if is_top_score %}
                         <div class="leader-rank-block">
                             <img class="trophy-icon" src="{{ asset_url('icons/championtrophy.png') }}" alt="">
-                            <span class="rank-badge">{{ loop.index }}</span>
                         </div>
+                        {% endif %}
                         <div class="leader-main">
                             <div class="leader-name">
                                 <strong>{{ member.name }}</strong>

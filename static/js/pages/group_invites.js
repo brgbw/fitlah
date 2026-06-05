@@ -72,7 +72,8 @@
 
         const members = sortedMembers(selected.members);
         if (leaderboardList) {
-            leaderboardList.innerHTML = members.map((member, index) => leaderCard(member, index)).join('');
+            const highestPoints = Math.max(...members.map(member => Number(member.ippt_score?.total_points ?? member.ippt_points ?? 0)));
+            leaderboardList.innerHTML = members.map((member, index) => leaderCard(member, index, highestPoints)).join('');
         }
     }
 
@@ -91,20 +92,21 @@
         if (scanButton) scanButton.disabled = !selected;
     }
 
-    function leaderCard(member, index) {
+    function leaderCard(member, index, highestPoints) {
         const best = member.personal_best || {};
         const score = member.ippt_score || {};
         const award = score.award || {};
         const points = score.total_points ?? member.ippt_points ?? 0;
         const awardCode = award.code || 'fail';
         const awardLabel = award.label || 'Fail';
+        const isTopScore = Number(points) === highestPoints && highestPoints > 0;
 
         return `
-            <article class="leader-card leader-card-rank-${index + 1}">
-                <div class="leader-rank-block">
-                    <img class="trophy-icon" src="/static/icons/championtrophy.png" alt="">
-                    <span class="rank-badge">${index + 1}</span>
-                </div>
+            <article class="leader-card leader-card-rank-${index + 1} ${isTopScore ? '' : 'no-trophy'}">
+                ${isTopScore ? `
+                    <div class="leader-rank-block">
+                        <img class="trophy-icon" src="/static/icons/championtrophy.png" alt="">
+                    </div>` : ''}
                 <div class="leader-main">
                     <div class="leader-name">
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
