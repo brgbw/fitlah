@@ -290,6 +290,7 @@
   function renderActivitySummary(logs) {
     const title = document.getElementById('calendarSummaryTitle');
     const text = document.getElementById('calendarSummaryText');
+    const userName = (document.getElementById('calendarAiSummary')?.dataset.userName || '').trim().split(/\s+/)[0];
     if (!title || !text) return;
 
     const counts = logs.reduce((acc, log) => {
@@ -300,15 +301,20 @@
     const total = logs.length;
     if (!total) {
       title.textContent = 'No logged activities yet';
-      text.textContent = 'Start with one push-up, sit-up, or run entry so FitLah can spot your training pattern.';
+      text.textContent = `${userName ? `${userName}, y` : 'Y'}our next log is the starting line. Add one push-up, sit-up, or run entry so FitLah can spot your training pattern.`;
       return;
     }
 
     const stations = ['pushup', 'situp', 'run'];
     const least = stations.reduce((weakest, type) => (counts[type] || 0) < (counts[weakest] || 0) ? type : weakest, stations[0]);
     const strongest = stations.reduce((best, type) => (counts[type] || 0) > (counts[best] || 0) ? type : best, stations[0]);
+    const compliment = total >= 6
+      ? 'Strong consistency'
+      : total >= 3
+        ? 'Nice work building momentum'
+        : 'Good start';
     title.textContent = `${total} logged ${total === 1 ? 'activity' : 'activities'} reviewed`;
-    text.textContent = `Most logged: ${typeName(strongest)}. Focus next: ${typeName(least)} to keep your IPPT prep balanced.`;
+    text.textContent = `${compliment}${userName ? `, ${userName}` : ''}. Most logged: ${typeName(strongest)}. Focus next: ${typeName(least)} to keep your IPPT prep balanced.`;
   }
 
   function aiTextHtml(text) {
@@ -322,7 +328,7 @@
     if (typeof ai === 'string') {
       return `
         <div class="ai-coach-block">
-          <h5>AI PERSONALISED COACH</h5>
+          <h5><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
           <div class="ai-coach-summary">${aiTextHtml(ai)}</div>
         </div>`;
     }
@@ -335,7 +341,7 @@
     const focus = ai.safetyNote || (ai.focus_areas || []).join(' · ');
     return `
       <div class="ai-coach-block">
-        <h5>AI PERSONALISED COACH</h5>
+        <h5><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
         <div class="ai-coach-summary">${aiTextHtml(ai.summary)}</div>
         <div class="ai-coach-grid">
           ${dos ? `<div class="ai-coach-list dos"><h6>RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}

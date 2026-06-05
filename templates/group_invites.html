@@ -105,9 +105,7 @@
     .group-tab.active {
         color: #FFFFFF;
         border-color: rgba(0, 122, 88, 0.34);
-        background:
-            linear-gradient(135deg, rgba(0, 140, 99, 0.96), rgba(0, 107, 82, 0.94)),
-            radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.26), transparent 28%);
+        background: #E8F8F2;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 24px rgba(0, 122, 88, 0.22);
     }
 
@@ -429,11 +427,7 @@
     }
 
     .leader-card::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background: linear-gradient(90deg, rgba(0, 140, 99, 0.045), transparent 45%);
+        display: none;
     }
 
     .leader-rank-block {
@@ -1358,8 +1352,8 @@
     }
 
     .group-tab.active {
-        background: linear-gradient(135deg, #00956B, #00795B);
-        box-shadow: 0 6px 14px rgba(0, 122, 88, 0.16);
+        background: #E8F8F2;
+        box-shadow: 0 6px 14px rgba(0, 122, 88, 0.12);
     }
 
     .group-tab-icon,
@@ -2128,6 +2122,14 @@
             width: 46px;
             height: 46px;
         }
+    }
+
+    .leader-card {
+        background: #FFFFFF;
+    }
+
+    .leader-card::after {
+        display: none;
     }
 </style>
 

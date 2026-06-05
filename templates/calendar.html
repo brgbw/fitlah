@@ -292,7 +292,7 @@
   </div>
 </div>
 
-<section class="calendar-ai-summary" id="calendarAiSummary">
+<section class="calendar-ai-summary" id="calendarAiSummary" data-user-name="{{ current_user.name if current_user else '' }}">
   <img src="{{ asset_url('icons/aisummary.png') }}" alt="">
   <div>
     <div class="summary-kicker">AI training summary</div>

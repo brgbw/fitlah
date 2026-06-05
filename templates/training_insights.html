@@ -94,6 +94,16 @@
         letter-spacing: 0;
         text-transform: uppercase;
         margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .note-ai-heading img {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        flex: 0 0 24px;
     }
 
     .note-verdict {
@@ -297,7 +307,7 @@
             <h2 class="note-title">{{ log.score or 'Saved set' }}</h2>
 
             {% if ai %}
-            <h3 class="note-ai-heading">AI RECOMMENDATION COACH</h3>
+            <h3 class="note-ai-heading"><img src="{{ asset_url('icons/aisummary.png') }}" alt="">AI RECOMMENDATION COACH</h3>
             {% endif %}
 
             {% if ai.summary %}

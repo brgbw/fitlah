@@ -53,7 +53,7 @@ function renderRunCoachCard(rec) {
 
     return `
         <div class="strava-coach-card">
-            <h5>AI PERSONALISED COACH</h5>
+            <h5><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
             ${rec.summary ? `<div class="strava-coach-summary">${aiTextHtml(rec.summary)}</div>` : ''}
             <div class="strava-coach-grid">
                 ${recommendations.length ? `
