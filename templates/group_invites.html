@@ -1,518 +1,871 @@
 {% extends 'base.html' %}
 {% block content %}
+{% macro award_icon(code) -%}
+    {%- if code == 'gold' -%}
+        {{ asset_url('icons/goldbadge.png') }}
+    {%- elif code == 'silver' -%}
+        {{ asset_url('icons/silverbadge.png') }}
+    {%- elif code == 'pass-incentive' -%}
+        {{ asset_url('icons/passwithincentivebadge.png') }}
+    {%- else -%}
+        {{ asset_url('icons/passbadge.png') }}
+    {%- endif -%}
+{%- endmacro %}
+
 <style>
-    .header-section {
-        margin-bottom: 24px;
-    }
-    .header-section h1 {
-        font-size: var(--page-title-size);
-        font-weight: var(--page-title-weight);
-        color: var(--text-main);
-        margin-bottom: 6px;
-    }
-    .header-section p {
-        font-size: var(--page-subtitle-size);
-        color: var(--text-muted);
+    .groups-page {
+        --group-ink: #061634;
+        --group-muted: #68758A;
+        --group-line: #DCE5EF;
+        --group-soft: #F5F8FC;
+        --group-green: #008C63;
+        --group-green-strong: #007A58;
+        --group-red: #C62828;
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
     }
 
-    /* Split Layout */
-    .sync-grid-split {
+    .groups-page button,
+    .groups-page select,
+    .groups-page input {
+        font-family: inherit;
+    }
+
+    .group-hero {
+        margin-bottom: 26px;
+    }
+
+    .group-hero h1 {
+        color: var(--group-ink);
+        font-size: clamp(52px, 7vw, 82px) !important;
+        line-height: 0.95;
+        font-weight: 850;
+        letter-spacing: 0;
+        margin-bottom: 14px;
+    }
+
+    .group-hero p {
+        color: var(--group-muted);
+        font-size: clamp(20px, 2.4vw, 30px) !important;
+        line-height: 1.2;
+        font-weight: 500;
+    }
+
+    .groups-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 300px;
-        gap: 24px;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 22px;
         align-items: start;
     }
 
-    /* Group Tabs/Filters */
-    .filter-row {
+    .groups-main {
+        min-width: 0;
+    }
+
+    .group-switcher {
         display: flex;
-        gap: 6px;
-        background-color: #FFFFFF;
-        padding: 8px;
-        border: 1px solid #E2E8F0;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
         align-items: center;
-        margin-bottom: 20px;
+        gap: 22px;
+        overflow-x: auto;
+        padding: 24px;
+        margin-bottom: 28px;
+        background: #FFFFFF;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        box-shadow: 0 12px 30px rgba(6, 22, 52, 0.06);
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
+
+    .group-switcher::-webkit-scrollbar {
+        display: none;
+    }
+
     .filter-pill {
-        padding: 6px 14px;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 600;
-        color: #64748B;
         border: 1px solid transparent;
+        background: transparent;
+        color: var(--group-ink);
         cursor: pointer;
-        transition: all 0.2s ease;
-        background-color: transparent;
+        white-space: nowrap;
     }
-    .filter-pill:hover {
-        color: #0F172A;
+
+    .group-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 86px;
+        padding: 0 28px;
+        border-radius: 8px;
+        font-size: 24px !important;
+        font-weight: 800;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
-    .filter-pill.active {
-        background-color: #f1f5f9;
-        color: #0F172A;
+
+    .group-tab.active {
+        color: #FFFFFF;
+        border-color: rgba(0, 122, 88, 0.34);
+        background:
+            linear-gradient(135deg, rgba(0, 140, 99, 0.96), rgba(0, 107, 82, 0.94)),
+            radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.26), transparent 28%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 24px rgba(0, 122, 88, 0.22);
     }
+
+    .group-tab:hover,
+    .create-group-pill:hover,
+    .quick-action:hover {
+        transform: translateY(-1px);
+    }
+
+    .group-tab-symbol,
+    .summary-symbol {
+        position: relative;
+        display: inline-block;
+        width: 38px;
+        height: 28px;
+        flex: 0 0 auto;
+    }
+
+    .group-tab-symbol::before,
+    .group-tab-symbol::after,
+    .summary-symbol::before,
+    .summary-symbol::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        background: currentColor;
+    }
+
+    .group-tab-symbol::before,
+    .summary-symbol::before {
+        width: 14px;
+        height: 14px;
+        left: 12px;
+        top: 0;
+        box-shadow: -15px 4px 0 -1px currentColor, 15px 4px 0 -1px currentColor;
+    }
+
+    .group-tab-symbol::after,
+    .summary-symbol::after {
+        width: 24px;
+        height: 11px;
+        left: 7px;
+        bottom: 0;
+        box-shadow: -13px 2px 0 -1px currentColor, 13px 2px 0 -1px currentColor;
+    }
+
+    .group-switcher-divider {
+        width: 1px;
+        height: 54px;
+        flex: 0 0 1px;
+        background: var(--group-line);
+    }
+
     .create-group-pill {
-        background-color: #E8F8F2;
-        color: #00A86B !important;
-        font-weight: 700;
-        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 74px;
+        padding: 0 22px;
+        border-color: var(--group-line);
+        border-radius: 8px;
+        color: var(--group-ink);
+        background: #FFFFFF;
+        font-size: 23px !important;
+        font-weight: 750;
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }
+
     .create-group-pill:hover {
-        background-color: #00A86B;
-        color: #ffffff !important;
+        border-color: #A9B8CB;
+        box-shadow: 0 10px 22px rgba(6, 22, 52, 0.08);
     }
+
     .create-group-short {
         display: none;
     }
 
+    .plus-ring {
+        display: inline-grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 2px dashed #8A97AA;
+        border-radius: 999px;
+        color: var(--group-ink);
+        font-size: 30px !important;
+        line-height: 1;
+        font-weight: 450;
+    }
+
     .group-action-bar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        margin-bottom: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 28px;
     }
 
     .qr-invite-toolbar {
-        display: flex;
-        gap: 10px;
+        display: contents;
     }
 
-    .icon-action-button {
-        width: 52px;
-        height: 52px;
-        border: 1px solid #CBD5E1;
+    .quick-action,
+    .group-danger-button {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 126px;
+        padding: 22px;
+        border: 1px solid var(--group-line);
         border-radius: 8px;
         background: #FFFFFF;
+        color: var(--group-ink);
+        box-shadow: 0 10px 24px rgba(6, 22, 52, 0.05);
         cursor: pointer;
+        text-align: left;
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .quick-action:disabled,
+    .group-danger-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .action-icon-shell {
         display: inline-grid;
         place-items: center;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        width: 76px;
+        height: 76px;
+        flex: 0 0 76px;
+        border-radius: 999px;
+        background: #EAF8F2;
     }
 
-    .icon-action-button:hover {
-        border-color: #CBD5E1;
-        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
-        transform: translateY(-1px);
+    .action-icon-shell img {
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
     }
 
-    .icon-action-button:focus,
-    .icon-action-button:focus-visible {
-        outline: 2px solid #94A3B8;
-        outline-offset: 2px;
-        border-color: #CBD5E1;
-        box-shadow: none;
+    .quick-action strong,
+    .group-danger-button strong {
+        display: block;
+        color: var(--group-ink);
+        font-size: 24px !important;
+        line-height: 1.1;
+        font-weight: 800;
     }
 
-    .icon-action-button:disabled {
-        cursor: not-allowed;
-        opacity: 0.45;
-        box-shadow: none;
-        transform: none;
+    .quick-action small,
+    .group-danger-button small {
+        display: block;
+        color: var(--group-muted);
+        font-size: 16px !important;
+        line-height: 1.2;
+        margin-top: 4px;
     }
 
-    .icon-action-icon {
+    .group-danger-button {
+        border-color: #F4D5D8;
+    }
+
+    .group-danger-button .action-icon-shell {
+        background: #FCEBED;
+    }
+
+    .group-danger-button strong {
+        color: var(--group-red);
+    }
+
+    .group-summary-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        padding: 28px;
+        margin-bottom: 24px;
+        background: #FFFFFF;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(6, 22, 52, 0.05);
+    }
+
+    .summary-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 92px;
+        height: 92px;
+        border-radius: 999px;
+        color: var(--group-green);
+        background: #EAF7F1;
+        border: 1px solid #D7EFE6;
+    }
+
+    .group-summary-card h2 {
+        color: var(--group-ink);
+        font-size: 34px !important;
+        line-height: 1.05;
+        font-weight: 850;
+        overflow-wrap: anywhere;
+    }
+
+    .group-summary-card p {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px;
+        margin-top: 8px;
+        color: var(--group-muted);
+        font-size: 22px !important;
+        line-height: 1.2;
+    }
+
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--group-green);
+    }
+
+    .active-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 22px;
+        border-radius: 999px;
+        background: #F0FBF6;
+        border: 1px solid #BFE7D8;
+        color: var(--group-green-strong);
+        font-size: 22px !important;
+        font-weight: 650;
+    }
+
+    .leaderboard-bar {
+        display: grid;
+        grid-template-columns: auto minmax(240px, 1fr);
+        align-items: center;
+        gap: 18px;
+        margin: 0 4px 22px;
+    }
+
+    .leaderboard-bar span {
+        color: var(--group-muted);
+        font-size: 26px !important;
+        line-height: 1.1;
+        font-weight: 650;
+    }
+
+    .sort-control {
+        display: contents;
+    }
+
+    .sort-select-shell {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 68px;
+        padding: 0 54px 0 24px;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: var(--group-ink);
+        box-shadow: 0 8px 20px rgba(6, 22, 52, 0.04);
+    }
+
+    .sort-select-shell img {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+    }
+
+    .sort-select-shell select {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--group-ink);
+        font-size: 24px !important;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .sort-chevron {
+        position: absolute;
+        right: 24px;
+        width: 16px;
+        height: 16px;
+        border-right: 3px solid var(--group-ink);
+        border-bottom: 3px solid var(--group-ink);
+        transform: rotate(45deg) translateY(-3px);
+        pointer-events: none;
+    }
+
+    .leaderboard-list {
+        display: grid;
+        gap: 22px;
+        margin-bottom: 32px;
+    }
+
+    .leader-card {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(170px, 0.42fr) minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: start;
+        padding: 34px 36px 40px;
+        background: #FFFFFF;
+        border: 1px solid var(--group-line);
+        border-bottom: 5px solid var(--group-green);
+        border-radius: 8px;
+        box-shadow: 0 18px 36px rgba(6, 22, 52, 0.1);
+    }
+
+    .leader-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(0, 140, 99, 0.045), transparent 45%);
+    }
+
+    .leader-rank-block {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: auto auto;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .trophy-icon {
+        width: 112px;
+        height: 112px;
+        object-fit: contain;
+    }
+
+    .rank-badge {
+        display: inline-grid;
+        place-items: center;
+        width: 78px;
+        height: 78px;
+        border-radius: 999px;
+        background:
+            radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.24), transparent 34%),
+            linear-gradient(135deg, #00A86B, #007A58);
+        color: #FFFFFF;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 12px 26px rgba(0, 122, 88, 0.22);
+        font-size: 34px !important;
+        line-height: 1;
+        font-weight: 850;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .leader-main {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .leader-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    .leader-name strong {
+        display: block;
+        color: var(--group-ink);
+        font-size: clamp(28px, 3vw, 42px) !important;
+        line-height: 1.08;
+        font-weight: 850;
+        text-transform: uppercase;
+        overflow-wrap: anywhere;
+    }
+
+    .award-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        min-height: 40px;
+        margin-top: 18px;
+        padding: 0 16px 0 10px;
+        border-radius: 999px;
+        border: 1px solid #D7DEE8;
+        background: #EEF2F7;
+        color: #526173;
+        font-size: 18px !important;
+        line-height: 1;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .award-pill img {
         width: 30px;
         height: 30px;
         object-fit: contain;
     }
 
-    .group-danger-button,
-    .member-action-button {
-        border: 1px solid #FECACA;
-        background: #FFFFFF;
-        color: #DC2626;
+    .award-pill.gold {
+        background: #FFF7DF;
+        border-color: #F7D98A;
+        color: #A36300;
+    }
+
+    .award-pill.pass,
+    .award-pill.pass-incentive {
+        background: #EBF8F2;
+        border-color: #C9EADA;
+        color: var(--group-green-strong);
+    }
+
+    .award-pill.fail,
+    .award-pill.incomplete {
+        background: #FFF1F2;
+        border-color: #FECDD3;
+        color: #BE123C;
+    }
+
+    .leader-score {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        justify-items: end;
+        align-self: start;
+        min-width: 126px;
+    }
+
+    .leader-score strong {
+        color: var(--group-green-strong);
+        font-size: clamp(58px, 6vw, 86px) !important;
+        line-height: 0.9;
+        font-weight: 850;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .leader-score span {
+        color: var(--group-muted);
+        font-size: 24px !important;
+        line-height: 1;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .leader-metrics {
+        position: relative;
+        z-index: 1;
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 4px;
+    }
+
+    .leader-metric {
+        min-height: 160px;
+        padding: 24px;
+        border: 1px solid #DBE8EA;
         border-radius: 8px;
-        font-weight: 750;
-        cursor: pointer;
-        transition: background-color 0.2s ease, border-color 0.2s ease;
+        background: #F7FCFA;
     }
 
-    .group-danger-button {
-        padding: 0 16px;
-        min-height: 52px;
-        background-color: #FFFFFF;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+    .leader-metric.metric-situp {
+        border-color: #DDE7FB;
+        background: #F7FAFF;
+    }
+
+    .leader-metric.metric-run {
+        border-color: #F8DFC7;
+        background: #FFF9F3;
+    }
+
+    .metric-icon {
+        display: block;
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
+        margin-bottom: 14px;
+    }
+
+    .leader-metric span {
+        display: block;
+        font-size: 20px !important;
+        line-height: 1;
+        font-weight: 850;
+        text-transform: uppercase;
+    }
+
+    .metric-pushup span {
+        color: var(--marker-pushup);
+    }
+
+    .metric-situp span {
+        color: var(--marker-situp);
+    }
+
+    .metric-run span {
+        color: var(--marker-run);
+    }
+
+    .leader-metric strong {
+        display: block;
+        color: var(--group-ink);
+        font-size: 44px !important;
+        line-height: 1;
+        margin-top: 18px;
+        font-weight: 850;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+
+    .leader-metric small {
+        display: block;
+        color: var(--group-muted);
+        font-size: 22px !important;
+        line-height: 1.1;
+        margin-top: 8px;
+        font-weight: 500;
+    }
+
+    .member-card-actions {
+        position: relative;
+        z-index: 1;
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: flex-end;
+        margin-top: -4px;
     }
 
     .member-action-button {
-        min-height: 36px;
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-
-    .group-danger-button:hover,
-    .member-action-button:hover {
-        background: #FEF2F2;
-        border-color: #FCA5A5;
-    }
-
-    .group-danger-button:disabled,
-    .member-action-button:disabled {
-        cursor: not-allowed;
-        opacity: 0.45;
+        min-height: 44px;
+        padding: 0 16px;
+        border: 1px solid #FECACA;
+        border-radius: 8px;
         background: #FFFFFF;
-        border-color: #E2E8F0;
-        color: #94A3B8;
+        color: var(--group-red);
+        font-size: 14px !important;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .empty-state,
+    .mobile-empty-state,
+    .invite-empty-state {
+        padding: 28px;
+        border: 1px dashed #B8C8D8;
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: var(--group-muted);
+        text-align: center;
+        font-size: 18px !important;
+        line-height: 1.4;
+        font-weight: 650;
+    }
+
+    .right-panel-column {
+        position: sticky;
+        top: 24px;
     }
 
     .section-title {
-        font-size: calc(22px * var(--font-scale));
-        font-weight: 700;
-        text-transform: uppercase;
-        color: #64748B;
-        margin-bottom: 20px;
+        color: var(--group-ink);
+        font-size: 22px !important;
+        line-height: 1.15;
+        margin-bottom: 14px;
+        font-weight: 850;
     }
 
-    .leaderboard-bar {
+    .panel-box {
+        padding: 18px;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        background: #FFFFFF;
+        box-shadow: 0 10px 24px rgba(6, 22, 52, 0.05);
+    }
+
+    .invite-stack {
+        display: grid;
+        gap: 12px;
+    }
+
+    .invite-card {
+        padding: 14px;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        background: #F9FBFD;
+    }
+
+    .invite-card.is-new {
+        border-color: var(--group-green);
+        box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.14);
+    }
+
+    .invite-meta .sender {
+        color: var(--group-ink);
+        font-size: 16px !important;
+        line-height: 1.2;
+        font-weight: 800;
+    }
+
+    .invite-meta .group-target {
+        color: var(--group-muted);
+        font-size: 14px !important;
+        line-height: 1.3;
+        margin-top: 4px;
+    }
+
+    .invite-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .invite-actions button {
+        min-height: 40px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-size: 13px !important;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .btn-accept {
+        background: #E8F8F2;
+        color: var(--group-green-strong);
+    }
+
+    .btn-decline {
+        background: #EEF2F7;
+        color: #526173;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background-color: rgba(15, 23, 42, 0.44);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-window {
+        width: min(480px, calc(100vw - 32px));
+        overflow: hidden;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        background: #FFFFFF;
+        box-shadow: 0 24px 54px rgba(15, 23, 42, 0.18);
+    }
+
+    .modal-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        margin-bottom: 12px;
+        padding: 22px 24px 16px;
+        border-bottom: 1px solid var(--group-line);
     }
 
-    .sort-control {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: #64748B;
-        font-size: calc(18px * var(--font-scale));
-        font-weight: 600;
+    .modal-header h3 {
+        color: var(--group-ink);
+        font-size: 22px !important;
+        line-height: 1.15;
+        font-weight: 850;
     }
 
-    .sort-control select {
-        border: 1px solid #CBD5E1;
-        border-radius: 8px;
-        background: #FFFFFF;
-        color: #0F172A;
-        font-size: calc(18px * var(--font-scale));
-        padding: 8px 10px;
-        outline: none;
-    }
-
-    /* Leaderboard Table */
-    .sync-table-container {
-        background-color: #FFFFFF;
-        border: 1px solid #DDE5EE;
-        border-radius: 8px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        overflow: hidden;
-        margin-bottom: 32px;
-    }
-    .sync-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-    }
-
-    .mobile-leaderboard-list {
-        display: none;
-    }
-    .sync-table th {
-        background-color: #FFFFFF;
-        padding: 12px 16px;
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0;
-        color: #64748B;
-        border-bottom: 1px solid #E2E8F0;
-    }
-    .sync-table th.metric-heading-pushup,
-    .metric-label-pushup {
-        color: var(--marker-pushup);
-    }
-    .sync-table th.metric-heading-situp,
-    .metric-label-situp {
-        color: var(--marker-situp);
-    }
-    .sync-table th.metric-heading-run,
-    .metric-label-run {
-        color: var(--marker-run);
-    }
-    .sync-table td {
-        padding: 16px;
-        font-size: 13px;
-        color: #0F172A;
-        border-bottom: 1px solid #E2E8F0;
-        vertical-align: middle;
-    }
-    .sync-table tr:last-child td {
-        border-bottom: none;
-    }
-    .sync-table tr:hover {
-        background-color: #FBFDFE;
-    }
-    .rank-column {
-        width: 54px;
-    }
-    .rank-badge {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
-        color: #475569;
+    .close-icon-btn {
         display: inline-grid;
         place-items: center;
-        font-size: 13px;
-        font-weight: 850;
-        font-variant-numeric: tabular-nums;
-    }
-    .member-name-cell strong {
-        display: block;
-        color: #0F172A;
-        font-size: 15px;
-        font-weight: 800;
-        line-height: 1.2;
-        overflow-wrap: anywhere;
-    }
-    .score-pill {
-        display: inline-flex;
-        align-items: baseline;
-        gap: 5px;
-        padding: 7px 10px;
+        width: 42px;
+        height: 42px;
+        border: 1px solid var(--group-line);
         border-radius: 8px;
-        background: #E8F8F2;
-        color: #047857;
-        font-weight: 850;
-        font-variant-numeric: tabular-nums;
-    }
-    .score-pill span {
-        color: #047857;
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-    }
-    .pb-cell {
-        min-width: 104px;
-    }
-    .pb-value {
-        font-size: 15px;
-        font-weight: 800;
-        color: #0F172A;
-        line-height: 1.1;
-    }
-    .pb-unit {
-        display: block;
-        margin-top: 2px;
-        font-size: 10px;
-        font-weight: 700;
-        color: #64748B;
-        text-transform: uppercase;
-        letter-spacing: 0;
-    }
-    .status-badge-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0;
-    }
-    .status-badge-pill.gold { 
-        background-color: #FEF3C7; 
-        color: #D97706; 
-    }
-    .status-badge-pill.silver { 
-        background-color: #F1F5F9; 
-        color: #475569; 
-    }
-    .status-badge-pill.incomplete { 
-        background-color: #FFE4E6; 
-        color: #E11D48; 
-    }
-    .status-badge-pill.fail {
-        background-color: #FFF7ED;
-        color: #B45309;
-    }
-    .status-badge-pill.pass,
-    .status-badge-pill.pass-incentive {
-        background-color: #E8F8F2;
-        color: #047857;
-    }
-
-    /* Panel Box */
-    .panel-box {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-    }
-
-    /* Invite Cards Stack */
-    .invite-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    .invite-card {
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 14px;
-        background-color: #ffffff;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    .invite-meta .sender {
-        font-size: 13px;
-        font-weight: 700;
-        color: #0F172A;
-    }
-    .invite-meta .group-target {
-        font-size: 12px;
-        color: #64748B;
-        margin-top: 1px;
-    }
-    .invite-actions {
-        display: flex;
-        gap: 6px;
-    }
-    .invite-actions button {
-        flex: 1;
-        padding: 6px 10px;
-        font-size: 11px;
-        font-weight: 700;
-        border-radius: 4px;
+        background: #FFFFFF;
+        color: var(--group-ink);
         cursor: pointer;
-        border: 1px solid transparent;
-        text-transform: uppercase;
-        transition: all 0.2s ease;
-    }
-    .btn-accept {
-        background-color: #E8F8F2;
-        color: #00A86B;
-    }
-    .btn-accept:hover {
-        background-color: #00A86B;
-        color: white;
-    }
-    .btn-decline {
-        background-color: #f1f5f9;
-        color: #64748B;
-    }
-    .btn-decline:hover {
-        background-color: #E2E8F0;
-        color: #0F172A;
+        font-size: 24px !important;
+        line-height: 1;
     }
 
-    /* Modal */
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(15, 23, 42, 0.4);
-        backdrop-filter: blur(4px);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-    .modal-overlay.active {
-        display: flex;
-    }
-    .modal-window {
-        background-color: #FFFFFF;
-        width: min(480px, calc(100vw - 32px));
-        border-radius: 14px;
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-        border: 1px solid #E2E8F0;
-        overflow: hidden;
-        animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes modalFadeIn {
-        from { transform: scale(0.96); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-    }
-    .modal-header {
-        padding: 24px 24px 16px 24px;
-        border-bottom: 1px solid #E2E8F0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .modal-header h3 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #0F172A;
-    }
-    .close-icon-btn {
-        background: none;
-        border: none;
-        font-size: 20px;
-        color: #64748B;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-    .close-icon-btn:hover {
-        color: #0F172A;
-    }
     .modal-body {
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
+        display: grid;
         gap: 18px;
+        padding: 24px;
     }
+
     .modal-description {
-        color: #475569;
-        font-size: 14px;
-        font-weight: 600;
+        color: var(--group-muted);
+        font-size: 15px !important;
         line-height: 1.45;
+        font-weight: 600;
     }
+
     .form-element-block {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        display: grid;
+        gap: 7px;
     }
+
     .form-element-block label {
-        font-size: 12px;
-        font-weight: 700;
+        color: var(--group-muted);
+        font-size: 12px !important;
+        line-height: 1.1;
+        font-weight: 850;
         text-transform: uppercase;
-        letter-spacing: 0;
-        color: #64748B;
     }
-    .form-element-block input, .form-element-block select {
+
+    .form-element-block input,
+    .form-element-block select {
+        width: 100%;
+        min-height: 46px;
         padding: 10px 12px;
-        border: 1px solid #E2E8F0;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #0F172A;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
         outline: none;
-        background-color: #F8FAFC;
-        font-family: inherit;
+        background: #F8FAFC;
+        color: var(--group-ink);
+        font-size: 16px !important;
     }
-    .form-element-block input:focus, .form-element-block select:focus {
-        border-color: #00A86B;
-        background-color: #ffffff;
+
+    .form-element-block input:focus,
+    .form-element-block select:focus {
+        border-color: var(--group-green);
+        background: #FFFFFF;
     }
 
     .qr-preview-frame {
         display: grid;
         place-items: center;
         min-height: 260px;
-        border: 1px solid #E2E8F0;
+        padding: 18px;
+        border: 1px solid var(--group-line);
         border-radius: 8px;
         background: #F8FAFC;
-        padding: 18px;
     }
 
     .qr-preview-frame canvas,
     .qr-preview-frame img {
         width: min(220px, 70vw) !important;
         height: min(220px, 70vw) !important;
-        background: #FFFFFF;
         border: 10px solid #FFFFFF;
         border-radius: 8px;
+        background: #FFFFFF;
         box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
     }
 
@@ -524,18 +877,18 @@
     .scan-video-frame {
         position: relative;
         overflow: hidden;
-        border: 1px solid #E2E8F0;
+        border: 1px solid var(--group-line);
         border-radius: 8px;
-        background: #0F172A;
+        background: var(--group-ink);
         aspect-ratio: 1 / 1;
     }
 
     .scan-video-frame video,
     .scan-video-frame canvas {
+        display: block;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        display: block;
     }
 
     .scan-video-frame canvas {
@@ -545,598 +898,596 @@
     .scan-frame-corners {
         position: absolute;
         inset: 14%;
-        border: 2px solid rgba(255, 255, 255, 0.85);
-        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.86);
+        border-radius: 8px;
         pointer-events: none;
     }
 
     .qr-status {
         min-height: 24px;
-        color: #64748B;
-        font-size: 13px;
-        font-weight: 600;
+        color: var(--group-muted);
+        font-size: 14px !important;
+        line-height: 1.4;
+        font-weight: 650;
     }
 
     .qr-status.success {
-        color: #047857;
+        color: var(--group-green-strong);
     }
 
     .qr-status.error {
         color: #E11D48;
     }
 
-    .invite-card.is-new {
-        border-color: #00A86B;
-        box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.14);
-    }
-
     .modal-footer {
-        padding: 16px 24px 24px 24px;
-        border-top: 1px solid #E2E8F0;
         display: flex;
         justify-content: flex-end;
         gap: 10px;
+        padding: 16px 24px 24px;
+        border-top: 1px solid var(--group-line);
     }
-    .btn-modal-cancel {
-        background-color: transparent;
-        border: 1px solid #E2E8F0;
-        color: #64748B;
-        padding: 10px 20px;
-        font-size: 13px;
-        font-weight: 600;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .btn-modal-cancel:hover {
-        background-color: #F8FAFC;
-        color: #0F172A;
-    }
+
+    .btn-modal-cancel,
     .btn-modal-submit {
-        background-color: #00A86B;
-        border: none;
-        color: #ffffff;
-        padding: 10px 24px;
-        font-size: 13px;
-        font-weight: 700;
-        border-radius: 6px;
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 8px;
         cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .btn-modal-submit:hover {
-        background-color: #008F5B;
+        font-size: 14px !important;
+        font-weight: 800;
     }
 
-    .empty-state {
-        text-align: center;
-        padding: 30px 0;
-        color: #64748B;
-        font-size: calc(20px * var(--font-scale));
-        line-height: 1.5;
+    .btn-modal-cancel {
+        border: 1px solid var(--group-line);
+        background: #FFFFFF;
+        color: var(--group-muted);
     }
 
-    .invite-empty-state {
-        color: #64748B;
-        text-align: center;
-        padding: 14px 0;
-        font-size: calc(20px * var(--font-scale));
-        line-height: 1.5;
-        font-weight: 600;
+    .btn-modal-submit {
+        border: 1px solid var(--group-green);
+        background: var(--group-green);
+        color: #FFFFFF;
     }
 
-    @media (max-width: 980px) {
-        .sync-grid-split {
+    @media (max-width: 1120px) {
+        .groups-layout {
             grid-template-columns: 1fr;
         }
 
         .right-panel-column {
-            order: -1;
-        }
-
-        .filter-row {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .filter-pill {
-            white-space: nowrap;
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .leaderboard-bar,
-        .modal-footer {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .header-section {
-            margin-bottom: 16px;
-        }
-
-        .header-section p {
-            display: none;
+            position: static;
         }
 
         .right-panel-column.no-pending-invites {
             display: none;
         }
+    }
 
-        .filter-row {
-            margin-bottom: 12px;
-            padding: 6px;
-            border-radius: 8px;
-            background: #F8FAFC;
-            border-color: #D9E4EC;
-            box-shadow: none;
+    @media (max-width: 760px) {
+        .groups-page {
+            margin-top: 6px;
         }
 
-        .filter-pill {
-            border-radius: 7px;
-            color: #526173;
+        .group-hero {
+            margin-bottom: 22px;
         }
 
-        .filter-pill.active {
-            background: #FFFFFF;
-            color: #0F172A;
-            border-color: #D9E4EC;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        .group-hero h1 {
+            font-size: clamp(58px, 18vw, 76px) !important;
+        }
+
+        .group-hero p {
+            font-size: 22px !important;
+        }
+
+        .group-switcher {
+            gap: 16px;
+            padding: 18px;
+            margin-bottom: 24px;
+        }
+
+        .group-tab {
+            min-height: 78px;
+            padding: 0 22px;
+            font-size: 24px !important;
+        }
+
+        .group-switcher-divider {
+            height: 46px;
         }
 
         .create-group-pill {
-            margin-left: 0;
+            min-height: 70px;
+            padding: 0 18px;
+            font-size: 22px !important;
+        }
+
+        .plus-ring {
             width: 44px;
-            min-width: 44px;
-            justify-content: center;
-            padding: 0;
-            background: #0B766B;
-            color: #FFFFFF !important;
-            border-color: #0B766B;
-        }
-
-        .create-group-label {
-            display: none;
-        }
-
-        .create-group-short {
-            display: inline;
-            font-size: 24px;
-            line-height: 1;
+            height: 44px;
         }
 
         .group-action-bar {
-            display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            align-items: center;
-            margin-bottom: 18px;
-            gap: 10px;
+            gap: 12px;
+            margin-bottom: 28px;
         }
 
-        .qr-invite-toolbar {
-            display: contents;
-        }
-
-        .icon-action-button {
-            width: 100%;
-            height: 56px;
-            aspect-ratio: 1 / 1;
-            border-color: #D1E3E6;
-            background: #F8FAFC;
-        }
-
+        .quick-action,
         .group-danger-button {
-            min-height: 56px;
-            width: 100%;
-            padding: 0 10px;
-            justify-self: stretch;
-            border-color: #F7CFCF;
-            box-shadow: none;
+            min-height: 158px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px 8px;
+            text-align: center;
         }
 
-        .btn-modal-cancel,
-        .btn-modal-submit {
-            min-height: 44px;
-            width: 100%;
+        .action-icon-shell {
+            width: 72px;
+            height: 72px;
+            flex-basis: 72px;
+        }
+
+        .quick-action strong,
+        .group-danger-button strong {
+            font-size: 22px !important;
+        }
+
+        .quick-action small,
+        .group-danger-button small {
+            font-size: 16px !important;
+        }
+
+        .group-summary-card {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 18px;
+            padding: 24px;
+        }
+
+        .summary-icon {
+            width: 82px;
+            height: 82px;
+        }
+
+        .group-summary-card h2 {
+            font-size: 32px !important;
+        }
+
+        .group-summary-card p {
+            font-size: 20px !important;
+        }
+
+        .active-pill {
+            min-height: 42px;
+            padding: 0 16px;
+            font-size: 20px !important;
         }
 
         .leaderboard-bar {
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .section-title {
-            margin-bottom: 0;
-            color: #102033;
-            text-transform: none;
-            font-size: 24px;
-        }
-
-        .sort-control {
-            display: grid;
             grid-template-columns: auto minmax(0, 1fr);
-            width: 100%;
-            color: #526173;
+            gap: 14px;
+            margin-bottom: 24px;
         }
 
-        .sort-control select {
-            width: 100%;
-            border-color: #C9D8E3;
-            background: #FFFFFF;
-            color: #102033;
+        .leaderboard-bar span {
+            font-size: 25px !important;
         }
 
-        .sync-table {
-            display: none;
+        .sort-select-shell {
+            min-height: 70px;
+            padding-left: 22px;
         }
 
-        .sync-table-container {
-            background: transparent;
-            border: 0;
-            box-shadow: none;
-            overflow: visible;
-            margin-bottom: 20px;
-        }
-
-        .mobile-leaderboard-list {
-            display: grid;
-            gap: 12px;
+        .sort-select-shell select {
+            font-size: 24px !important;
         }
 
         .leader-card {
-            background: linear-gradient(180deg, #FFFFFF 0%, #F7FBFC 100%);
-            border: 1px solid #D5E4EA;
-            border-radius: 8px;
-            padding: 14px;
-            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px 14px;
+            padding: 28px 28px 34px;
         }
 
-        .leader-card-top {
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
+        .leader-rank-block {
+            grid-column: 1 / 2;
+            gap: 14px;
         }
 
-        .leader-name {
-            min-width: 0;
+        .trophy-icon {
+            width: 110px;
+            height: 110px;
         }
 
-        .leader-name strong {
-            display: block;
-            color: #102033;
-            font-size: 17px;
-            line-height: 1.2;
-            overflow-wrap: anywhere;
+        .rank-badge {
+            width: 74px;
+            height: 74px;
+            font-size: 34px !important;
+        }
+
+        .leader-main {
+            grid-column: 1 / 2;
         }
 
         .leader-score {
-            display: grid;
-            justify-items: end;
-            gap: 4px;
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            align-self: start;
+            min-width: 94px;
+            padding-top: 12px;
+        }
+
+        .leader-score strong {
+            font-size: 72px !important;
+        }
+
+        .leader-score span {
+            font-size: 22px !important;
+        }
+
+        .leader-name strong {
+            font-size: 34px !important;
+        }
+
+        .leader-metrics {
+            gap: 12px;
+        }
+
+        .leader-metric {
+            min-height: 166px;
+            padding: 18px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .leader-metric span {
+            font-size: 18px !important;
+        }
+
+        .leader-metric strong {
+            font-size: 40px !important;
+        }
+
+        .leader-metric small {
+            font-size: 21px !important;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .group-switcher {
+            margin-left: -2px;
+            margin-right: -2px;
+        }
+
+        .group-action-bar {
+            gap: 10px;
+        }
+
+        .quick-action,
+        .group-danger-button {
+            min-height: 132px;
+        }
+
+        .action-icon-shell {
+            width: 58px;
+            height: 58px;
+            flex-basis: 58px;
+        }
+
+        .action-icon-shell img {
+            width: 34px;
+            height: 34px;
+        }
+
+        .quick-action strong,
+        .group-danger-button strong {
+            font-size: 18px !important;
+        }
+
+        .quick-action small,
+        .group-danger-button small {
+            font-size: 13px !important;
+        }
+
+        .group-summary-card {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .active-pill {
+            grid-column: 1 / -1;
+            justify-self: end;
+        }
+
+        .leaderboard-bar {
+            grid-template-columns: 1fr;
+        }
+
+        .sort-select-shell {
+            width: 100%;
+        }
+
+        .leader-card {
+            grid-template-columns: minmax(0, 1fr) auto;
+            padding: 22px 18px 28px;
+        }
+
+        .leader-rank-block {
+            gap: 10px;
+        }
+
+        .trophy-icon {
+            width: 82px;
+            height: 82px;
+        }
+
+        .rank-badge {
+            width: 60px;
+            height: 60px;
+            font-size: 28px !important;
+        }
+
+        .leader-name strong {
+            font-size: 26px !important;
+        }
+
+        .leader-score {
             min-width: 72px;
         }
 
         .leader-score strong {
-            color: #0F172A;
-            font-size: 28px;
-            font-weight: 850;
-            line-height: 1;
-            font-variant-numeric: tabular-nums;
+            font-size: 54px !important;
         }
 
         .leader-score span {
-            color: #64748B;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
+            font-size: 16px !important;
+        }
+
+        .award-pill {
+            min-height: 34px;
+            font-size: 14px !important;
+            padding-right: 12px;
+        }
+
+        .award-pill img {
+            width: 24px;
+            height: 24px;
         }
 
         .leader-metrics {
-            display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 8px;
-            margin-top: 10px;
         }
 
         .leader-metric {
-            background: #F3F8FA;
-            border: 1px solid #DCE8EE;
-            border-radius: 8px;
-            padding: 9px 8px;
+            min-height: 130px;
+            display: block;
+            padding: 12px;
+        }
+
+        .metric-icon {
+            width: 30px;
+            height: 30px;
+            margin: 0 0 10px;
         }
 
         .leader-metric span {
-            display: block;
-            color: #526173;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
-
-        .leader-metric .metric-label-pushup {
-            color: var(--marker-pushup);
-        }
-
-        .leader-metric .metric-label-situp {
-            color: var(--marker-situp);
-        }
-
-        .leader-metric .metric-label-run {
-            color: var(--marker-run);
+            font-size: 13px !important;
+            line-height: 1.05;
         }
 
         .leader-metric strong {
-            color: #102033;
-            font-size: 16px;
-            font-weight: 800;
-            line-height: 1.15;
-            overflow-wrap: anywhere;
+            margin-top: 12px;
+            text-align: left;
+            font-size: 28px !important;
+            overflow-wrap: normal;
+            white-space: nowrap;
         }
 
-        .leader-meta-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            color: #526173;
-            font-size: 12px;
-            line-height: 1.4;
+        .leader-metric.metric-run strong {
+            font-size: 24px !important;
         }
 
-        .leader-card .status-badge-pill {
-            border-radius: 999px;
-            border: 1px solid #C9E7E1;
-            background: #EAF8F5;
-            color: #0B766B;
-        }
-
-        .leader-card .status-badge-pill.gold {
-            background: #FFF7E6;
-            color: #99670B;
-            border-color: #F3D08A;
-        }
-
-        .leader-card .status-badge-pill.silver {
-            background: #EEF4F7;
-            color: #475569;
-            border-color: #CBD5E1;
-        }
-
-        .leader-card .status-badge-pill.fail,
-        .leader-card .status-badge-pill.incomplete {
-            background: #FFF1F2;
-            color: #BE123C;
-            border-color: #FECDD3;
-        }
-
-        .member-card-actions {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 10px;
-        }
-
-        .mobile-empty-state {
-            background: #FFFFFF;
-            border: 1px dashed #B8CCD8;
-            border-radius: 8px;
-            color: #526173;
-            padding: 18px;
-            text-align: center;
-        }
-
-        .panel-box {
-            padding: 14px;
+        .leader-metric small {
+            margin-top: 5px;
+            text-align: left;
+            font-size: 14px !important;
         }
 
         .modal-overlay {
             align-items: flex-end;
+            padding: 0;
         }
 
         .modal-window {
             width: 100%;
             max-height: 92svh;
             overflow-y: auto;
-            border-radius: 14px 14px 0 0;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-footer {
+            flex-direction: column;
         }
     }
 </style>
 
-<div class="header-section">
-    <h1>Groups</h1>
-    <p>Compare IPPT score points and personal bests with your training group.</p>
-</div>
+<div class="groups-page">
+    <div class="group-hero">
+        <h1>Groups</h1>
+        <p>Compete. Improve. Hit your best.</p>
+    </div>
 
-<!-- Modal -->
-<div class="modal-overlay" id="createGroupModal">
-    <div class="modal-window">
-        <div class="modal-header">
-            <h3>Create Group</h3>
-            <button class="close-icon-btn" onclick="closeModal('createGroupModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-element-block">
-                <label for="newGroupName">Group Name</label>
-                <input type="text" id="newGroupName" class="form-input" placeholder="e.g., Bedok Runners / Section 2 Kakis" required>
+    <div class="modal-overlay" id="createGroupModal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3>Create Group</h3>
+                <button class="close-icon-btn" type="button" onclick="closeModal('createGroupModal')" aria-label="Close create group modal">&times;</button>
             </div>
-            <div class="form-element-block">
-                <label for="groupFocus">Training Focus Target</label>
-                <select id="groupFocus" class="form-input">
-                    <option value="all">All Exercises</option>
-                    <option value="pushups">Push-Up Focus</option>
-                    <option value="situps">Sit-Up Focus</option>
-                    <option value="pullups">2.4Km Run Focus</option>
-                </select>
+            <div class="modal-body">
+                <div class="form-element-block">
+                    <label for="newGroupName">Group Name</label>
+                    <input type="text" id="newGroupName" class="form-input" placeholder="e.g., Bedok Runners / Section 2 Kakis" required>
+                </div>
+                <div class="form-element-block">
+                    <label for="groupFocus">Training Focus Target</label>
+                    <select id="groupFocus" class="form-input">
+                        <option value="all">All Exercises</option>
+                        <option value="pushups">Push-Up Focus</option>
+                        <option value="situps">Sit-Up Focus</option>
+                        <option value="run">2.4Km Run Focus</option>
+                    </select>
+                </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-modal-cancel" onclick="closeModal('createGroupModal')">Cancel</button>
-            <button class="btn-modal-submit" onclick="submitCreateGroup()">Launch Group</button>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" type="button" onclick="closeModal('createGroupModal')">Cancel</button>
+                <button class="btn-modal-submit" type="button" onclick="submitCreateGroup()">Launch Group</button>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="modal-overlay" id="myQrModal">
-    <div class="modal-window">
-        <div class="modal-header">
-            <h3>My QR</h3>
-            <button class="close-icon-btn" onclick="closeModal('myQrModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p class="modal-description">Show this QR so a teammate can invite you to their selected group.</p>
-            <div class="qr-preview-frame">
-                <div id="myQrCanvas" class="qr-code-target" aria-label="Your group invite QR code"></div>
+    <div class="modal-overlay" id="myQrModal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3>My QR</h3>
+                <button class="close-icon-btn" type="button" onclick="closeModal('myQrModal')" aria-label="Close QR modal">&times;</button>
             </div>
-            <div class="qr-status" id="myQrStatus" role="status"></div>
+            <div class="modal-body">
+                <p class="modal-description">Show this QR so a teammate can invite you to their selected group.</p>
+                <div class="qr-preview-frame">
+                    <div id="myQrCanvas" class="qr-code-target" aria-label="Your group invite QR code"></div>
+                </div>
+                <div class="qr-status" id="myQrStatus" role="status"></div>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="modal-overlay" id="scanQrModal">
-    <div class="modal-window">
-        <div class="modal-header">
-            <h3>Scan QR</h3>
-            <button class="close-icon-btn" onclick="closeModal('scanQrModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p class="modal-description">Scan a teammate's QR to invite them into the selected group.</p>
-            <div class="scan-video-frame">
-                <video id="qrScanVideo" playsinline muted></video>
-                <canvas id="qrScanCanvas"></canvas>
-                <div class="scan-frame-corners" aria-hidden="true"></div>
+    <div class="modal-overlay" id="scanQrModal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3>Scan QR</h3>
+                <button class="close-icon-btn" type="button" onclick="closeModal('scanQrModal')" aria-label="Close scanner modal">&times;</button>
             </div>
-            <div class="qr-status" id="scanQrStatus" role="status"></div>
+            <div class="modal-body">
+                <p class="modal-description">Scan a teammate's QR to invite them into the selected group.</p>
+                <div class="scan-video-frame">
+                    <video id="qrScanVideo" playsinline muted></video>
+                    <canvas id="qrScanCanvas"></canvas>
+                    <div class="scan-frame-corners" aria-hidden="true"></div>
+                </div>
+                <div class="qr-status" id="scanQrStatus" role="status"></div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Split Layout -->
-<div class="sync-grid-split">
-    
-    <!-- Left Column -->
-    <div class="left-workspace-column">
-        
-        <!-- Filter Row with Group Tabs -->
-        <div class="filter-row" id="groupTabsRow">
-            {% for item in group_data %}
-            <div class="filter-pill {% if loop.first %}active{% endif %}" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">{{ item.group.name }}</div>
-            {% endfor %}
-            <div class="filter-pill create-group-pill" onclick="openModal('createGroupModal')" aria-label="Create group">
-                <span class="create-group-label">+ Create Group</span>
-                <span class="create-group-short" aria-hidden="true">+</span>
-            </div>
-        </div>
-
-        <div class="group-action-bar">
-            <div class="qr-invite-toolbar" aria-label="Invite people by QR">
-                <button class="icon-action-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                    <img class="icon-action-icon" src="{{ asset_url('icons/qrcode.jpg') }}" alt="">
+    <div class="groups-layout">
+        <main class="groups-main">
+            <div class="group-switcher" id="groupTabsRow" aria-label="Your groups">
+                {% for item in group_data %}
+                <button class="filter-pill group-tab {% if loop.first %}active{% endif %}" type="button" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">
+                    <span class="group-tab-symbol" aria-hidden="true"></span>
+                    <span>{{ item.group.name }}</span>
                 </button>
-                <button class="icon-action-button" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
-                    <img class="icon-action-icon" src="{{ asset_url('icons/scan.jpg') }}" alt="">
-                </button>
-            </div>
-            <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
-                Leave
-            </button>
-        </div>
-
-        <div class="leaderboard-bar">
-            <div class="section-title" id="tableTitleContext">{{ group_data[0].group.name if group_data else 'Groups' }}</div>
-
-            <label class="sort-control">
-                Sort
-                <select id="leaderboardSort" onchange="setLeaderboardSort(this.value)">
-                    <option value="desc" {% if sort_order != 'asc' %}selected{% endif %}>Highest score</option>
-                    <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Lowest score</option>
-                </select>
-            </label>
-        </div>
-        
-        <!-- Leaderboard Table -->
-        <div class="sync-table-container">
-            <table class="sync-table">
-                <thead>
-                    <tr>
-                        <th class="rank-column">#</th>
-                        <th>Name</th>
-                        <th class="metric-heading-pushup">Pushup</th>
-                        <th class="metric-heading-situp">Situp</th>
-                        <th class="metric-heading-run">Run</th>
-                        <th>Score</th>
-                        <th>Award</th>
-                        <th></th>
-                
-                    </tr>
-                </thead>
-                <tbody id="groupTableBody">
-                    {% if group_data %}
-                        {% for member in group_data[0].members %}
-                        <tr>
-                            <td class="rank-column"><span class="rank-badge">{{ loop.index }}</span></td>
-                            <td class="member-name-cell">
-                                <strong>{{ member.name }}</strong>
-                            </td>
-                            <td class="pb-cell">
-                                <div class="pb-value">{{ member.personal_best.pushups or '--' }}</div>
-                                <span class="pb-unit">Reps</span>
-                            </td>
-                            <td class="pb-cell">
-                                <div class="pb-value">{{ member.personal_best.situps or '--' }}</div>
-                                <span class="pb-unit">Reps</span>
-                            </td>
-                            <td class="pb-cell">
-                                <div class="pb-value">{{ member.personal_best.run_time or '--:--' }}</div>
-                                <span class="pb-unit">Minutes</span>
-                            </td>
-                            <td class="pb-cell">
-                                <span class="score-pill">{{ member.ippt_score.total_points }} <span>pts</span></span>
-                            </td>
-                            <td>
-                                <span class="status-badge-pill group-award-badge {{ member.ippt_score.award.code }}">
-                                    {{ member.ippt_score.award.label }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if member.can_be_removed %}
-                                <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})">Remove</button>
-                                {% endif %}
-                            </td>
-                        
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                    <tr>
-                        <td colspan="8" class="empty-state">No groups available. Create a group to get started.</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-            <div class="mobile-leaderboard-list" id="mobileLeaderboardList">
+                {% endfor %}
                 {% if group_data %}
+                <span class="group-switcher-divider" aria-hidden="true"></span>
+                {% endif %}
+                <button class="filter-pill create-group-pill" type="button" onclick="openModal('createGroupModal')" aria-label="Create group">
+                    <span class="plus-ring" aria-hidden="true">+</span>
+                    <span class="create-group-label">New Group</span>
+                    <span class="create-group-short" aria-hidden="true">+</span>
+                </button>
+            </div>
+
+            <div class="group-action-bar">
+                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
+                    <button class="quick-action" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                        <span class="action-icon-shell"><img src="{{ asset_url('icons/qrcode.png') }}" alt=""></span>
+                        <span><strong>Invite QR</strong><small>Invite friends</small></span>
+                    </button>
+                    <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
+                        <span class="action-icon-shell"><img src="{{ asset_url('icons/scan.png') }}" alt=""></span>
+                        <span><strong>Scan</strong><small>Join group</small></span>
+                    </button>
+                </div>
+                <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
+                    <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
+                    <span><strong>Leave</strong><small>Exit group</small></span>
+                </button>
+            </div>
+
+            <article class="group-summary-card" id="groupSummaryCard">
+                <span class="summary-icon" aria-hidden="true"><span class="summary-symbol"></span></span>
+                <div>
+                    <h2 id="tableTitleContext">{{ group_data[0].group.name if group_data else 'No group yet' }}</h2>
+                    <p>
+                        <span id="groupMemberCount">{{ (group_data[0].members|length) if group_data else 0 }} members</span>
+                        <span aria-hidden="true">|</span>
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <span>Active now</span>
+                    </p>
+                </div>
+                <span class="active-pill">Active</span>
+            </article>
+
+            <div class="leaderboard-bar">
+                <span>Sort by</span>
+                <label class="sort-control">
+                    <span class="sort-select-shell">
+                        <img src="{{ asset_url('icons/championtrophy.png') }}" alt="">
+                        <select id="leaderboardSort" onchange="setLeaderboardSort(this.value)" aria-label="Sort leaderboard">
+                            <option value="desc" {% if sort_order != 'asc' %}selected{% endif %}>Highest score</option>
+                            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Lowest score</option>
+                        </select>
+                        <span class="sort-chevron" aria-hidden="true"></span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="leaderboard-list" id="mobileLeaderboardList">
+                {% if group_data and group_data[0].members %}
                     {% for member in group_data[0].members %}
-                    <article class="leader-card">
-                        <div class="leader-card-top">
+                    {% set award_code = member.ippt_score.award.code %}
+                    <article class="leader-card leader-card-rank-{{ loop.index }}">
+                        <div class="leader-rank-block">
+                            <img class="trophy-icon" src="{{ asset_url('icons/championtrophy.png') }}" alt="">
                             <span class="rank-badge">{{ loop.index }}</span>
+                        </div>
+                        <div class="leader-main">
                             <div class="leader-name">
                                 <strong>{{ member.name }}</strong>
                             </div>
-                            <div class="leader-score">
-                                <strong>{{ member.ippt_score.total_points }}</strong>
-                                <span>pts</span>
-                            </div>
+                            <span class="award-pill {{ award_code }}">
+                                <img src="{{ award_icon(award_code) }}" alt="">
+                                {{ member.ippt_score.award.label }}
+                            </span>
                         </div>
-                        <div class="leader-meta-row">
-                            <span class="status-badge-pill group-award-badge {{ member.ippt_score.award.code }}">{{ member.ippt_score.award.label }}</span>
+                        <div class="leader-score">
+                            <strong>{{ member.ippt_score.total_points }}</strong>
+                            <span>PTS</span>
                         </div>
                         <div class="leader-metrics">
-                            <div class="leader-metric"><span class="metric-label-pushup">Pushup</span><strong>{{ member.personal_best.pushups or '--' }}</strong></div>
-                            <div class="leader-metric"><span class="metric-label-situp">Situp</span><strong>{{ member.personal_best.situps or '--' }}</strong></div>
-                            <div class="leader-metric"><span class="metric-label-run">Run</span><strong>{{ member.personal_best.run_time or '--:--' }}</strong></div>
+                            <div class="leader-metric metric-pushup">
+                                <img class="metric-icon" src="{{ asset_url('icons/greenpushup.png') }}" alt="">
+                                <span>PUSH-UP</span>
+                                <strong>{{ member.personal_best.pushups or '--' }}</strong>
+                                <small>reps</small>
+                            </div>
+                            <div class="leader-metric metric-situp">
+                                <img class="metric-icon" src="{{ asset_url('icons/bluesitup.png') }}" alt="">
+                                <span>SIT-UP</span>
+                                <strong>{{ member.personal_best.situps or '--' }}</strong>
+                                <small>reps</small>
+                            </div>
+                            <div class="leader-metric metric-run">
+                                <img class="metric-icon" src="{{ asset_url('icons/orangerun.png') }}" alt="">
+                                <span>RUN</span>
+                                <strong>{{ member.personal_best.run_time or '--:--' }}</strong>
+                                <small>min</small>
+                            </div>
                         </div>
                         {% if member.can_be_removed %}
                         <div class="member-card-actions">
@@ -1149,36 +1500,34 @@
                     <div class="mobile-empty-state">No groups available. Create a group to get started.</div>
                 {% endif %}
             </div>
-        </div>
-    </div>
+        </main>
 
-    <!-- Right Panel Column -->
-    {% set pending_invites = invites|selectattr('status', 'equalto', 'Pending')|list %}
-    <div class="right-panel-column {% if not pending_invites %}no-pending-invites{% endif %}" id="pendingInvitePanel">
-        <div class="section-title">Incoming Invites</div>
-        <div class="panel-box">
-            <div class="invite-stack" id="inviteStackContainer">
-                {% if invites %}
-                    {% for invite in invites %}
-                    {% if invite.status == 'Pending' %}
-                    <div class="invite-card" id="invite-{{ invite.id }}" data-invite-id="{{ invite.id }}" tabindex="-1">
-                        <div class="invite-meta">
-                            <div class="sender">{{ invite.sender }}</div>
-                            <div class="group-target">wants you to join "{{ invite.group_name }}"</div>
+        {% set pending_invites = invites|selectattr('status', 'equalto', 'Pending')|list %}
+        <aside class="right-panel-column {% if not pending_invites %}no-pending-invites{% endif %}" id="pendingInvitePanel">
+            <div class="section-title">Incoming Invites</div>
+            <div class="panel-box">
+                <div class="invite-stack" id="inviteStackContainer">
+                    {% if invites %}
+                        {% for invite in invites %}
+                        {% if invite.status == 'Pending' %}
+                        <div class="invite-card" id="invite-{{ invite.id }}" data-invite-id="{{ invite.id }}" tabindex="-1">
+                            <div class="invite-meta">
+                                <div class="sender">{{ invite.sender }}</div>
+                                <div class="group-target">wants you to join "{{ invite.group_name }}"</div>
+                            </div>
+                            <div class="invite-actions">
+                                <button class="btn-accept" type="button" onclick="acceptInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Accept</button>
+                                <button class="btn-decline" type="button" onclick="declineInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Decline</button>
+                            </div>
                         </div>
-                        <div class="invite-actions">
-                            <button class="btn-accept" onclick="acceptInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Accept</button>
-                            <button class="btn-decline" onclick="declineInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Decline</button>
-                        </div>
-                    </div>
+                        {% endif %}
+                        {% endfor %}
                     {% endif %}
-                    {% endfor %}
-                {% endif %}
-                <div id="emptyState" class="invite-empty-state" style="{% if pending_invites %}display:none;{% endif %}">No pending invitations found.</div>
+                    <div id="emptyState" class="invite-empty-state" style="{% if pending_invites %}display:none;{% endif %}">No pending invitations found.</div>
+                </div>
             </div>
-        </div>
+        </aside>
     </div>
-
 </div>
 
 <script id="groupRosterData" type="application/json">{{ group_data | tojson }}</script>

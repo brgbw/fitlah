@@ -58,94 +58,98 @@
     }
 
     function renderRoster(groupId) {
-        const tableBody = document.getElementById('groupTableBody');
-        const mobileList = document.getElementById('mobileLeaderboardList');
+        const leaderboardList = document.getElementById('mobileLeaderboardList');
         activeGroupId = Number(groupId);
         const selected = groupRosterData.find(item => item.group.id === Number(groupId));
+        updateGroupSummary(selected);
 
         if (!selected || selected.members.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">No roster records available for this group yet.</td></tr>';
-            if (mobileList) {
-                mobileList.innerHTML = '<div class="mobile-empty-state">No roster records available for this group yet.</div>';
+            if (leaderboardList) {
+                leaderboardList.innerHTML = '<div class="mobile-empty-state">No roster records available for this group yet.</div>';
             }
             return;
         }
 
         const members = sortedMembers(selected.members);
-        tableBody.innerHTML = members.map((member, index) => {
-            const best = member.personal_best || {};
-            const score = member.ippt_score || {};
-            const award = score.award || {};
-
-            return `
-                <tr>
-                    <td class="rank-column"><span class="rank-badge">${index + 1}</span></td>
-                    <td class="member-name-cell">
-                        <strong>${escapeHtml(member.name || 'NSman')}</strong>
-                    </td>
-                    <td class="pb-cell">
-                        <div class="pb-value">${best.pushups || '--'}</div>
-                        <span class="pb-unit">Reps</span>
-                    </td>
-                    <td class="pb-cell">
-                        <div class="pb-value">${best.situps || '--'}</div>
-                        <span class="pb-unit">Reps</span>
-                    </td>
-                    <td class="pb-cell">
-                        <div class="pb-value">${escapeHtml(best.run_time || '--:--')}</div>
-                        <span class="pb-unit">Minutes</span>
-                    </td>
-                    <td class="pb-cell">
-                        <span class="score-pill">${score.total_points || 0} <span>pts</span></span>
-                    </td>
-                    <td>
-                        <span class="status-badge-pill group-award-badge ${escapeHtml(award.code || 'fail')}">
-                            ${escapeHtml(award.label || 'Fail')}
-                        </span>
-                    </td>
-                    <td>
-                        ${member.can_be_removed ? `<button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})">Remove</button>` : ''}
-                    </td>
-                </tr>`;
-        }).join('');
-
-        if (mobileList) {
-            mobileList.innerHTML = members.map((member, index) => mobileLeaderCard(member, index)).join('');
+        if (leaderboardList) {
+            leaderboardList.innerHTML = members.map((member, index) => leaderCard(member, index)).join('');
         }
     }
 
-    function mobileLeaderCard(member, index) {
+    function updateGroupSummary(selected) {
+        const title = document.getElementById('tableTitleContext');
+        const count = document.getElementById('groupMemberCount');
+        const leaveButton = document.getElementById('leaveGroupButton');
+        const scanButton = document.querySelector('[onclick="openQrScanner()"]');
+
+        if (title) title.textContent = selected?.group?.name || 'No group yet';
+        if (count) {
+            const memberCount = selected?.members?.length || 0;
+            count.textContent = `${memberCount} ${memberCount === 1 ? 'member' : 'members'}`;
+        }
+        if (leaveButton) leaveButton.disabled = !selected;
+        if (scanButton) scanButton.disabled = !selected;
+    }
+
+    function leaderCard(member, index) {
         const best = member.personal_best || {};
         const score = member.ippt_score || {};
         const award = score.award || {};
         const points = score.total_points ?? member.ippt_points ?? 0;
+        const awardCode = award.code || 'fail';
+        const awardLabel = award.label || 'Fail';
+
         return `
-            <article class="leader-card">
-                <div class="leader-card-top">
+            <article class="leader-card leader-card-rank-${index + 1}">
+                <div class="leader-rank-block">
+                    <img class="trophy-icon" src="/static/icons/championtrophy.png" alt="">
                     <span class="rank-badge">${index + 1}</span>
+                </div>
+                <div class="leader-main">
                     <div class="leader-name">
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
                     </div>
-                    <div class="leader-score">
-                        <strong>${escapeHtml(points)}</strong>
-                        <span>pts</span>
-                    </div>
-                </div>
-                <div class="leader-meta-row">
-                    <span class="status-badge-pill group-award-badge ${escapeHtml(award.code || 'fail')}">
-                        ${escapeHtml(award.label || 'Fail')}
+                    <span class="award-pill ${escapeHtml(awardCode)}">
+                        <img src="${awardIcon(awardCode)}" alt="">
+                        ${escapeHtml(awardLabel)}
                     </span>
                 </div>
+                <div class="leader-score">
+                    <strong>${escapeHtml(points)}</strong>
+                    <span>PTS</span>
+                </div>
                 <div class="leader-metrics">
-                    <div class="leader-metric"><span class="metric-label-pushup">Pushup</span><strong>${escapeHtml(best.pushups || '--')}</strong></div>
-                    <div class="leader-metric"><span class="metric-label-situp">Situp</span><strong>${escapeHtml(best.situps || '--')}</strong></div>
-                    <div class="leader-metric"><span class="metric-label-run">Run</span><strong>${escapeHtml(best.run_time || '--:--')}</strong></div>
+                    <div class="leader-metric metric-pushup">
+                        <img class="metric-icon" src="/static/icons/greenpushup.png" alt="">
+                        <span>PUSH-UP</span>
+                        <strong>${escapeHtml(best.pushups || '--')}</strong>
+                        <small>reps</small>
+                    </div>
+                    <div class="leader-metric metric-situp">
+                        <img class="metric-icon" src="/static/icons/bluesitup.png" alt="">
+                        <span>SIT-UP</span>
+                        <strong>${escapeHtml(best.situps || '--')}</strong>
+                        <small>reps</small>
+                    </div>
+                    <div class="leader-metric metric-run">
+                        <img class="metric-icon" src="/static/icons/orangerun.png" alt="">
+                        <span>RUN</span>
+                        <strong>${escapeHtml(best.run_time || '--:--')}</strong>
+                        <small>min</small>
+                    </div>
                 </div>
                 ${member.can_be_removed ? `
                     <div class="member-card-actions">
                         <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})">Remove</button>
                     </div>` : ''}
             </article>`;
+    }
+
+    function awardIcon(code) {
+        if (code === 'gold') return '/static/icons/goldbadge.png';
+        if (code === 'silver') return '/static/icons/silverbadge.png';
+        if (code === 'pass-incentive') return '/static/icons/passwithincentivebadge.png';
+        return '/static/icons/passbadge.png';
     }
 
     function escapeHtml(value) {
@@ -163,7 +167,6 @@
         const pills = document.querySelectorAll('.filter-pill:not(.create-group-pill)');
         pills.forEach(p => p.classList.remove('active'));
         tabElement.classList.add('active');
-        document.getElementById('tableTitleContext').innerText = tabElement.innerText;
         renderRoster(tabElement.dataset.groupId);
     }
 
@@ -502,9 +505,13 @@
 
     function pollPendingInvites(focusNew = true) {
         fetch(api.pendingInvites)
-            .then(res => res.json())
+            .then(res => {
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) return null;
+                return res.json();
+            })
             .then(data => {
-                if (data.success) renderPendingInvites(data.invites, focusNew);
+                if (data?.success) renderPendingInvites(data.invites, focusNew);
             })
             .catch(err => console.error('Invite poll failed:', err));
     }
