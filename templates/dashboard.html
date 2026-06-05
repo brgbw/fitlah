@@ -1,5 +1,16 @@
 {% extends 'base.html' %}
 {% from 'strava_sync.html' import dashboard_strava_sync_panel %}
+{% macro award_icon(code) -%}
+    {%- if code == 'gold' -%}
+        {{ asset_url('icons/goldbadge.png') }}
+    {%- elif code == 'silver' -%}
+        {{ asset_url('icons/silverbadge.png') }}
+    {%- elif code == 'pass-incentive' -%}
+        {{ asset_url('icons/passwithincentivebadge.png') }}
+    {%- else -%}
+        {{ asset_url('icons/passbadge.png') }}
+    {%- endif -%}
+{%- endmacro %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/dashboard.css') }}">
 {% endblock %}
@@ -95,53 +106,61 @@
                     </div>
                 </div>
 
-                <div class="score-hero award-{{ ippt_score.award.code }}" id="ipptScoreHero" style="--score-percent: {{ ippt_score.total_points }}">
-                    <div class="score-ring">
+                <div class="score-hero award-{{ ippt_score.award.code }}" id="ipptScoreHero">
+                    <div class="score-hero-top">
+                        <img class="score-trophy-icon" src="{{ asset_url('icons/championtrophy.png') }}" alt="">
+
+                        <div class="score-copy">
+                            <div class="score-line">
+                                <div class="award-pill {{ ippt_score.award.code }}" id="ipptAward">
+                                    <img src="{{ award_icon(ippt_score.award.code) }}" alt="">
+                                    {{ ippt_score.award.label }}
+                                </div>
+                            </div>
+
+                            <p class="score-note" id="ipptScoreNote">
+                                {% if not ippt_score.complete %}
+                                    Add all three stations to complete your score.
+                                {% endif %}
+                            </p>
+                        </div>
+
                         <div class="score-total">
                             <strong id="ipptTotalPoints">{{ ippt_score.total_points }}</strong>
-                            <span>pts</span>
+                            <span>PTS</span>
                         </div>
                     </div>
 
-                    <div>
-                        <div class="score-line">
-                            <div class="award-pill {{ ippt_score.award.code }}" id="ipptAward">
-                                {{ ippt_score.award.label }}
+                    <div class="station-grid">
+                        <div class="station-card station-pushup">
+                            <img class="station-icon" src="{{ asset_url('icons/greenpushup.png') }}" alt="">
+                            <div>
+                                <span>Push-up</span>
+                                <strong id="ipptPushups">{{ ippt_score.pushups }}</strong>
+                                <small>reps</small>
                             </div>
-                            <span class="score-scale">/100</span>
+                            <em><span id="ipptPushupPoints">{{ ippt_score.pushup_points }}</span> pts</em>
                         </div>
 
-                        <p class="score-note" id="ipptScoreNote">
-                            {% if not ippt_score.complete %}
-                                Add all three stations to complete your score.
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="station-grid">
-                    <div class="station-card">
-                        <div>
-                            <span>Push-up</span>
-                            <strong id="ipptPushups">{{ ippt_score.pushups }} reps</strong>
+                        <div class="station-card station-situp">
+                            <img class="station-icon" src="{{ asset_url('icons/bluesitup.png') }}" alt="">
+                            <div>
+                                <span>Sit-up</span>
+                                <strong id="ipptSitups">{{ ippt_score.situps }}</strong>
+                                <small>reps</small>
+                            </div>
+                            <em><span id="ipptSitupPoints">{{ ippt_score.situp_points }}</span> pts</em>
                         </div>
-                        <small><span id="ipptPushupPoints">{{ ippt_score.pushup_points }}</span> pts</small>
-                    </div>
 
-                    <div class="station-card">
-                        <div>
-                            <span>Sit-up</span>
-                            <strong id="ipptSitups">{{ ippt_score.situps }} reps</strong>
+                        <div class="station-card station-run">
+                            <img class="station-icon" src="{{ asset_url('icons/orangerun.png') }}" alt="">
+                            <div>
+                                <span>Run</span>
+                                <strong id="ipptRunTime">{{ ippt_score.run_time }}</strong>
+                                <small>min</small>
+                            </div>
+                            <em><span id="ipptRunPoints">{{ ippt_score.run_points }}</span> pts</em>
                         </div>
-                        <small><span id="ipptSitupPoints">{{ ippt_score.situp_points }}</span> pts</small>
-                    </div>
-
-                    <div class="station-card">
-                        <div>
-                            <span>2.4km</span>
-                            <strong id="ipptRunTime">{{ ippt_score.run_time }}</strong>
-                        </div>
-                        <small><span id="ipptRunPoints">{{ ippt_score.run_points }}</span> pts</small>
                     </div>
                 </div>
             </section>

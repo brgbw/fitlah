@@ -779,3 +779,229 @@
             overflow-wrap: anywhere;
         }
     }
+
+    /* IPPT score card matches the compact leaderboard card language used on Groups. */
+    .ippt-panel {
+        background: #FFFFFF;
+    }
+
+    .score-hero {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px;
+        margin-bottom: 0;
+        border: 1px solid #DCE5EF;
+        border-bottom: 3px solid #00A86B;
+        border-radius: 8px;
+        background: linear-gradient(90deg, rgba(0, 168, 107, 0.04), #FFFFFF 42%);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .score-hero-top {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+    }
+
+    .score-trophy-icon {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+    }
+
+    .score-copy {
+        min-width: 0;
+        padding-top: 3px;
+    }
+
+    .score-line {
+        margin: 0;
+        justify-content: flex-start;
+    }
+
+    .score-ring,
+    .score-scale {
+        display: none;
+    }
+
+    .score-total {
+        display: grid;
+        justify-items: end;
+        gap: 1px;
+        width: auto;
+        padding: 0;
+        color: #00A86B;
+    }
+
+    .score-total strong {
+        color: #00A86B;
+        font-size: 40px;
+        font-weight: 700;
+        line-height: 0.95;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .score-total span {
+        color: #64748B;
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+
+    .award-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 25px;
+        padding: 0 9px 0 5px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 650;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+
+    .award-pill img {
+        width: 23px;
+        height: 23px;
+        object-fit: contain;
+    }
+
+    .score-note {
+        margin-top: 7px;
+        color: #64748B;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .station-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .station-card {
+        display: block;
+        min-height: 88px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #F7FCFA;
+        border: 1px solid #DBE8EA;
+    }
+
+    .station-card.station-situp {
+        background: #F7FAFF;
+        border-color: #DDE7FB;
+    }
+
+    .station-card.station-run {
+        background: #FFF9F3;
+        border-color: #F8DFC7;
+    }
+
+    .station-icon {
+        display: block;
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+        margin-bottom: 7px;
+    }
+
+    .station-card > div > span {
+        color: #015936;
+        font-size: 10px;
+        font-weight: 650;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .station-card.station-situp > div > span {
+        color: #2563EB;
+    }
+
+    .station-card.station-run > div > span {
+        color: #F97316;
+    }
+
+    .station-card strong {
+        color: #0F172A;
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1;
+        margin-top: 7px;
+        white-space: nowrap;
+    }
+
+    .station-card small {
+        display: block;
+        color: #64748B;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.1;
+        margin-top: 3px;
+        text-align: left;
+    }
+
+    .station-card em {
+        display: block;
+        color: #64748B;
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 600;
+        line-height: 1;
+        margin-top: 8px;
+    }
+
+    @media (max-width: 640px) {
+        .score-hero {
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .score-hero-top {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 10px;
+        }
+
+        .score-trophy-icon {
+            width: 44px;
+            height: 44px;
+        }
+
+        .score-total strong {
+            font-size: 32px;
+        }
+
+        .station-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .station-card {
+            min-height: 82px;
+            padding: 8px;
+        }
+
+        .station-icon {
+            width: 19px;
+            height: 19px;
+            margin-bottom: 6px;
+        }
+
+        .station-card > div > span {
+            font-size: 9px;
+        }
+
+        .station-card strong {
+            font-size: 19px;
+            margin-top: 6px;
+        }
+
+        .station-card.station-run strong {
+            font-size: 17px;
+        }
+    }

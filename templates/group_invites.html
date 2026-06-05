@@ -2026,6 +2026,109 @@
             font-size: 32px !important;
         }
     }
+
+    /* Alignment and overflow fixes for the app shell. */
+    .groups-page {
+        max-width: none;
+        margin: 0;
+    }
+
+    .groups-layout {
+        width: 100%;
+    }
+
+    .group-switcher {
+        align-items: stretch;
+    }
+
+    .group-tab,
+    .create-group-pill {
+        flex: 0 0 auto;
+        min-width: max-content;
+    }
+
+    .group-tab {
+        border-color: transparent;
+    }
+
+    .group-tab.active {
+        color: #006D48;
+        background: #E8F8F2;
+    }
+
+    .quick-action {
+        background: #E8F8F2;
+        border-color: #BCEBD9;
+    }
+
+    .quick-action .action-icon-shell {
+        background: transparent;
+    }
+
+    .group-danger-button {
+        background: #FFF1F2;
+        border-color: #FECDD3;
+    }
+
+    .group-danger-button .action-icon-shell {
+        background: transparent;
+    }
+
+    .award-pill {
+        min-height: 26px;
+        font-size: 10px !important;
+        padding: 0 9px 0 5px;
+    }
+
+    .award-pill img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .trophy-icon {
+        width: 58px;
+        height: 58px;
+    }
+
+    @media (max-width: 760px) {
+        .group-switcher {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+        .group-tab {
+            max-width: 160px;
+        }
+
+        .group-tab span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .create-group-pill {
+            min-width: 46px;
+        }
+
+        .quick-action,
+        .group-danger-button {
+            justify-content: center;
+        }
+
+        .award-pill {
+            min-height: 24px;
+            font-size: 9px !important;
+        }
+
+        .award-pill img {
+            width: 22px;
+            height: 22px;
+        }
+
+        .trophy-icon {
+            width: 46px;
+            height: 46px;
+        }
+    }
 </style>
 
 <div class="groups-page">
