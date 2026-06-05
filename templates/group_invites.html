@@ -1313,6 +1313,558 @@
             flex-direction: column;
         }
     }
+
+    /* Compact app-scale pass: keep the new look, but match the rest of FitLah. */
+    .groups-page {
+        max-width: 1060px;
+    }
+
+    .group-hero {
+        margin-bottom: 18px;
+    }
+
+    .group-hero h1 {
+        font-size: var(--page-title-size) !important;
+        line-height: 1.05;
+        font-weight: var(--page-title-weight);
+        margin-bottom: 6px;
+    }
+
+    .group-hero p {
+        font-size: var(--page-subtitle-size) !important;
+        line-height: 1.4;
+    }
+
+    .groups-layout {
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 18px;
+    }
+
+    .group-switcher {
+        gap: 8px;
+        padding: 10px;
+        margin-bottom: 14px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .group-tab,
+    .create-group-pill {
+        min-height: 46px;
+        gap: 8px;
+        padding: 8px 14px;
+        font-size: 15px !important;
+        font-weight: 750;
+        box-shadow: none;
+    }
+
+    .group-tab.active {
+        background: linear-gradient(135deg, #00956B, #00795B);
+        box-shadow: 0 6px 14px rgba(0, 122, 88, 0.16);
+    }
+
+    .group-tab-icon,
+    .create-group-icon {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        flex: 0 0 24px;
+    }
+
+    .group-tab-icon-selected {
+        display: none;
+    }
+
+    .group-tab.active .group-tab-icon-default {
+        display: none;
+    }
+
+    .group-tab.active .group-tab-icon-selected {
+        display: inline-block;
+    }
+
+    .group-switcher-divider {
+        height: 32px;
+    }
+
+    .group-action-bar {
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .quick-action,
+    .group-danger-button {
+        min-height: 74px;
+        gap: 10px;
+        padding: 12px 14px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .action-icon-shell {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+
+    .action-icon-shell img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .quick-action strong,
+    .group-danger-button strong {
+        font-size: 16px !important;
+        line-height: 1.15;
+    }
+
+    .quick-action small,
+    .group-danger-button small {
+        font-size: 12px !important;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
+
+    .group-summary-card {
+        gap: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .summary-icon {
+        width: 54px;
+        height: 54px;
+    }
+
+    .summary-icon img {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+    }
+
+    .group-summary-card h2 {
+        font-size: 22px !important;
+        line-height: 1.15;
+    }
+
+    .group-summary-card p {
+        gap: 9px;
+        margin-top: 4px;
+        font-size: 15px !important;
+    }
+
+    .status-dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .active-pill {
+        min-height: 34px;
+        padding: 0 14px;
+        font-size: 14px !important;
+    }
+
+    .leaderboard-bar {
+        grid-template-columns: auto minmax(180px, 1fr);
+        gap: 10px;
+        margin: 0 0 14px;
+    }
+
+    .leaderboard-bar span {
+        font-size: 16px !important;
+        font-weight: 650;
+    }
+
+    .sort-select-shell {
+        min-height: 46px;
+        gap: 10px;
+        padding: 0 38px 0 14px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .sort-select-shell img {
+        width: 22px;
+        height: 22px;
+    }
+
+    .sort-select-shell select {
+        font-size: 16px !important;
+        font-weight: 750;
+    }
+
+    .sort-chevron {
+        right: 16px;
+        width: 11px;
+        height: 11px;
+        border-width: 2px;
+    }
+
+    .leaderboard-list {
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .leader-card {
+        grid-template-columns: 110px minmax(0, 1fr) auto;
+        gap: 14px;
+        padding: 18px;
+        border-bottom-width: 3px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .leader-rank-block {
+        gap: 10px;
+    }
+
+    .trophy-icon {
+        width: 54px;
+        height: 54px;
+    }
+
+    .rank-badge {
+        width: 42px;
+        height: 42px;
+        font-size: 18px !important;
+        box-shadow: 0 7px 14px rgba(0, 122, 88, 0.18);
+    }
+
+    .leader-name strong {
+        font-size: 22px !important;
+        line-height: 1.12;
+    }
+
+    .award-pill {
+        min-height: 28px;
+        margin-top: 9px;
+        padding: 0 11px 0 7px;
+        gap: 6px;
+        font-size: 12px !important;
+    }
+
+    .award-pill img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .leader-score {
+        min-width: 70px;
+    }
+
+    .leader-score strong {
+        font-size: 42px !important;
+        line-height: 0.95;
+    }
+
+    .leader-score span {
+        font-size: 12px !important;
+    }
+
+    .leader-metrics {
+        gap: 10px;
+        margin-top: 0;
+    }
+
+    .leader-metric {
+        min-height: 86px;
+        padding: 12px;
+    }
+
+    .metric-icon {
+        width: 24px;
+        height: 24px;
+        margin-bottom: 7px;
+    }
+
+    .leader-metric span {
+        font-size: 12px !important;
+    }
+
+    .leader-metric strong {
+        font-size: 24px !important;
+        margin-top: 8px;
+        overflow-wrap: normal;
+        white-space: nowrap;
+    }
+
+    .leader-metric small {
+        font-size: 13px !important;
+        margin-top: 3px;
+    }
+
+    .member-action-button {
+        min-height: 36px;
+        font-size: 12px !important;
+    }
+
+    .section-title {
+        font-size: 17px !important;
+        margin-bottom: 10px;
+    }
+
+    .panel-box {
+        padding: 12px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .invite-card {
+        padding: 12px;
+    }
+
+    .empty-state,
+    .mobile-empty-state,
+    .invite-empty-state {
+        padding: 18px;
+        font-size: 15px !important;
+    }
+
+    @media (max-width: 1120px) {
+        .groups-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .right-panel-column {
+            position: static;
+        }
+
+        .right-panel-column.no-pending-invites {
+            display: none;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .groups-page {
+            margin-top: 0;
+        }
+
+        .group-hero {
+            margin-bottom: 14px;
+        }
+
+        .group-hero h1 {
+            font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+        }
+
+        .group-hero p {
+            font-size: max(calc(16px * var(--font-scale)), 16px) !important;
+        }
+
+        .group-switcher {
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        .group-tab,
+        .create-group-pill {
+            min-height: 44px;
+            padding: 8px 12px;
+            font-size: 14px !important;
+        }
+
+        .group-tab-icon,
+        .create-group-icon {
+            width: 22px;
+            height: 22px;
+            flex-basis: 22px;
+        }
+
+        .group-action-bar {
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .quick-action,
+        .group-danger-button {
+            min-height: 84px;
+            gap: 7px;
+            padding: 10px 6px;
+        }
+
+        .action-icon-shell {
+            width: 38px;
+            height: 38px;
+            flex-basis: 38px;
+        }
+
+        .action-icon-shell img {
+            width: 23px;
+            height: 23px;
+        }
+
+        .quick-action strong,
+        .group-danger-button strong {
+            font-size: 14px !important;
+        }
+
+        .quick-action small,
+        .group-danger-button small {
+            font-size: 11px !important;
+        }
+
+        .group-summary-card {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .summary-icon {
+            width: 44px;
+            height: 44px;
+        }
+
+        .summary-icon img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .group-summary-card h2 {
+            font-size: 19px !important;
+        }
+
+        .group-summary-card p {
+            gap: 7px;
+            font-size: 13px !important;
+        }
+
+        .active-pill {
+            min-height: 30px;
+            padding: 0 10px;
+            font-size: 12px !important;
+        }
+
+        .leaderboard-bar {
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .leaderboard-bar span {
+            font-size: 15px !important;
+        }
+
+        .sort-select-shell {
+            min-height: 44px;
+            padding-left: 12px;
+        }
+
+        .sort-select-shell select {
+            font-size: 15px !important;
+        }
+
+        .leader-card {
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            padding: 14px;
+        }
+
+        .leader-rank-block {
+            gap: 8px;
+        }
+
+        .trophy-icon {
+            width: 46px;
+            height: 46px;
+        }
+
+        .rank-badge {
+            width: 36px;
+            height: 36px;
+            font-size: 16px !important;
+        }
+
+        .leader-score {
+            min-width: 58px;
+            padding-top: 0;
+        }
+
+        .leader-score strong {
+            font-size: 36px !important;
+        }
+
+        .leader-score span {
+            font-size: 11px !important;
+        }
+
+        .leader-name strong {
+            font-size: 19px !important;
+        }
+
+        .award-pill {
+            min-height: 26px;
+            margin-top: 7px;
+            font-size: 11px !important;
+        }
+
+        .award-pill img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .leader-metrics {
+            gap: 8px;
+        }
+
+        .leader-metric {
+            min-height: 82px;
+            padding: 9px;
+        }
+
+        .metric-icon {
+            width: 20px;
+            height: 20px;
+            margin-bottom: 6px;
+        }
+
+        .leader-metric span {
+            font-size: 10px !important;
+        }
+
+        .leader-metric strong {
+            font-size: 21px !important;
+            margin-top: 6px;
+        }
+
+        .leader-metric.metric-run strong {
+            font-size: 19px !important;
+        }
+
+        .leader-metric small {
+            font-size: 11px !important;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .group-switcher {
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .quick-action,
+        .group-danger-button {
+            min-height: 78px;
+        }
+
+        .group-summary-card {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+        }
+
+        .active-pill {
+            grid-column: auto;
+        }
+
+        .leaderboard-bar {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .leader-card {
+            padding: 12px;
+        }
+
+        .leader-metric {
+            min-height: 78px;
+            padding: 8px;
+        }
+    }
 </style>
 
 <div class="groups-page">
@@ -1388,7 +1940,8 @@
             <div class="group-switcher" id="groupTabsRow" aria-label="Your groups">
                 {% for item in group_data %}
                 <button class="filter-pill group-tab {% if loop.first %}active{% endif %}" type="button" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">
-                    <span class="group-tab-symbol" aria-hidden="true"></span>
+                    <img class="group-tab-icon group-tab-icon-default" src="{{ asset_url('icons/group.png') }}" alt="">
+                    <img class="group-tab-icon group-tab-icon-selected" src="{{ asset_url('icons/selectedgroup.png') }}" alt="">
                     <span>{{ item.group.name }}</span>
                 </button>
                 {% endfor %}
@@ -1396,7 +1949,7 @@
                 <span class="group-switcher-divider" aria-hidden="true"></span>
                 {% endif %}
                 <button class="filter-pill create-group-pill" type="button" onclick="openModal('createGroupModal')" aria-label="Create group">
-                    <span class="plus-ring" aria-hidden="true">+</span>
+                    <img class="create-group-icon" src="{{ asset_url('icons/creategroup.png') }}" alt="">
                     <span class="create-group-label">New Group</span>
                     <span class="create-group-short" aria-hidden="true">+</span>
                 </button>
@@ -1420,7 +1973,7 @@
             </div>
 
             <article class="group-summary-card" id="groupSummaryCard">
-                <span class="summary-icon" aria-hidden="true"><span class="summary-symbol"></span></span>
+                <span class="summary-icon" aria-hidden="true"><img src="{{ asset_url('icons/selectedgroup.png') }}" alt=""></span>
                 <div>
                     <h2 id="tableTitleContext">{{ group_data[0].group.name if group_data else 'No group yet' }}</h2>
                     <p>
