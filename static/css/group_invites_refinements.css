@@ -1,0 +1,111 @@
+.qr-switcher-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 8px 14px;
+    border: 1px solid var(--group-line);
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: var(--group-ink);
+    font-size: 15px !important;
+    font-weight: 700;
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+.group-summary-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.group-summary-card .group-action-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(90px, 1fr));
+    gap: 8px;
+    min-width: 230px;
+    margin: 0;
+}
+
+.group-summary-card .quick-action,
+.group-summary-card .group-danger-button {
+    min-height: 52px;
+}
+
+.leader-metric.metric-score,
+.leader-metric.metric-award {
+    display: none;
+}
+
+.metric-score {
+    border-color: #B9D8CC;
+    background: #F4FAF7;
+}
+
+.metric-score span,
+.metric-score strong {
+    color: #006039;
+}
+
+.metric-award {
+    border-color: #D7DEE8;
+    background: #F8FAFC;
+}
+
+.metric-award strong {
+    font-size: 16px !important;
+    white-space: normal;
+}
+
+@media (min-width: 761px) {
+    .leader-card {
+        grid-template-columns: 64px minmax(0, 1fr);
+    }
+
+    .leader-card.no-trophy {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .leader-score,
+    .leader-main > .award-pill {
+        display: none;
+    }
+
+    .leader-metrics {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .leader-metric.metric-score,
+    .leader-metric.metric-award {
+        display: block;
+    }
+}
+
+@media (max-width: 760px) {
+    .qr-switcher-button {
+        width: 44px;
+        min-width: 44px;
+        justify-content: center;
+        padding: 8px;
+    }
+
+    .qr-switcher-button .create-group-label {
+        display: none;
+    }
+
+    .group-summary-card {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .group-summary-card .group-action-bar {
+        grid-template-columns: repeat(2, 42px);
+        gap: 6px;
+        min-width: 90px;
+    }
+
+    .group-summary-card .quick-action,
+    .group-summary-card .group-danger-button {
+        min-height: 42px;
+        padding: 0;
+    }
+}

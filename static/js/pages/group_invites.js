@@ -141,6 +141,18 @@
                         <strong>${escapeHtml(best.run_time || '--:--')}</strong>
                         <small>min</small>
                     </div>
+                    <div class="leader-metric metric-score">
+                        <span>POINTS</span>
+                        <strong>${escapeHtml(points)}</strong>
+                        <small>pts</small>
+                    </div>
+                    ${showAward ? `
+                    <div class="leader-metric metric-award">
+                        <img class="metric-icon" src="${awardIcon(awardCode)}" alt="">
+                        <span>IPPT</span>
+                        <strong>${escapeHtml(awardLabel)}</strong>
+                        <small>status</small>
+                    </div>` : ''}
                 </div>
                 ${member.can_be_removed ? `
                     <div class="member-card-actions">

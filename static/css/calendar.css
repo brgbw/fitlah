@@ -13,8 +13,8 @@
 }
 
 .calendar-ai-summary img {
-  width: 46px;
-  height: 46px;
+  width: 68px;
+  height: 68px;
   object-fit: contain;
 }
 
@@ -29,7 +29,7 @@
 
 .calendar-ai-summary h2 {
   color: #0F172A;
-  font-size: 18px !important;
+  font-size: 22px !important;
   line-height: 1.2;
   margin: 0 0 4px;
   font-weight: 650;
@@ -37,8 +37,8 @@
 
 .calendar-ai-summary p {
   color: #64748B;
-  font-size: 14px !important;
-  line-height: 1.45;
+  font-size: 17px !important;
+  line-height: 1.55;
   margin: 0;
 }
 
@@ -47,10 +47,10 @@
 }
 
 .ai-summary-inline-icon {
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
-  flex: 0 0 22px;
+  flex: 0 0 34px;
 }
 
 @media (max-width: 700px) {
@@ -61,16 +61,16 @@
   }
 
   .calendar-ai-summary img {
-    width: 38px;
-    height: 38px;
+    width: 54px;
+    height: 54px;
   }
 
   .calendar-ai-summary h2 {
-    font-size: 16px !important;
+    font-size: 19px !important;
   }
 
   .calendar-ai-summary p {
-    font-size: 13px !important;
+    font-size: 15px !important;
   }
 
   .calendar-card {

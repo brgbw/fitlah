@@ -301,20 +301,24 @@
     const total = logs.length;
     if (!total) {
       title.textContent = 'No logged activities yet';
-      text.textContent = `${userName ? `${userName}, y` : 'Y'}our next log is the starting line. Add one push-up, sit-up, or run entry so FitLah can spot your training pattern.`;
+      text.textContent = `${userName ? `${userName}, y` : 'Y'}our next log is the starting line. Add one push-up, sit-up, or run entry so FitLah can start spotting your rhythm, consistency, and best station to build around.`;
       return;
     }
 
     const stations = ['pushup', 'situp', 'run'];
     const least = stations.reduce((weakest, type) => (counts[type] || 0) < (counts[weakest] || 0) ? type : weakest, stations[0]);
     const strongest = stations.reduce((best, type) => (counts[type] || 0) > (counts[best] || 0) ? type : best, stations[0]);
+    const stationCounts = stations.map(type => counts[type] || 0);
+    const isBalanced = stationCounts.every(count => count === stationCounts[0]);
     const compliment = total >= 6
-      ? 'Strong consistency'
+      ? 'Strong consistency and discipline'
       : total >= 3
-        ? 'Nice work building momentum'
-        : 'Good start';
+        ? 'Nice work building real momentum'
+        : 'Good start getting your training recorded';
     title.textContent = `${total} logged ${total === 1 ? 'activity' : 'activities'} reviewed`;
-    text.textContent = `${compliment}${userName ? `, ${userName}` : ''}. Most logged: ${typeName(strongest)}. Focus next: ${typeName(least)} to keep your IPPT prep balanced.`;
+    text.textContent = isBalanced
+      ? `${compliment}${userName ? `, ${userName}` : ''}. Your calendar is nicely balanced across push-up, sit-up, and 2.4km run work, which is exactly the kind of base that keeps IPPT prep steady. For the next session, choose the station that felt toughest recently and make that your quality focus while keeping the other two ticking over.`
+      : `${compliment}${userName ? `, ${userName}` : ''}. Your calendar shows ${typeName(strongest)} has the most attention so far, which is a useful base to build from. For the next session, put a little extra focus on ${typeName(least)} so your IPPT preparation stays balanced across strength, core, and running.`;
   }
 
   function aiTextHtml(text) {

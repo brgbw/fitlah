@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ asset_url('css/group_invites_refinements.css') }}">
+{% endblock %}
 {% block content %}
 {% macro award_icon(code) -%}
     {%- if code == 'gold' -%}
@@ -2131,6 +2134,7 @@
     .leader-card::after {
         display: none;
     }
+
 </style>
 
 <div class="groups-page">
@@ -2218,6 +2222,10 @@
                     <span class="create-group-label">New Group</span>
                     <span class="create-group-short" aria-hidden="true">+</span>
                 </button>
+                <button class="filter-pill qr-switcher-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                    <img class="create-group-icon" src="{{ asset_url('icons/qrcode.png') }}" alt="">
+                    <span class="create-group-label">Invite QR</span>
+                </button>
             </div>
 
             <article class="group-summary-card" id="groupSummaryCard">
@@ -2228,24 +2236,17 @@
                         <span id="groupMemberCount">{{ (group_data[0].members|length) if group_data else 0 }} members</span>
                     </p>
                 </div>
-            </article>
-
-            <div class="group-action-bar">
-                <div class="qr-invite-toolbar" aria-label="Invite people by QR">
-                    <button class="quick-action" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                        <span class="action-icon-shell"><img src="{{ asset_url('icons/qrcode.png') }}" alt=""></span>
-                        <span class="action-copy"><strong>Invite QR</strong><small>Invite friends</small></span>
-                    </button>
+                <div class="group-action-bar" aria-label="Group actions">
                     <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
                         <span class="action-icon-shell"><img src="{{ asset_url('icons/scan.png') }}" alt=""></span>
                         <span class="action-copy"><strong>Scan</strong><small>Join group</small></span>
                     </button>
+                    <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
+                        <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
+                        <span class="action-copy"><strong>Leave</strong><small>Exit group</small></span>
+                    </button>
                 </div>
-                <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
-                    <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
-                    <span class="action-copy"><strong>Leave</strong><small>Exit group</small></span>
-                </button>
-            </div>
+            </article>
 
             <div class="leaderboard-bar">
                 <span>Sort by</span>
@@ -2312,6 +2313,19 @@
                                 <strong>{{ member.personal_best.run_time or '--:--' }}</strong>
                                 <small>min</small>
                             </div>
+                            <div class="leader-metric metric-score">
+                                <span>POINTS</span>
+                                <strong>{{ member.ippt_score.total_points }}</strong>
+                                <small>pts</small>
+                            </div>
+                            {% if show_award %}
+                            <div class="leader-metric metric-award">
+                                <img class="metric-icon" src="{{ award_icon(award_code) }}" alt="">
+                                <span>IPPT</span>
+                                <strong>{{ member.ippt_score.award.label }}</strong>
+                                <small>status</small>
+                            </div>
+                            {% endif %}
                         </div>
                         {% if member.can_be_removed %}
                         <div class="member-card-actions">

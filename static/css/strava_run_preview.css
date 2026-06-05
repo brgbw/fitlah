@@ -276,10 +276,10 @@
 }
 
 .strava-coach-card .ai-summary-inline-icon {
-    width: 22px;
-    height: 22px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
-    flex: 0 0 22px;
+    flex: 0 0 34px;
 }
 
 .strava-coach-card {
