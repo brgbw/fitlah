@@ -254,15 +254,7 @@
     }
 
     .panel-title::before {
-        content: "";
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-    }
-
-    .recent-activity-title::before {
-        background: linear-gradient(135deg, #0A64BC, #0EA5E9);
-        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+        display: none;
     }
 
     .strava-sync-preview {
@@ -590,6 +582,10 @@
         border-radius: 10px;
         background: rgba(255,255,255,0.88);
         transition: 0.2s ease;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
     }
 
     .recent-item:hover {
@@ -610,6 +606,14 @@
         font-size: 14px;
         line-height: 1.5;
         font-weight: 400;
+    }
+
+    .recent-icon {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #F8FAFC;
     }
 
     .empty-recent {
@@ -803,6 +807,11 @@
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 12px;
         align-items: start;
+    }
+
+    .score-hero.award-fail .score-hero-top,
+    .score-hero.award-incomplete .score-hero-top {
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 
     .score-trophy-icon {

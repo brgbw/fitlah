@@ -11,6 +11,17 @@
         {{ asset_url('icons/passbadge.png') }}
     {%- endif -%}
 {%- endmacro %}
+{% macro activity_icon(kind) -%}
+    {%- if kind == 'pushup' -%}
+        {{ asset_url('icons/greenpushup.png') }}
+    {%- elif kind == 'situp' -%}
+        {{ asset_url('icons/bluesitup.png') }}
+    {%- elif kind == 'run' -%}
+        {{ asset_url('icons/orangerun.png') }}
+    {%- else -%}
+        {{ asset_url('icons/aisummary.png') }}
+    {%- endif -%}
+{%- endmacro %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/dashboard.css') }}">
 {% endblock %}
@@ -107,16 +118,23 @@
                 </div>
 
                 <div class="score-hero award-{{ ippt_score.award.code }}" id="ipptScoreHero">
+                    {% set show_score_award = ippt_score.award.code not in ['fail', 'incomplete'] %}
                     <div class="score-hero-top">
+                        {% if show_score_award %}
                         <img class="score-trophy-icon" src="{{ asset_url('icons/championtrophy.png') }}" alt="">
+                        {% endif %}
 
                         <div class="score-copy">
+                            {% if show_score_award %}
                             <div class="score-line">
                                 <div class="award-pill {{ ippt_score.award.code }}" id="ipptAward">
                                     <img src="{{ award_icon(ippt_score.award.code) }}" alt="">
                                     {{ ippt_score.award.label }}
                                 </div>
                             </div>
+                            {% else %}
+                            <div class="score-line" id="ipptAward" hidden></div>
+                            {% endif %}
 
                             <p class="score-note" id="ipptScoreNote">
                                 {% if not ippt_score.complete %}
@@ -176,22 +194,25 @@
                     {% if recent_logs %}
                         {% for log in recent_logs %}
 
-                        <div class="recent-item">
-                            <strong>
-                                {{ log.name or log.event }}
-                            </strong>
+                        <div class="recent-item recent-{{ log.type or 'activity' }}">
+                            <img class="recent-icon" src="{{ activity_icon(log.type) }}" alt="">
+                            <div>
+                                <strong>
+                                    {{ log.name or log.event }}
+                                </strong>
 
-                            <span>
-                                {{ log.date }}
+                                <span>
+                                    {{ log.date }}
 
-                                {% if log.score %}
-                                    · {{ log.score }}
-                                {% endif %}
+                                    {% if log.score %}
+                                        · {{ log.score }}
+                                    {% endif %}
 
-                                {% if log.time %}
-                                    · {{ log.time }}
-                                {% endif %}
-                            </span>
+                                    {% if log.time %}
+                                        · {{ log.time }}
+                                    {% endif %}
+                                </span>
+                            </div>
                         </div>
 
                         {% endfor %}

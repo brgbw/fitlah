@@ -2268,7 +2268,8 @@
                     {% endfor %}
                     {% for member in group_data[0].members %}
                     {% set award_code = member.ippt_score.award.code %}
-                    {% set is_top_score = member.ippt_score.total_points == top_score.value and top_score.value > 0 %}
+                    {% set show_award = award_code not in ['fail', 'incomplete'] %}
+                    {% set is_top_score = show_award and member.ippt_score.total_points == top_score.value and top_score.value > 0 %}
                     <article class="leader-card leader-card-rank-{{ loop.index }} {% if not is_top_score %}no-trophy{% endif %}">
                         {% if is_top_score %}
                         <div class="leader-rank-block">
@@ -2279,10 +2280,12 @@
                             <div class="leader-name">
                                 <strong>{{ member.name }}</strong>
                             </div>
+                            {% if show_award %}
                             <span class="award-pill {{ award_code }}">
                                 <img src="{{ award_icon(award_code) }}" alt="">
                                 {{ member.ippt_score.award.label }}
                             </span>
+                            {% endif %}
                         </div>
                         <div class="leader-score">
                             <strong>{{ member.ippt_score.total_points }}</strong>

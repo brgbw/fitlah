@@ -99,7 +99,8 @@
         const points = score.total_points ?? member.ippt_points ?? 0;
         const awardCode = award.code || 'fail';
         const awardLabel = award.label || 'Fail';
-        const isTopScore = Number(points) === highestPoints && highestPoints > 0;
+        const showAward = !['fail', 'incomplete'].includes(awardCode);
+        const isTopScore = showAward && Number(points) === highestPoints && highestPoints > 0;
 
         return `
             <article class="leader-card leader-card-rank-${index + 1} ${isTopScore ? '' : 'no-trophy'}">
@@ -111,10 +112,11 @@
                     <div class="leader-name">
                         <strong>${escapeHtml(member.name || 'NSman')}</strong>
                     </div>
+                    ${showAward ? `
                     <span class="award-pill ${escapeHtml(awardCode)}">
                         <img src="${awardIcon(awardCode)}" alt="">
                         ${escapeHtml(awardLabel)}
-                    </span>
+                    </span>` : ''}
                 </div>
                 <div class="leader-score">
                     <strong>${escapeHtml(points)}</strong>

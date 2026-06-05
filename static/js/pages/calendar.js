@@ -6,6 +6,11 @@
     logs: '/api/activity-records',
     log: (logId) => `/api/activity-records/${logId}`
   };
+  const icons = {
+    pushup: '/static/icons/greenpushup.png',
+    situp: '/static/icons/bluesitup.png',
+    run: '/static/icons/orangerun.png'
+  };
 
   let today = new Date();
   const requestedDate = new URLSearchParams(window.location.search).get('date');
@@ -46,6 +51,7 @@
       return;
     }
     setEntriesFromLogs(data.logs);
+    renderActivitySummary(data.logs);
     renderCalendar();
     renderDetails();
   }
@@ -107,6 +113,41 @@
       el.addEventListener('click', () => selectDay(key));
       grid.appendChild(el);
     }
+
+    renderMobileMonthList();
+  }
+
+  function renderMobileMonthList() {
+    const list = document.getElementById('mobileMonthList');
+    if (!list) return;
+
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const rows = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = dateKey(currentYear, currentMonth, day);
+      const dayEntries = entries[key] || [];
+      if (dayEntries.length === 0 && key !== selectedDate) continue;
+      rows.push(mobileDayRow(key, day, dayEntries));
+    }
+
+    list.innerHTML = rows.length
+      ? rows.join('')
+      : '<div class="mobile-empty-month">No activities logged this month.</div>';
+  }
+
+  function mobileDayRow(key, day, dayEntries) {
+    const types = [...new Set(dayEntries.map(entry => entry.type).filter(Boolean))];
+    const labels = types.length ? types.map(typeName).join(' · ') : 'No activity';
+    const iconHtml = types.map(type => icons[type] ? `<img src="${icons[type]}" alt="">` : '').join('');
+    return `
+      <button class="mobile-day-row ${selectedDate === key ? 'is-selected' : ''}" type="button" onclick="selectCalendarDay('${key}')">
+        <span class="mobile-day-date">${day}</span>
+        <span class="mobile-day-copy">
+          <strong>${escapeHtml(friendlyDate(key))}</strong>
+          <span>${dayEntries.length} ${dayEntries.length === 1 ? 'entry' : 'entries'}${types.length ? ` · ${escapeHtml(labels)}` : ''}</span>
+        </span>
+        <span class="mobile-day-icons">${iconHtml}</span>
+      </button>`;
   }
 
   function selectDay(key) {
@@ -246,6 +287,30 @@
     return div.innerHTML;
   }
 
+  function renderActivitySummary(logs) {
+    const title = document.getElementById('calendarSummaryTitle');
+    const text = document.getElementById('calendarSummaryText');
+    if (!title || !text) return;
+
+    const counts = logs.reduce((acc, log) => {
+      const type = log.type || 'activity';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+    const total = logs.length;
+    if (!total) {
+      title.textContent = 'No logged activities yet';
+      text.textContent = 'Start with one push-up, sit-up, or run entry so FitLah can spot your training pattern.';
+      return;
+    }
+
+    const stations = ['pushup', 'situp', 'run'];
+    const least = stations.reduce((weakest, type) => (counts[type] || 0) < (counts[weakest] || 0) ? type : weakest, stations[0]);
+    const strongest = stations.reduce((best, type) => (counts[type] || 0) > (counts[best] || 0) ? type : best, stations[0]);
+    title.textContent = `${total} logged ${total === 1 ? 'activity' : 'activities'} reviewed`;
+    text.textContent = `Most logged: ${typeName(strongest)}. Focus next: ${typeName(least)} to keep your IPPT prep balanced.`;
+  }
+
   function aiTextHtml(text) {
     if (window.FitLahAiTextFormat) return FitLahAiTextFormat.boldToHtml(text);
     return escapeHtml(text);
@@ -306,5 +371,6 @@
   loadEntries();
 
   window.changeMonth = changeMonth;
+  window.selectCalendarDay = selectDay;
   window.deleteEntry = deleteEntry;
 })();

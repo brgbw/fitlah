@@ -1,0 +1,152 @@
+.calendar-ai-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid #DCE5EF;
+  border-bottom: 3px solid #00A86B;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(0, 168, 107, 0.05), #FFFFFF 48%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.calendar-ai-summary img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.summary-kicker {
+  color: #00A86B;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+
+.calendar-ai-summary h2 {
+  color: #0F172A;
+  font-size: 18px !important;
+  line-height: 1.2;
+  margin: 0 0 4px;
+  font-weight: 650;
+}
+
+.calendar-ai-summary p {
+  color: #64748B;
+  font-size: 14px !important;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.mobile-month-list {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .calendar-ai-summary {
+    margin-bottom: 12px;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .calendar-ai-summary img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .calendar-ai-summary h2 {
+    font-size: 16px !important;
+  }
+
+  .calendar-ai-summary p {
+    font-size: 13px !important;
+  }
+
+  .calendar-card {
+    padding: 12px !important;
+  }
+
+  .calendar-grid,
+  .legend {
+    display: none !important;
+  }
+
+  .mobile-month-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .mobile-day-row {
+    width: 100%;
+    min-height: 48px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: #0F172A;
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .mobile-day-row.is-selected {
+    border-color: #00A86B;
+    background: #E8F8F2;
+  }
+
+  .mobile-day-date {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    color: #0F172A;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .mobile-day-copy strong {
+    display: block;
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 650;
+  }
+
+  .mobile-day-copy span {
+    display: block;
+    color: #64748B;
+    font-size: 12px !important;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+
+  .mobile-day-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobile-day-icons img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  .mobile-empty-month {
+    padding: 14px;
+    border: 1px dashed #CBD5E1;
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: #64748B;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}

@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Calendar | FitLah NSmen Portal{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ asset_url('css/calendar.css') }}">
+{% endblock %}
 {% block content %}
 <style>
   .performance-page {
@@ -289,6 +292,15 @@
   </div>
 </div>
 
+<section class="calendar-ai-summary" id="calendarAiSummary">
+  <img src="{{ asset_url('icons/aisummary.png') }}" alt="">
+  <div>
+    <div class="summary-kicker">AI training summary</div>
+    <h2 id="calendarSummaryTitle">Loading activity summary...</h2>
+    <p id="calendarSummaryText">Reviewing your logged push-ups, sit-ups, and runs.</p>
+  </div>
+</section>
+
 <div class="log-workspace-grid">
   <!-- Calendar -->
   <div class="calendar-card">
@@ -298,6 +310,7 @@
       <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
+    <div class="mobile-month-list" id="mobileMonthList" aria-label="Logged days this month"></div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot pushup"></div>Push-up</div>
       <div class="legend-item"><div class="legend-dot situp"></div>Sit-up</div>
