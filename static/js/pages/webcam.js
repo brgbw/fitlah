@@ -9,12 +9,10 @@ let currentMode = 'pushup';
     const isMobileLikeDevice = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 760;
     const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 20;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
-    const WARNING_VOICE_COOLDOWN_MS = 4500;
     let poseLoopRequestId = null;
     let poseInFlight = false;
     let lastPoseSentAt = 0;
     let cachedExerciseHelpers = null;
-    let lastWarningText = '';
     let lastCounterSignature = '';
     let mediaRecorder = null;
     let recordedChunks = [];
@@ -43,7 +41,6 @@ let currentMode = 'pushup';
     let videoObjectUrl = null;
     let discardRecordingOnStop = false;
     let lastAnalyzedVideoTime = -1;
-    let lastWarningSpokenAt = 0;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -510,20 +507,7 @@ let currentMode = 'pushup';
     }
 
     function setWarning(text) {
-        if (!text) return;
-
-        const now = performance.now();
-        if (text === lastWarningText && now - lastWarningSpokenAt < WARNING_VOICE_COOLDOWN_MS) return;
-        if (lastWarningSpokenAt && now - lastWarningSpokenAt < WARNING_VOICE_COOLDOWN_MS) {
-            lastWarningText = text;
-            return;
-        }
-
-        lastWarningText = text;
-        lastWarningSpokenAt = now;
-        if (window.SoundManager && typeof SoundManager.speakWarning === 'function') {
-            SoundManager.speakWarning(text);
-        }
+        return Boolean(text);
     }
 
     function requestStopRecording(message) {

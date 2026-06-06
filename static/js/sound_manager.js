@@ -70,17 +70,6 @@
         }
     }
 
-    function speakWarning(message) {
-        if (!message || !window.speechSynthesis) return;
-
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(message);
-        utterance.rate = 1.05;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-        window.speechSynthesis.speak(utterance);
-    }
-
     function playSessionStartSound() {
         // Three ascending tones for session start
         playTone(600, 80);
@@ -92,14 +81,6 @@
         // Two descending tones for session end
         playTone(1000, 150);
         setTimeout(() => playTone(600, 150), 160);
-        
-        // Announce time's up
-        if (window.speechSynthesis) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance("Time's up!");
-            utterance.rate = 1.2;
-            window.speechSynthesis.speak(utterance);
-        }
     }
 
     window.SoundManager = {
@@ -109,7 +90,6 @@
         playSessionStartSound,
         playSessionEndSound,
         playCountdownWarning,
-        speakWarning,
         playTone
     };
 })();

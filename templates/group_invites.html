@@ -512,25 +512,21 @@
         background: #FFFBEB;
     }
 
-    .leader-metric.metric-award > span:first-child {
-        color: var(--group-muted);
-    }
-
     .leader-metric.metric-award .award-pill {
         grid-column: 1 / -1;
-        grid-row: 2 / 4;
+        grid-row: 1 / -1;
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         width: 100%;
-        max-width: 112px;
+        max-width: 132px;
         padding: 0;
         border: 0;
         background: transparent;
         color: #B45309;
-        font-size: 16px !important;
-        font-weight: 700;
+        font-size: 20px !important;
+        font-weight: 800;
         line-height: 1.15;
         text-transform: uppercase;
         white-space: normal;
@@ -540,18 +536,14 @@
     }
 
     .leader-metric.metric-award .award-pill img {
-        width: 24px;
-        height: 24px;
-        flex: 0 0 24px;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
     }
 
     .leader-metric.metric-award.award-pass-incentive .award-pill {
-        font-size: 14px !important;
-        max-width: 118px;
-    }
-
-    .leader-metric.metric-award small {
-        display: none;
+        font-size: 17px !important;
+        max-width: 140px;
     }
 
     .leader-metric.metric-award.award-silver {
@@ -1212,12 +1204,10 @@
                                 <small>min</small>
                             </div>
                             <div class="leader-metric metric-award award-{{ award_code }}">
-                                <span>IPPT</span>
                                 <span class="award-pill {{ award_code }}">
                                     {% if award_icon_url %}<img src="{{ award_icon_url }}" alt="">{% endif %}
                                     {{ member.ippt_score.award.label }}
                                 </span>
-                                <small>status</small>
                             </div>
                         </div>
                     </article>

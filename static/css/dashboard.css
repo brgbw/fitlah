@@ -48,14 +48,15 @@
     .panel-kicker {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        color: #0F172A;
-        font-size: 13px;
-        font-weight: 600;
+        gap: 10px;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 650;
         letter-spacing: 0;
         text-transform: uppercase;
+        line-height: 1.2;
         margin-bottom: 16px;
-        opacity: 0.75;
+        opacity: 1;
     }
 
     .panel-kicker svg {
@@ -310,9 +311,12 @@
     }
 
     .ippt-title-row h3 {
-        color: #0F172A;
-        font-size: 19px;
-        font-weight: 600;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 650;
+        letter-spacing: 0;
+        line-height: 1.2;
+        text-transform: uppercase;
         margin-bottom: 5px;
     }
 
@@ -612,8 +616,8 @@
         width: 34px;
         height: 34px;
         object-fit: contain;
-        border-radius: 8px;
-        background: #F8FAFC;
+        border-radius: 0;
+        background: transparent;
     }
 
     .empty-recent {
@@ -893,7 +897,11 @@
     }
 
     .station-card {
-        display: block;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        column-gap: 12px;
+        row-gap: 5px;
+        align-items: center;
         min-height: 88px;
         padding: 10px;
         border-radius: 8px;
@@ -913,10 +921,16 @@
 
     .station-icon {
         display: block;
-        width: 22px;
-        height: 22px;
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 34px;
+        height: 34px;
         object-fit: contain;
-        margin-bottom: 7px;
+        margin: 0;
+    }
+
+    .station-card > div {
+        min-width: 0;
     }
 
     .station-card > div > span {
@@ -957,12 +971,13 @@
 
     .station-card em {
         display: block;
+        grid-column: 2;
         color: #64748B;
         font-size: 11px;
         font-style: normal;
         font-weight: 600;
         line-height: 1;
-        margin-top: 8px;
+        margin-top: 1px;
     }
 
     @media (max-width: 640px) {
@@ -991,14 +1006,17 @@
         }
 
         .station-card {
+            grid-template-columns: auto minmax(0, 1fr);
             min-height: 82px;
             padding: 8px;
+            column-gap: 8px;
+            row-gap: 4px;
         }
 
         .station-icon {
-            width: 19px;
-            height: 19px;
-            margin-bottom: 6px;
+            width: 28px;
+            height: 28px;
+            margin: 0;
         }
 
         .station-card > div > span {

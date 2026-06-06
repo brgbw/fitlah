@@ -136,12 +136,10 @@
                         <small>min</small>
                     </div>
                     <div class="leader-metric metric-award award-${escapeHtml(awardCode)}">
-                        <span>IPPT</span>
                         <span class="award-pill ${escapeHtml(awardCode)}">
                             ${awardIconUrl ? `<img src="${awardIconUrl}" alt="">` : ''}
                             ${escapeHtml(awardLabel)}
                         </span>
-                        <small>status</small>
                     </div>
                 </div>
             </article>`;
