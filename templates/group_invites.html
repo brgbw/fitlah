@@ -2157,6 +2157,14 @@
     }
 
     @media (min-width: 761px) {
+        .groups-page {
+            --leaderboard-control-font: 15px;
+            --leaderboard-name-font: 20px;
+            --leaderboard-label-font: 11px;
+            --leaderboard-value-font: 20px;
+            --leaderboard-unit-font: 11px;
+        }
+
         .group-switcher-shell {
             grid-template-columns: minmax(0, max-content) auto;
             align-items: stretch;
@@ -2183,7 +2191,8 @@
             min-height: 42px;
             gap: 7px;
             padding: 7px 12px;
-            font-size: 15px !important;
+            font-size: var(--leaderboard-control-font) !important;
+            font-weight: 800;
         }
 
         .group-tab-icon,
@@ -2195,6 +2204,12 @@
 
         .leaderboard-list {
             gap: 10px;
+        }
+
+        .leaderboard-bar span,
+        .sort-select-shell select {
+            font-size: var(--leaderboard-control-font) !important;
+            font-weight: 800;
         }
 
         .leader-card,
@@ -2242,22 +2257,15 @@
         }
 
         .leader-name strong {
-            font-size: 20px !important;
+            font-size: var(--leaderboard-name-font) !important;
+            font-weight: 800;
             line-height: 1.15;
             text-transform: none;
             white-space: normal;
         }
 
         .award-pill {
-            width: fit-content;
-            min-height: 24px;
-            margin-top: 6px;
-            padding: 0 9px 0 5px;
-        }
-
-        .award-pill img {
-            width: 22px;
-            height: 22px;
+            display: none;
         }
 
         .leader-score,
@@ -2269,7 +2277,7 @@
         .leader-metrics {
             grid-column: auto;
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: minmax(130px, 0.9fr) minmax(130px, 0.86fr) minmax(140px, 0.95fr) minmax(130px, 0.86fr) minmax(210px, 1.25fr);
             gap: 8px;
             margin-top: 0;
             align-self: stretch;
@@ -2282,6 +2290,8 @@
             justify-content: flex-start;
             gap: 7px;
             padding: 8px 10px;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .metric-icon {
@@ -2293,31 +2303,37 @@
 
         .leader-metric span {
             display: inline;
-            font-size: 11px !important;
+            font-size: var(--leaderboard-label-font) !important;
+            font-weight: 800;
             line-height: 1;
             flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .leader-metric strong {
             display: inline;
-            font-size: 20px !important;
+            font-size: var(--leaderboard-value-font) !important;
+            font-weight: 800;
             line-height: 1;
             margin-top: 0;
             overflow-wrap: normal;
             white-space: nowrap;
+            min-width: 0;
             flex: 0 0 auto;
         }
 
         .leader-metric.metric-run strong {
-            font-size: 19px !important;
+            font-size: var(--leaderboard-value-font) !important;
         }
 
         .leader-metric small {
             display: inline;
-            font-size: 11px !important;
+            font-size: var(--leaderboard-unit-font) !important;
+            font-weight: 800;
             line-height: 1;
             margin-top: 0;
             flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .leader-metric.metric-score {
@@ -2366,6 +2382,11 @@
             grid-column: auto;
             align-self: center;
             margin-top: 0;
+        }
+
+        .member-action-button {
+            font-size: var(--leaderboard-control-font) !important;
+            font-weight: 800;
         }
     }
 
