@@ -103,10 +103,11 @@
 
         return `
             <article class="leader-card leader-card-rank-${index + 1} ${hasRankIcon ? '' : 'no-trophy'}">
-                ${hasRankIcon ? `
-                    <div class="leader-rank-block">
-                        <img class="trophy-icon" src="${rankIcon(index + 1)}" alt="${index + 1} place">
-                    </div>` : ''}
+                <div class="leader-rank-block">
+                    ${hasRankIcon
+                        ? `<img class="trophy-icon" src="${rankIcon(index + 1)}" alt="${index + 1} place">`
+                        : `<span class="rank-number">${index + 1}</span>`}
+                </div>
                 <div class="leader-main">
                     <div class="leader-name">
                         <strong>${escapeHtml(displayName(member.name, 'NSman'))}</strong>
@@ -496,7 +497,7 @@
 
         panel.classList.toggle('no-pending-invites', pending.length === 0);
         if (pending.length === 0) {
-            stack.innerHTML = '<div id="emptyState" class="invite-empty-state">No pending invitations found.</div>';
+            stack.innerHTML = '<div id="emptyState" class="invite-empty-state"><span class="invite-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16v12H4z"></path><path d="m4 7 8 6 8-6"></path></svg></span><span>No pending invitations found.</span></div>';
             knownInviteIds = new Set();
             return;
         }
