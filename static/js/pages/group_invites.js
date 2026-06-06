@@ -153,7 +153,7 @@
                 </div>
                 ${member.can_be_removed ? `
                 <div class="member-card-actions">
-                    <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">Remove</button>
+                    <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">X</button>
                 </div>` : ''}
             </article>`;
     }
