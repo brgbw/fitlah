@@ -163,17 +163,22 @@ def register_strava_routes(app):
         try:
             result = _cached_ippt_result(nric, activity_id, user)
             activity_for_log, _ = _cached_activity_preview(nric, activity_id)
+            _, streams = _cached_activity_details(nric, activity_id)
         except StravaApiError as error:
             return _error(str(error), error.status_code)
+
+        age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
+        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group, streams)
 
         imported = _import_strava_activity(
             nric,
             activity_id,
             activity=activity_for_log,
+            ai_recommendation=recommendation,
         )
         result = dict(result)
         result["activity_record_id"] = imported["log"].get("id")
-        result["ai_recommendation"] = _cache_get(("ippt_recommendation", nric, activity_id))
+        result["ai_recommendation"] = recommendation
 
         previous_best = repo_personal_best(nric)
         saved_result = save_strava_ippt_result(nric, result)
