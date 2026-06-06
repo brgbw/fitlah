@@ -147,9 +147,11 @@
                         <small>pts</small>
                     </div>
                     <div class="leader-metric metric-award award-${escapeHtml(awardCode)}">
-                        <img class="metric-icon" src="${awardIcon(awardCode)}" alt="">
                         <span>IPPT</span>
-                        <strong>${escapeHtml(awardLabel)}</strong>
+                        <span class="award-pill ${escapeHtml(awardCode)}">
+                            <img src="${awardIcon(awardCode)}" alt="">
+                            ${escapeHtml(awardLabel)}
+                        </span>
                         <small>status</small>
                     </div>
                 </div>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Leaderboard QA</title>
+    <style>
+        :root {
+            --group-ink: #061634;
+            --group-muted: #68758A;
+            --group-line: #DCE5EF;
+            --group-green: #00A86B;
+            --group-green-strong: #008F5B;
+            --leaderboard-label-font: 11px;
+            --leaderboard-value-font: 20px;
+            --leaderboard-unit-font: 11px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: 0; }
+        body { background: #E2E8F0; padding: 40px; color: var(--group-ink); }
+        .leader-card { width: min(100%, 1100px); display: grid; grid-template-columns: 1fr; padding: 14px 16px; border-radius: 8px; background: #fff; border-bottom: 3px solid var(--group-green); }
+        .leader-metrics { display: grid; grid-template-columns: minmax(130px, 0.9fr) minmax(130px, 0.86fr) minmax(140px, 0.95fr) minmax(130px, 0.86fr) minmax(210px, 1.25fr); gap: 8px; }
+        .leader-metric { min-height: 54px; display: flex; align-items: center; justify-content: flex-start; gap: 7px; padding: 8px 10px; border: 1px solid var(--group-line); border-radius: 8px; background: #fff; overflow: hidden; }
+        .metric-icon { width: 22px; height: 22px; flex: 0 0 22px; object-fit: contain; }
+        .leader-metric span { font-size: var(--leaderboard-label-font); font-weight: 700; line-height: 1; white-space: nowrap; text-transform: uppercase; color: var(--group-muted); }
+        .leader-metric strong { font-size: var(--leaderboard-value-font); font-weight: 700; line-height: 1; white-space: nowrap; }
+        .leader-metric small { font-size: var(--leaderboard-unit-font); font-weight: 700; line-height: 1; white-space: nowrap; color: var(--group-muted); }
+        .metric-score { border-color: #C9EADA; background: #F7FCFA; }
+        .metric-score span, .metric-score strong { color: var(--group-green); }
+        .metric-award small { display: none; }
+        .metric-award .award-pill { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; font-size: var(--leaderboard-label-font); font-weight: 700; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+        .metric-award .award-pill img { width: 23px; height: 23px; object-fit: contain; }
+        .metric-award.award-gold { border-color: #FCD34D; background: #FFFBEB; }
+        .metric-award.award-gold .award-pill { color: #A36300; }
+    </style>
+</head>
+<body>
+    <article class="leader-card">
+        <div class="leader-metrics">
+            <div class="leader-metric metric-score"><img class="metric-icon" src="/static/icons/star.png" alt=""><span>POINTS</span><strong>100</strong><small>pts</small></div>
+            <div class="leader-metric metric-award award-gold"><span>IPPT</span><span class="award-pill gold"><img src="/static/icons/goldbadge.png" alt="">Gold</span><small>status</small></div>
+        </div>
+    </article>
+</body>
+</html>

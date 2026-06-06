@@ -2192,7 +2192,7 @@
             gap: 7px;
             padding: 7px 12px;
             font-size: var(--leaderboard-control-font) !important;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .group-tab-icon,
@@ -2209,7 +2209,7 @@
         .leaderboard-bar span,
         .sort-select-shell select {
             font-size: var(--leaderboard-control-font) !important;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .leader-card,
@@ -2258,13 +2258,13 @@
 
         .leader-name strong {
             font-size: var(--leaderboard-name-font) !important;
-            font-weight: 800;
+            font-weight: 700;
             line-height: 1.15;
             text-transform: none;
             white-space: normal;
         }
 
-        .award-pill {
+        .leader-main > .award-pill {
             display: none;
         }
 
@@ -2304,7 +2304,7 @@
         .leader-metric span {
             display: inline;
             font-size: var(--leaderboard-label-font) !important;
-            font-weight: 800;
+            font-weight: 700;
             line-height: 1;
             flex: 0 0 auto;
             white-space: nowrap;
@@ -2313,7 +2313,7 @@
         .leader-metric strong {
             display: inline;
             font-size: var(--leaderboard-value-font) !important;
-            font-weight: 800;
+            font-weight: 700;
             line-height: 1;
             margin-top: 0;
             overflow-wrap: normal;
@@ -2329,7 +2329,7 @@
         .leader-metric small {
             display: inline;
             font-size: var(--leaderboard-unit-font) !important;
-            font-weight: 800;
+            font-weight: 700;
             line-height: 1;
             margin-top: 0;
             flex: 0 0 auto;
@@ -2346,7 +2346,7 @@
             color: var(--group-green);
         }
 
-        .leader-metric.metric-award span {
+        .leader-metric.metric-award > span:first-child {
             color: var(--group-muted);
         }
 
@@ -2354,11 +2354,43 @@
             display: none;
         }
 
-        .leader-metric.metric-award.award-gold strong {
+        .leader-metric.metric-award .award-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            font-size: var(--leaderboard-label-font) !important;
+            font-weight: 700;
+            line-height: 1;
+            text-transform: uppercase;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .leader-metric.metric-award .award-pill img {
+            width: 23px;
+            height: 23px;
+            object-fit: contain;
+        }
+
+        .leader-metric.metric-award.award-gold {
+            border-color: #FCD34D;
+            background: #FFFBEB;
+        }
+
+        .leader-metric.metric-award.award-gold .award-pill {
             color: #A36300;
         }
 
-        .leader-metric.metric-award.award-silver strong {
+        .leader-metric.metric-award.award-silver {
+            border-color: #CBD5E1;
+            background: #F8FAFC;
+        }
+
+        .leader-metric.metric-award.award-silver .award-pill {
             color: #526173;
         }
 
@@ -2368,14 +2400,20 @@
             background: #F7FCFA;
         }
 
-        .leader-metric.metric-award.award-pass strong,
-        .leader-metric.metric-award.award-pass-incentive strong {
+        .leader-metric.metric-award.award-pass .award-pill,
+        .leader-metric.metric-award.award-pass-incentive .award-pill {
             color: var(--group-green-strong);
         }
 
-        .leader-metric.metric-award.award-fail strong,
-        .leader-metric.metric-award.award-incomplete strong {
-            color: var(--group-red);
+        .leader-metric.metric-award.award-fail,
+        .leader-metric.metric-award.award-incomplete {
+            border-color: #FED7AA;
+            background: #FFF7ED;
+        }
+
+        .leader-metric.metric-award.award-fail .award-pill,
+        .leader-metric.metric-award.award-incomplete .award-pill {
+            color: #B45309;
         }
 
         .member-card-actions {
@@ -2386,7 +2424,7 @@
 
         .member-action-button {
             font-size: var(--leaderboard-control-font) !important;
-            font-weight: 800;
+            font-weight: 700;
         }
     }
 
@@ -2570,9 +2608,11 @@
                                 <small>pts</small>
                             </div>
                             <div class="leader-metric metric-award award-{{ award_code }}">
-                                <img class="metric-icon" src="{{ award_icon(award_code) }}" alt="">
                                 <span>IPPT</span>
-                                <strong>{{ member.ippt_score.award.label }}</strong>
+                                <span class="award-pill {{ award_code }}">
+                                    <img src="{{ award_icon(award_code) }}" alt="">
+                                    {{ member.ippt_score.award.label }}
+                                </span>
                                 <small>status</small>
                             </div>
                         </div>
