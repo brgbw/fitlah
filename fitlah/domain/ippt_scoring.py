@@ -7,6 +7,12 @@ from datetime import date
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DEFAULT_AGE_GROUP = "22-24"
+DEFAULT_GENDER = "male"
+GENDER_OPTIONS = [
+    {"value": "male", "label": "Male"},
+    {"value": "female", "label": "Female"},
+]
+GENDER_VALUES = {option["value"] for option in GENDER_OPTIONS}
 
 AGE_GROUPS = [
     {"label": "< 22", "value": "below22", "min_age": 18, "max_age": 21},
@@ -31,8 +37,21 @@ def _load_table(filename):
         return json.load(file)
 
 
-STATIC_POINTS = _load_table("ippt_static_points.json")
-RUN_POINTS = _load_table("ippt_run_points.json")
+MALE_STATIC_POINTS = _load_table("ippt_static_points.json")
+MALE_RUN_POINTS = _load_table("ippt_run_points.json")
+FEMALE_STATIC_POINTS = _load_table("ippt_female_static_points.json")
+FEMALE_RUN_POINTS = _load_table("ippt_female_run_points.json")
+STATIC_POINTS_BY_GENDER = {
+    "male": {
+        "pushup": MALE_STATIC_POINTS,
+        "situp": MALE_STATIC_POINTS,
+    },
+    "female": FEMALE_STATIC_POINTS,
+}
+RUN_POINTS_BY_GENDER = {
+    "male": MALE_RUN_POINTS,
+    "female": FEMALE_RUN_POINTS,
+}
 AGE_GROUP_VALUES = {group["value"] for group in AGE_GROUPS}
 
 
@@ -40,6 +59,15 @@ def normalize_age_group(age_group):
     if age_group in AGE_GROUP_VALUES:
         return age_group
     return DEFAULT_AGE_GROUP
+
+
+def normalize_gender(gender):
+    value = str(gender or "").strip().lower()
+    if value in {"f", "female", "woman", "women"}:
+        return "female"
+    if value in {"m", "male", "man", "men"}:
+        return "male"
+    return DEFAULT_GENDER
 
 
 def age_group_for_age(age):
@@ -130,8 +158,10 @@ def format_run_time(seconds):
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
-def static_station_points(reps, age_group):
-    table = STATIC_POINTS.get(normalize_age_group(age_group), [])
+def static_station_points(reps, age_group, gender=DEFAULT_GENDER, station="pushup"):
+    station = station if station in {"pushup", "situp"} else "pushup"
+    station_tables = STATIC_POINTS_BY_GENDER.get(normalize_gender(gender), STATIC_POINTS_BY_GENDER[DEFAULT_GENDER])
+    table = station_tables.get(station, {}).get(normalize_age_group(age_group), [])
     try:
         reps = int(reps or 0)
     except (TypeError, ValueError):
@@ -143,10 +173,10 @@ def static_station_points(reps, age_group):
     return int(table[min(reps, len(table) - 1)])
 
 
-def run_station_points(run_seconds, age_group):
+def run_station_points(run_seconds, age_group, gender=DEFAULT_GENDER):
     if not run_seconds:
         return 0
-    table = RUN_POINTS.get(normalize_age_group(age_group), [])
+    table = RUN_POINTS_BY_GENDER.get(normalize_gender(gender), RUN_POINTS_BY_GENDER[DEFAULT_GENDER]).get(normalize_age_group(age_group), [])
     if not table:
         return 0
     run_seconds = int(run_seconds)
@@ -172,16 +202,18 @@ def award_for_points(total_points):
     return {"code": "fail", "label": "Fail", "incentive": 0}
 
 
-def calculate_ippt_score(pushups, situps, run_time, age_group=DEFAULT_AGE_GROUP):
+def calculate_ippt_score(pushups, situps, run_time, age_group=DEFAULT_AGE_GROUP, gender=DEFAULT_GENDER):
     age_group = normalize_age_group(age_group)
+    gender = normalize_gender(gender)
     run_seconds = parse_run_time(run_time)
-    pushup_points = static_station_points(pushups, age_group)
-    situp_points = static_station_points(situps, age_group)
-    run_points = run_station_points(run_seconds, age_group)
+    pushup_points = static_station_points(pushups, age_group, gender, "pushup")
+    situp_points = static_station_points(situps, age_group, gender, "situp")
+    run_points = run_station_points(run_seconds, age_group, gender)
     total_points = pushup_points + situp_points + run_points
 
     return {
         "age_group": age_group,
+        "gender": gender,
         "pushups": int(pushups or 0),
         "situps": int(situps or 0),
         "run_time": format_run_time(run_seconds),
@@ -195,10 +227,12 @@ def calculate_ippt_score(pushups, situps, run_time, age_group=DEFAULT_AGE_GROUP)
     }
 
 
-def calculate_from_personal_best(personal_best, age_group=DEFAULT_AGE_GROUP):
+def calculate_from_personal_best(personal_best, age_group=DEFAULT_AGE_GROUP, gender=None):
+    gender = gender or personal_best.get("gender") or DEFAULT_GENDER
     return calculate_ippt_score(
         personal_best.get("pushups") or 0,
         personal_best.get("situps") or 0,
         personal_best.get("run_time") or "--:--",
         age_group,
+        gender,
     )

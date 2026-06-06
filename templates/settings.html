@@ -267,6 +267,15 @@
             </div>
 
             <div class="field-row">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender" required>
+                    {% for option in gender_options %}
+                    <option value="{{ option.value }}" {% if user.gender == option.value %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field-row">
                 <label>NRIC</label>
                 <div class="readonly-value">{{ user.nric }}</div>
             </div>

@@ -357,6 +357,14 @@
                             <input id="unit" name="unit" type="text" placeholder="e.g. 5th Guards">
                         </div>
                     </div>
+                    <div class="form-field">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            {% for option in gender_options %}
+                            <option value="{{ option.value }}" {% if selected_gender == option.value %}selected{% endif %}>{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     {% endif %}
                     <div class="form-field">
                         <label for="nric">NRIC</label>

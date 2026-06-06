@@ -49,6 +49,7 @@ def get_personal_best(nric):
         "pushups": 0,
         "situps": 0,
         "run_time": "--:--",
+        "gender": "male",
         **age_profile_from_nric(normalized),
         "updated_at": None
     }

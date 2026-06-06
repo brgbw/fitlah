@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 
 from .database import decrypt_value, encrypt_value, ensure_tables, session_scope
-from ..domain.ippt_scoring import format_run_time, parse_run_time
+from ..domain.ippt_scoring import format_run_time, normalize_gender, parse_run_time
 
 
 def _clean(row):
@@ -114,31 +114,34 @@ def save_user(user):
         "name": user.get("name") or "NSman",
         "rank": user.get("rank") or "Soldier",
         "unit": user.get("unit") or "UNASSIGNED",
+        "gender": normalize_gender(user.get("gender")),
         "age": user.get("age"),
         "age_group": user.get("age_group"),
     }
     with session_scope() as conn:
         if data["id"]:
             conn.execute(text("""
-                INSERT INTO users (id, nric, password_hash, password_is_default, name, rank, unit, age, age_group)
-                VALUES (:id, :nric, :password_hash, :password_is_default, :name, :rank, :unit, :age, :age_group)
+                INSERT INTO users (id, nric, password_hash, password_is_default, name, rank, unit, gender, age, age_group)
+                VALUES (:id, :nric, :password_hash, :password_is_default, :name, :rank, :unit, :gender, :age, :age_group)
                 ON CONFLICT (nric) DO UPDATE SET
                     password_hash = EXCLUDED.password_hash,
                     password_is_default = EXCLUDED.password_is_default,
                     name = EXCLUDED.name,
                     rank = EXCLUDED.rank,
                     unit = EXCLUDED.unit,
+                    gender = EXCLUDED.gender,
                     age = EXCLUDED.age,
                     age_group = EXCLUDED.age_group
             """), data)
         else:
             data["id"] = conn.execute(text("""
-                INSERT INTO users (nric, password_hash, password_is_default, name, rank, unit, age, age_group)
-                VALUES (:nric, :password_hash, :password_is_default, :name, :rank, :unit, :age, :age_group)
+                INSERT INTO users (nric, password_hash, password_is_default, name, rank, unit, gender, age, age_group)
+                VALUES (:nric, :password_hash, :password_is_default, :name, :rank, :unit, :gender, :age, :age_group)
                 ON CONFLICT (nric) DO UPDATE SET
                     name = EXCLUDED.name,
                     rank = EXCLUDED.rank,
                     unit = EXCLUDED.unit,
+                    gender = EXCLUDED.gender,
                     age = EXCLUDED.age,
                     age_group = EXCLUDED.age_group
                 RETURNING id
@@ -203,7 +206,7 @@ def personal_best(nric):
     with session_scope() as conn:
         best = _one(conn, """
             SELECT u.nric, COALESCE(pb.pushups, 0) pushups, COALESCE(pb.situps, 0) situps,
-                   pb.run_time_seconds, u.age, u.age_group,
+                   pb.run_time_seconds, u.gender, u.age, u.age_group,
                    to_char(pb.updated_at, 'YYYY-MM-DD') updated_at
             FROM users u
             LEFT JOIN personal_bests pb ON pb.user_id = u.id
@@ -658,7 +661,7 @@ def list_group_members():
     ensure_tables()
     with session_scope() as conn:
         rows = _all(conn.execute(text("""
-            SELECT gm.id, gm.group_id, u.nric, u.name, u.rank, u.age, u.age_group,
+            SELECT gm.id, gm.group_id, u.nric, u.name, u.rank, u.gender, u.age, u.age_group,
                    COALESCE(pb.pushups, 0) pushups, COALESCE(pb.situps, 0) situps,
                    pb.run_time_seconds
             FROM group_members gm

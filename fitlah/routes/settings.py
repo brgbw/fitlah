@@ -10,6 +10,7 @@ from ..data_access.repositories import (
     strava_connection,
     update_user,
 )
+from ..domain.ippt_scoring import GENDER_OPTIONS, normalize_gender
 from ..core.web_security import clean_text, rate_limit
 
 
@@ -29,6 +30,7 @@ def register_settings_routes(app):
         if request.method == "POST":
             name = request.form.get("name", "").strip()
             rank = request.form.get("rank", "").strip().upper()
+            gender = normalize_gender(request.form.get("gender"))
             unit = request.form.get("unit", "").strip()
             strava_client_id = request.form.get("strava_client_id", "").strip()
             strava_client_secret = request.form.get("strava_client_secret", "").strip()
@@ -40,12 +42,15 @@ def register_settings_routes(app):
                 error = "Enter your name."
             elif rank not in SIGNUP_RANKS:
                 error = "Select a valid rank."
+            elif gender not in {"male", "female"}:
+                error = "Select a valid gender."
             elif (strava_client_id or strava_client_secret) and not can_update_strava_settings:
                 error = "Strava app credential updates are disabled on this server."
             else:
                 profile_updates = {
                     "name": name,
                     "rank": rank,
+                    "gender": gender,
                     "unit": unit or "UNASSIGNED",
                 }
                 update_user(user.get("nric"), profile_updates)
@@ -66,6 +71,7 @@ def register_settings_routes(app):
             has_strava_client_secret=bool(strava_config.get("strava_client_secret")),
             can_update_strava_settings=can_update_strava_settings,
             ranks=SIGNUP_RANKS,
+            gender_options=GENDER_OPTIONS,
             font_scale=font_scale,
             font_percent=round(font_scale * 100),
             error=error,

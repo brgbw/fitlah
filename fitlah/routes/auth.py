@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..core.auth import current_user
 from ..core.constants import SIGNUP_RANKS
-from ..domain.ippt_scoring import age_profile_from_nric
+from ..domain.ippt_scoring import GENDER_OPTIONS, age_profile_from_nric, normalize_gender
 from ..domain.user_profile import sync_age_for_nric
 from ..data_access.repositories import get_user, save_personal_best, save_user, update_last_login
 from ..core.web_security import clean_text, rate_limit
@@ -44,6 +44,7 @@ def register_auth_routes(app):
 
         error = None
         selected_rank = ""
+        selected_gender = "male"
         if request.method == "POST":
             nric = request.form.get("nric", "").strip().upper()
             password = request.form.get("password", "")
@@ -51,6 +52,7 @@ def register_auth_routes(app):
             name = request.form.get("name", "").strip().upper()
             rank = request.form.get("rank", "").strip().upper()
             selected_rank = rank
+            selected_gender = normalize_gender(request.form.get("gender"))
             unit = request.form.get("unit", "").strip().upper() or "UNASSIGNED"
             name = clean_text(name, 80)
             unit = clean_text(unit, 80)
@@ -59,6 +61,8 @@ def register_auth_routes(app):
                 error = "Enter a valid NRIC."
             elif rank not in SIGNUP_RANKS:
                 error = "Select a valid rank."
+            elif selected_gender not in {"male", "female"}:
+                error = "Select a valid gender."
             elif not password or len(password) < 6:
                 error = "Password must be at least 6 characters."
             elif password != confirm_password:
@@ -80,6 +84,7 @@ def register_auth_routes(app):
                         "name": name,
                         "rank": rank,
                         "unit": unit,
+                        "gender": selected_gender,
                         **age_profile,
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     })
@@ -93,6 +98,7 @@ def register_auth_routes(app):
                         "name": name,
                         "rank": rank,
                         "unit": unit,
+                        "gender": selected_gender,
                         **age_profile,
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "last_login": None,
@@ -106,7 +112,9 @@ def register_auth_routes(app):
             mode="signup",
             error=error,
             signup_ranks=SIGNUP_RANKS,
+            gender_options=GENDER_OPTIONS,
             selected_rank=selected_rank,
+            selected_gender=selected_gender,
         )
 
     @app.route("/logout")

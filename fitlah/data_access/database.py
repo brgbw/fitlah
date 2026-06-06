@@ -112,6 +112,7 @@ SCHEMA = [
         name TEXT NOT NULL DEFAULT 'NSman',
         rank TEXT NOT NULL DEFAULT 'Soldier',
         unit TEXT NOT NULL DEFAULT 'UNASSIGNED',
+        gender TEXT NOT NULL DEFAULT 'male',
         age INTEGER,
         age_group TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -201,6 +202,8 @@ SCHEMA = [
         movement_analysis JSONB
     )
     """,
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT NOT NULL DEFAULT 'male'",
+    "UPDATE users SET gender = 'male' WHERE gender IS NULL OR gender NOT IN ('male', 'female')",
     "ALTER TABLE activity_records ADD COLUMN IF NOT EXISTS movement_analysis JSONB",
     """
     CREATE TABLE IF NOT EXISTS strava_connections (

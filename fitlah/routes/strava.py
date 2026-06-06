@@ -8,7 +8,7 @@ from ..integrations.ai_coach import generate_ippt_run_recommendation
 from ..core.auth import current_user, login_required
 from ..core.config import get_config
 from ..core.responses import api_error
-from ..domain.ippt_scoring import age_profile_from_nric, run_station_points
+from ..domain.ippt_scoring import age_profile_from_nric, normalize_gender, run_station_points
 from ..data_access.repositories import (
     create_activity as create_activity_record,
     delete_strava_connection,
@@ -168,7 +168,8 @@ def register_strava_routes(app):
             return _error(str(error), error.status_code)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group, streams)
+        gender = normalize_gender(user.get("gender"))
+        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group, gender, streams)
 
         imported = _import_strava_activity(
             nric,
@@ -224,8 +225,9 @@ def register_strava_routes(app):
             return _error(str(error), error.status_code)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
+        gender = normalize_gender(user.get("gender"))
 
-        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group, streams)
+        recommendation = _cached_ippt_recommendation(nric, activity_id, result, age_group, gender, streams)
 
         return jsonify({"success": True, "result": result, "recommendation": recommendation})
 
@@ -244,22 +246,23 @@ def register_strava_routes(app):
         result = strava_ippt_result(nric, activity_id)
 
         age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-        recommendation = (result or {}).get("ai_recommendation") or _cache_get(("ippt_recommendation", nric, activity_id))
+        gender = normalize_gender(user.get("gender"))
+        recommendation = (result or {}).get("ai_recommendation") or _cache_get(("ippt_recommendation", nric, activity_id, gender))
         streams = None
         if recommendation is None and result:
             try:
                 _, streams = _cached_activity_details(nric, activity_id)
             except StravaApiError:
                 streams = None
-            recommendation = _build_ippt_recommendation(result, age_group, streams)
+            recommendation = _build_ippt_recommendation(result, age_group, gender, streams)
         elif recommendation is None:
             try:
                 result = _cached_ippt_result(nric, activity_id, user)
                 _, streams = _cached_activity_details(nric, activity_id)
             except StravaApiError as error:
                 return _error(str(error), error.status_code)
-            recommendation = _build_ippt_recommendation(result, age_group, streams)
-        _cache_set(("ippt_recommendation", nric, activity_id), recommendation)
+            recommendation = _build_ippt_recommendation(result, age_group, gender, streams)
+        _cache_set(("ippt_recommendation", nric, activity_id, gender), recommendation)
 
         saved_result = update_strava_ippt_recommendation(nric, activity_id, recommendation) if strava_ippt_result(nric, activity_id) else result
         return jsonify({
@@ -314,7 +317,8 @@ def _cached_activity_details(nric, activity_id):
 
 
 def _cached_ippt_result(nric, activity_id, user):
-    cache_key = ("ippt_result", nric, activity_id)
+    gender = normalize_gender(user.get("gender"))
+    cache_key = ("ippt_result", nric, activity_id, gender)
     cached = _cache_get(cache_key)
     if cached:
         return dict(cached)
@@ -326,23 +330,24 @@ def _cached_ippt_result(nric, activity_id, user):
     activity, streams = _cached_activity_details(nric, activity_id)
     result = process_ippt_24(activity, streams)
     age_group = user.get("age_group") or age_profile_from_nric(nric).get("age_group")
-    result["run_points"] = run_station_points(result["official_time_seconds"], age_group)
+    result["run_points"] = run_station_points(result["official_time_seconds"], age_group, gender)
     return dict(_cache_set(cache_key, result))
 
 
-def _cached_ippt_recommendation(nric, activity_id, result, age_group, streams=None):
-    cache_key = ("ippt_recommendation", nric, activity_id)
+def _cached_ippt_recommendation(nric, activity_id, result, age_group, gender, streams=None):
+    gender = normalize_gender(gender)
+    cache_key = ("ippt_recommendation", nric, activity_id, gender)
     recommendation = _cache_get(cache_key)
     if recommendation is not None:
         return recommendation
     if result and result.get("ai_recommendation"):
         return _cache_set(cache_key, result["ai_recommendation"])
 
-    return _cache_set(cache_key, _build_ippt_recommendation(result, age_group, streams))
+    return _cache_set(cache_key, _build_ippt_recommendation(result, age_group, gender, streams))
 
 
-def _build_ippt_recommendation(result, age_group, streams=None):
-    recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group, streams))
+def _build_ippt_recommendation(result, age_group, gender, streams=None):
+    recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group, gender, streams))
     return recommendation if recommendation.get("success") else None
 
 
@@ -482,11 +487,12 @@ def _import_strava_activity(nric, activity_id, ai_recommendation=None, activity=
     }
 
 
-def _ippt_ai_summary(result, age_group, streams=None):
+def _ippt_ai_summary(result, age_group, gender, streams=None):
     details = result.get("details") or {}
     summary = {
         "activityName": result.get("activity_name"),
         "ageGroup": age_group,
+        "gender": normalize_gender(gender),
         "officialTime": result.get("official_time"),
         "runPoints": result.get("run_points"),
         "validityScore": result.get("validity_score"),

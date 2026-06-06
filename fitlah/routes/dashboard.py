@@ -2,7 +2,7 @@ from flask import jsonify, render_template, request
 
 from ..core.auth import current_user, login_required
 from ..domain.activity_helpers import get_personal_best
-from ..domain.ippt_scoring import AGE_GROUPS, DEFAULT_AGE_GROUP, calculate_from_personal_best
+from ..domain.ippt_scoring import AGE_GROUPS, DEFAULT_AGE_GROUP, GENDER_OPTIONS, calculate_from_personal_best, normalize_gender
 from ..data_access.repositories import activity_records as activity_records_for_nric, list_workouts
 from ..domain.session_cleanup import clear_session_analysis_files
 from .strava import strava_connection_context
@@ -17,8 +17,9 @@ def register_dashboard_routes(app):
             clear_session_analysis_files()
         user = current_user()
         selected_age_group = request.args.get("age_group") or user.get("age_group") or DEFAULT_AGE_GROUP
+        selected_gender = normalize_gender(request.args.get("gender") or user.get("gender"))
         personal_best = get_personal_best(user.get("nric"))
-        ippt_score = calculate_from_personal_best(personal_best, selected_age_group)
+        ippt_score = calculate_from_personal_best(personal_best, selected_age_group, selected_gender)
         workouts = list_workouts()
         recent_logs = sorted(
             activity_records_for_nric(user.get("nric")),
@@ -33,6 +34,7 @@ def register_dashboard_routes(app):
             personal_best=personal_best,
             ippt_score=ippt_score,
             age_groups=AGE_GROUPS,
+            gender_options=GENDER_OPTIONS,
             **strava_connection_context(),
         )
 
@@ -41,12 +43,14 @@ def register_dashboard_routes(app):
     def api_ippt_score():
         user = current_user()
         age_group = request.args.get("age_group") or user.get("age_group") or DEFAULT_AGE_GROUP
+        gender = normalize_gender(request.args.get("gender") or user.get("gender"))
         personal_best = get_personal_best(user.get("nric"))
         return jsonify({
             "success": True,
             "personal_best": personal_best,
-            "score": calculate_from_personal_best(personal_best, age_group),
+            "score": calculate_from_personal_best(personal_best, age_group, gender),
             "age_groups": AGE_GROUPS,
+            "gender_options": GENDER_OPTIONS,
         })
 
     @app.route("/analytics")

@@ -57,6 +57,7 @@ def _default_best(nric):
         "pushups": 0,
         "situps": 0,
         "run_time": "--:--",
+        "gender": "male",
         **age_profile_from_nric(nric),
         "updated_at": None,
     }
@@ -66,7 +67,8 @@ def _member_with_best(member, best_by_nric):
     nric = (member.get("nric") or "").strip().upper()
     best = dict(best_by_nric.get(nric) or _default_best(nric))
     best.update(age_profile_from_nric(nric))
-    score = calculate_from_personal_best(best, best.get("age_group"))
+    best["gender"] = member.get("gender") or best.get("gender") or "male"
+    score = calculate_from_personal_best(best, best.get("age_group"), best.get("gender"))
     return {
         "id": member.get("id"),
         "group_id": member.get("group_id"),
