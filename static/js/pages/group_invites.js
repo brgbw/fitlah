@@ -141,12 +141,6 @@
                         <strong>${escapeHtml(best.run_time || '--:--')}</strong>
                         <small>min</small>
                     </div>
-                    <div class="leader-metric metric-score">
-                        <img class="metric-icon" src="/static/icons/star.png" alt="">
-                        <span>POINTS</span>
-                        <strong>${escapeHtml(points)}</strong>
-                        <small>pts</small>
-                    </div>
                     <div class="leader-metric metric-award award-${escapeHtml(awardCode)}">
                         <span>IPPT</span>
                         <span class="award-pill ${escapeHtml(awardCode)}">
@@ -156,10 +150,11 @@
                         <small>status</small>
                     </div>
                 </div>
-                ${member.can_be_removed ? `
-                    <div class="member-card-actions">
-                        <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})">Remove</button>
-                    </div>` : ''}
+                <div class="member-card-actions">
+                    ${member.can_be_removed
+                        ? `<button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">Remove</button>`
+                        : '<button class="member-action-button" type="button" aria-label="Member actions" disabled></button>'}
+                </div>
             </article>`;
     }
 
