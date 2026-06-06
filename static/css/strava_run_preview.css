@@ -194,7 +194,7 @@
 .strava-analysis-metrics {
     display: grid;
     grid-template-columns: repeat(3, minmax(86px, 1fr));
-    gap: 18px;
+    gap: 8px;
 }
 
 .strava-preview-stats div {
@@ -261,30 +261,27 @@
 
 .strava-analysis-card {
     display: grid;
-    gap: 28px;
+    gap: 18px;
 }
 
 .strava-analysis-metric {
     display: flex;
     align-items: center;
-    gap: 24px;
-    min-height: 132px;
+    gap: 12px;
+    min-height: 78px;
     border: 1px solid #E2E8F0;
     border-radius: 8px;
-    background: #FFFFFF;
-    padding: 26px 34px;
-    box-shadow:
-        0 1px 2px rgba(15, 23, 42, 0.04),
-        0 12px 32px rgba(15, 23, 42, 0.05);
+    background: #F8FAFC;
+    padding: 10px 12px;
 }
 
 .strava-analysis-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 78px;
-    height: 78px;
-    flex: 0 0 78px;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
     border-radius: 999px;
     background: #EFF6FF;
 }
@@ -298,14 +295,14 @@
 }
 
 .strava-analysis-icon img {
-    width: 48px;
-    height: 48px;
+    width: 30px;
+    height: 30px;
     object-fit: contain;
 }
 
 .strava-analysis-copy {
     display: grid;
-    gap: 12px;
+    gap: 5px;
     min-width: 0;
 }
 
@@ -313,15 +310,15 @@
     display: block;
     color: #64748B;
     font-size: calc(18px * var(--font-scale));
-    font-weight: 800;
+    font-weight: 650;
     line-height: 1.1;
     text-transform: uppercase;
 }
 
 .strava-analysis-copy strong {
     color: #0F172A;
-    font-size: calc(42px * var(--font-scale));
-    font-weight: 800;
+    font-size: calc(22px * var(--font-scale));
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -458,11 +455,11 @@
 .strava-status-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
+    min-height: 30px;
     border-radius: 999px;
-    padding: 6px 22px;
-    font-size: calc(24px * var(--font-scale));
-    font-weight: 800;
+    padding: 5px 13px;
+    font-size: calc(18px * var(--font-scale)) !important;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -572,28 +569,27 @@
 
     .strava-preview-stats div,
     .strava-analysis-metric {
-        padding: 12px;
+        padding: 10px;
     }
 
     .strava-analysis-metric {
-        min-height: 112px;
-        gap: 16px;
-        padding: 22px;
+        min-height: 74px;
+        gap: 10px;
     }
 
     .strava-analysis-icon {
-        width: 62px;
-        height: 62px;
-        flex-basis: 62px;
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
     }
 
     .strava-analysis-icon img {
-        width: 40px;
-        height: 40px;
+        width: 28px;
+        height: 28px;
     }
 
     .strava-analysis-copy strong {
-        font-size: calc(34px * var(--font-scale));
+        font-size: calc(22px * var(--font-scale));
     }
 
     .strava-coach-card {
