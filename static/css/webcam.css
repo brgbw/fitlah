@@ -116,15 +116,6 @@
         flex-shrink: 0;
     }
 
-    .status-pill {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-main);
-    }
-
     .stop-btn {
         background-color: #2563EB;
         color: #ffffff;

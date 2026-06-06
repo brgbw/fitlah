@@ -359,17 +359,6 @@
         --award-color: #EA580C;
     }
 
-    .score-ring {
-        width: 92px;
-        height: 92px;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        background:
-            radial-gradient(circle at center, #FFFFFF 57%, transparent 59%),
-            conic-gradient(var(--award-color, #0F766E) calc(var(--score-percent, 0) * 1%), #E2E8F0 0);
-    }
-
     .score-line {
         display: flex;
         align-items: flex-end;
@@ -399,12 +388,6 @@
         font-size: 13px;
         font-weight: 500;
         white-space: nowrap;
-    }
-
-    .score-scale {
-        color: #64748B;
-        font-size: 13px;
-        font-weight: 700;
     }
 
     .award-pill {
@@ -726,21 +709,12 @@
             margin-bottom: 6px;
         }
 
-        .score-ring {
-            width: 68px;
-            height: 68px;
-        }
-
         .score-total strong {
             font-size: 20px;
         }
 
         .score-total span {
             font-size: 11px;
-        }
-
-        .score-scale {
-            font-size: 12px;
         }
 
         .award-pill {
@@ -832,11 +806,6 @@
     .score-line {
         margin: 0;
         justify-content: flex-start;
-    }
-
-    .score-ring,
-    .score-scale {
-        display: none;
     }
 
     .score-total {
