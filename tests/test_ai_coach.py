@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from fitlah.integrations import ai_coach
 
@@ -39,14 +40,12 @@ class AiCoachTest(unittest.TestCase):
         self.assertEqual(parsed["donts"], ["Speed dropped after **1600m**"])
         self.assertEqual(parsed["dos"], ["Run **400m repeats**"])
         self.assertEqual(parsed["focus_areas"], ["Pacing", "Cadence"])
-        self.assertNotIn("safetyNote", parsed)
 
     def test_legacy_recommendation_fields_are_not_backfilled(self):
         parsed = ai_coach._parse_coach_json("""
         {
           "summary": "Hold **target pace**",
-          "recommendations": ["Run **400m repeats**"],
-          "safetyNote": "Warm up **8 minutes**"
+          "recommendations": ["Run **400m repeats**"]
         }
         """)
 
@@ -55,7 +54,24 @@ class AiCoachTest(unittest.TestCase):
         self.assertEqual(parsed["donts"], [])
         self.assertEqual(parsed["focus_areas"], [])
         self.assertNotIn("recommendations", parsed)
-        self.assertNotIn("safetyNote", parsed)
+
+    def test_calendar_training_summary_uses_ai_contract(self):
+        with patch.object(ai_coach, "_call_gemini", return_value={
+            "success": True,
+            "summary": "Momentum is building",
+            "dos": ["Keep the next session focused.", "Balance run work with core reps."],
+            "donts": [],
+            "focus_areas": ["Balance"],
+        }) as call:
+            result = ai_coach.generate_calendar_training_summary({
+                "totalLoggedActivities": 3,
+                "activityCounts": {"pushup": 1, "situp": 1, "run": 1},
+            })
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["summary"], "Momentum is building")
+        self.assertEqual(result["dos"], ["Keep the next session focused", "Balance run work with core reps"])
+        call.assert_called_once()
 
 
 if __name__ == "__main__":

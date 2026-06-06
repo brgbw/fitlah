@@ -95,27 +95,11 @@
     }
 
     .setup-item p,
-    .safety-note p,
-    
     .quick-item {
         color: #64748B;
         font-size: 16px;
         line-height: 1.6;
         margin: 0;
-    }
-
-    .safety-note {
-        margin-top: 24px;
-        border-left: 4px solid #015936;
-        background: #F8FAFC;
-        border-radius: 8px;
-        padding: 28px 24px;
-    }
-
-    .safety-note h2 {
-        font-size: 20px;
-        font-weight: 700;
-        margin: 0 0 10px;
     }
 
     .exercise-setup-actions {
@@ -230,10 +214,6 @@
                     </article>
                 </div>
 
-                <div class="safety-note">
-                    <h2>Safety note</h2>
-                    <p>Warm up first. Stop immediately if you feel pain, dizziness, or discomfort. The first valid rep starts the session timer automatically.</p>
-                </div>
                 <div class="exercise-setup-actions">
                     <a class="setup-btn secondary" href="{{ url_for('dashboard') }}">Dashboard</a>
                     <a class="setup-btn primary" href="{{ url_for('webcam') }}">Start Camera</a>

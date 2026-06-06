@@ -135,7 +135,6 @@ def register_group_routes(app):
                     continue
                 public_member = _member_with_best(member, best_by_nric)
                 public_member["is_current_user"] = member.get("nric") == user_nric
-                public_member["can_be_removed"] = is_creator and member.get("nric") != user_nric
                 group_members.append(public_member)
             members = sorted(
                 group_members,
@@ -168,38 +167,6 @@ def register_group_routes(app):
             return jsonify({"success": False, "error": "Group not found"}), 404
 
         removed = repo_remove_group_member(group_id, user.get("nric"))
-        return jsonify({"success": removed})
-
-    @app.route("/api/remove-group-member", methods=["POST"])
-    @login_required
-    @rate_limit("remove-group-member", 30, 300)
-    def remove_group_member():
-        if json_too_large(20000):
-            return jsonify({"success": False, "error": "Request body is too large"}), 413
-        data = request.get_json() or {}
-        group_id = _int_or_none(data.get("group_id"))
-        member_id = _int_or_none(data.get("member_id"))
-        if not group_id or not member_id:
-            return jsonify({"success": False, "error": "Invalid member or group"}), 400
-
-        user = current_user()
-        fitness_group = find_group(group_id)
-        if not fitness_group or fitness_group.get("created_by_nric") != user.get("nric"):
-            return jsonify({"success": False, "error": "Only the group creator can remove members"}), 403
-
-        target = next(
-            (
-                member for member in list_group_members()
-                if member.get("id") == member_id and member.get("group_id") == group_id
-            ),
-            None,
-        )
-        if not target:
-            return jsonify({"success": False, "error": "Member not found"}), 404
-        if target.get("nric") == user.get("nric"):
-            return jsonify({"success": False, "error": "Use Leave Group to leave your own group"}), 400
-
-        removed = repo_remove_group_member(group_id, target.get("nric"))
         return jsonify({"success": removed})
 
     @app.route("/api/accept-invite/<int:invite_id>", methods=["POST"])

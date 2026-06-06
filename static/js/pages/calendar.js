@@ -4,6 +4,7 @@
 
   const api = {
     logs: '/api/activity-records',
+    summary: '/api/calendar/training-summary',
     log: (logId) => `/api/activity-records/${logId}`
   };
   const icons = {
@@ -51,9 +52,9 @@
       return;
     }
     setEntriesFromLogs(data.logs);
-    renderActivitySummary(data.logs);
     renderCalendar();
     renderDetails();
+    loadActivitySummary();
   }
 
   function dateKey(y, m, d) {
@@ -327,39 +328,30 @@
     return div.innerHTML;
   }
 
-  function renderActivitySummary(logs) {
+  async function loadActivitySummary() {
     const title = document.getElementById('calendarSummaryTitle');
     const text = document.getElementById('calendarSummaryText');
-    const rawName = (document.getElementById('calendarAiSummary')?.dataset.userName || '').trim();
-    const userName = /^[STFG]\d{7}[A-Z]$/i.test(rawName) ? '' : rawName;
     if (!title || !text) return;
 
-    const counts = logs.reduce((acc, log) => {
-      const type = log.type || 'activity';
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
-    const total = logs.length;
-    if (!total) {
-      title.textContent = 'No logged activities yet';
-      text.textContent = `${userName ? `${userName}, y` : 'Y'}our next log is the starting line. Add one push-up, sit-up, or run entry so FitLah can start spotting your rhythm, consistency, and best station to build around.`;
-      return;
-    }
+    title.textContent = 'Generating AI training summary...';
+    text.textContent = 'Reviewing your logged activities.';
 
-    const stations = ['pushup', 'situp', 'run'];
-    const least = stations.reduce((weakest, type) => (counts[type] || 0) < (counts[weakest] || 0) ? type : weakest, stations[0]);
-    const strongest = stations.reduce((best, type) => (counts[type] || 0) > (counts[best] || 0) ? type : best, stations[0]);
-    const stationCounts = stations.map(type => counts[type] || 0);
-    const isBalanced = stationCounts.every(count => count === stationCounts[0]);
-    const compliment = total >= 6
-      ? 'Strong consistency and discipline'
-      : total >= 3
-        ? 'Nice work building real momentum'
-        : 'Good start getting your training recorded';
-    title.textContent = `${total} logged ${total === 1 ? 'activity' : 'activities'} reviewed`;
-    text.textContent = isBalanced
-      ? `${compliment}${userName ? `, ${userName}` : ''}. Your calendar is nicely balanced across push-up, sit-up, and 2.4km run work, which is exactly the kind of base that keeps IPPT prep steady. For the next session, choose the station that felt toughest recently and make that your quality focus while keeping the other two ticking over.`
-      : `${compliment}${userName ? `, ${userName}` : ''}. Your calendar shows ${typeName(strongest)} has the most attention so far, which is a useful base to build from. For the next session, put a little extra focus on ${typeName(least)} so your IPPT preparation stays balanced across strength, core, and running.`;
+    try {
+      const response = await fetch(api.summary);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'AI training summary could not be generated.');
+      }
+      const summary = data.summary || {};
+      const lines = (summary.lines || []).filter(Boolean).slice(0, 3);
+      title.textContent = summary.title || 'AI training summary';
+      text.innerHTML = lines.length
+        ? lines.map(line => escapeHtml(line)).join('<br>')
+        : 'AI summary returned no tips for this calendar.';
+    } catch (error) {
+      title.textContent = 'AI training summary unavailable';
+      text.textContent = error.message;
+    }
   }
 
   function aiTextHtml(text) {

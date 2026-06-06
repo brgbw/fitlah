@@ -346,7 +346,7 @@
     .leader-card.no-trophy,
     .leader-card:not(.no-trophy) {
         display: grid;
-        grid-template-columns: 72px minmax(150px, 0.7fr) minmax(0, 1.8fr) 72px auto;
+        grid-template-columns: 72px minmax(150px, 0.7fr) minmax(0, 1.8fr) 72px;
         align-items: center;
         gap: 16px;
         min-height: 148px;
@@ -520,21 +520,34 @@
         grid-column: 1 / -1;
         grid-row: 2 / 4;
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
-        gap: 8px;
-        width: fit-content;
+        gap: 6px;
+        width: 100%;
+        max-width: 112px;
         padding: 0;
         border: 0;
         background: transparent;
         color: #B45309;
-        font-size: 22px !important;
+        font-size: 16px !important;
         font-weight: 700;
-        line-height: 1;
+        line-height: 1.15;
         text-transform: uppercase;
         white-space: normal;
         overflow-wrap: anywhere;
         justify-content: center;
         text-align: center;
+    }
+
+    .leader-metric.metric-award .award-pill img {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
+    }
+
+    .leader-metric.metric-award.award-pass-incentive .award-pill {
+        font-size: 14px !important;
+        max-width: 118px;
     }
 
     .leader-metric.metric-award small {
@@ -597,46 +610,6 @@
         font-size: 12px !important;
         font-weight: 650;
         line-height: 1;
-    }
-
-    .member-card-actions {
-        grid-column: 5;
-        grid-row: 1;
-        align-self: center;
-        justify-self: end;
-    }
-
-    .member-action-button {
-        min-height: 40px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 0 12px;
-        border: 1px solid #FECACA;
-        border-radius: 8px;
-        background: #FEF2F2;
-        color: var(--group-red);
-        font-size: 13px !important;
-        font-weight: 650;
-        line-height: 1;
-        cursor: pointer;
-        box-shadow: none;
-    }
-
-    .member-action-button:hover {
-        background: #FEE2E2;
-        border-color: #FCA5A5;
-    }
-
-    .member-action-mark {
-        font-size: 18px !important;
-        line-height: 1;
-    }
-
-    .member-action-button:disabled {
-        cursor: default;
-        opacity: 1;
     }
 
     .section-title {
@@ -924,7 +897,7 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 70px minmax(140px, 0.65fr) minmax(0, 1fr) 76px auto;
+            grid-template-columns: 70px minmax(140px, 0.65fr) minmax(0, 1fr) 76px;
         }
 
         .leader-metrics {
@@ -944,15 +917,11 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 70px minmax(180px, 1fr) 86px auto;
+            grid-template-columns: 70px minmax(180px, 1fr) 86px;
         }
 
         .leader-score {
             grid-column: 3;
-        }
-
-        .member-card-actions {
-            grid-column: 4;
         }
 
         .leader-metrics {
@@ -1042,7 +1011,7 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 58px minmax(0, 1fr) 64px auto;
+            grid-template-columns: 58px minmax(0, 1fr) 64px;
             gap: 14px;
             padding: 18px;
             min-height: 0;
@@ -1251,11 +1220,6 @@
                                 <small>status</small>
                             </div>
                         </div>
-                        {% if member.can_be_removed %}
-                        <div class="member-card-actions">
-                            <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})" title="Remove member" aria-label="Remove {{ member.name }}"><span class="member-action-mark" aria-hidden="true">&times;</span><span>Remove</span></button>
-                        </div>
-                        {% endif %}
                     </article>
                     {% endfor %}
                 {% else %}

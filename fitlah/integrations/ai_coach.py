@@ -461,3 +461,41 @@ def generate_ippt_run_recommendation(run_summary):
         return result
 
     return _normalise_coach_response(result)
+
+
+def generate_calendar_training_summary(calendar_summary):
+    """Return a short AI training summary for the calendar overview."""
+    if not calendar_summary or not isinstance(calendar_summary, dict):
+        return {"success": False, "error": "No calendar summary provided."}
+
+    system_prompt = (
+        "You are a motivating Singapore IPPT training coach writing a concise calendar overview. "
+        "Use the user's logged push-up, sit-up, and run history to write practical encouragement and next-session tips. "
+        "Do not invent exact workouts, scores, medical advice, or data that is not present. "
+        "No greetings. No first-person wording. Keep the copy crisp, warm, and useful.\n\n"
+        "Output JSON only with these keys:\n"
+        "1. `summary`: A motivating headline, maximum 8 words.\n"
+        "2. `dos`: Exactly 2-3 short tip sentences, each under 18 words.\n"
+        "3. `donts`: Always return an empty array.\n"
+        "4. `focus_areas`: Return 1-2 concise labels, maximum 2 words each."
+    )
+    user_prompt = (
+        "Write a dynamic 2-3 line AI Training Summary for this calendar data.\n\n"
+        f"Calendar data JSON:\n{json.dumps(calendar_summary, indent=2)}\n\n"
+        "Output strictly in this JSON format:\n"
+        "{\n"
+        '  "summary": "<Max 8 words headline>",\n'
+        '  "dos": [\n'
+        '    "<Short motivational observation or tip>",\n'
+        '    "<Short practical next-session tip>"\n'
+        "  ],\n"
+        '  "donts": [],\n'
+        '  "focus_areas": ["<Max 2 words>"]\n'
+        "}"
+    )[:MAX_PROMPT_CHARS]
+
+    result = _call_gemini(system_prompt, user_prompt)
+    if not result.get("success"):
+        return result
+
+    return _normalise_coach_response(result)

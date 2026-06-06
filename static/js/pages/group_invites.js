@@ -8,7 +8,6 @@
         scanInvite: '/api/scan-invite',
         pendingInvites: '/api/pending-invites',
         leaveGroup: '/api/leave-group',
-        removeGroupMember: '/api/remove-group-member',
         acceptInvite: (inviteId) => `/api/accept-invite/${inviteId}`,
         declineInvite: (inviteId) => `/api/decline-invite/${inviteId}`
     };
@@ -145,12 +144,6 @@
                         <small>status</small>
                     </div>
                 </div>
-                ${member.can_be_removed ? `
-                <div class="member-card-actions">
-                    <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" title="Remove member" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">
-                        <span class="member-action-mark" aria-hidden="true">&times;</span><span>Remove</span>
-                    </button>
-                </div>` : ''}
             </article>`;
     }
 
@@ -420,35 +413,6 @@
         });
     }
 
-    function removeGroupMember(memberId) {
-        if (!activeGroupId || !memberId) return;
-        const selected = groupRosterData.find(item => item.group.id === Number(activeGroupId));
-        const member = selected?.members?.find(item => item.id === Number(memberId));
-        const name = displayName(member?.name, 'this member');
-        if (!window.confirm(`Remove ${name} from the group?`)) return;
-
-        fetch(api.removeGroupMember, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                group_id: Number(activeGroupId),
-                member_id: Number(memberId)
-            })
-        })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .then(({ ok, data }) => {
-            if (ok && data.success) {
-                location.reload();
-            } else {
-                alert(data.error || 'Could not remove member.');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Could not remove member.');
-        });
-    }
-
     function acceptInvite(inviteId) {
         fetch(api.acceptInvite(inviteId), {
             method: 'POST',
@@ -567,7 +531,6 @@
     window.openMyQr = openMyQr;
     window.openQrScanner = openQrScanner;
     window.leaveActiveGroup = leaveActiveGroup;
-    window.removeGroupMember = removeGroupMember;
     window.acceptInvite = acceptInvite;
     window.declineInvite = declineInvite;
 })();
