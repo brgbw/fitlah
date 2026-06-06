@@ -266,6 +266,45 @@ def register_group_routes(app):
             "group_name": fitness_group.get("name"),
         })
 
+    @app.route("/api/invite-by-nric", methods=["POST"])
+    @login_required
+    @rate_limit("invite-by-nric", 30, 300)
+    def invite_by_nric():
+        if json_too_large(20000):
+            return jsonify({"success": False, "error": "Request body is too large"}), 413
+        data = request.get_json() or {}
+        group_id = data.get("group_id")
+        recipient_nric = str(data.get("nric") or "").strip().upper()
+
+        if not all([group_id, recipient_nric]):
+            return jsonify({"success": False, "error": "Enter a personnel NRIC"}), 400
+
+        try:
+            group_id = int(group_id)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid group id"}), 400
+
+        if not NRIC_PATTERN.match(recipient_nric):
+            return jsonify({"success": False, "error": "Enter a valid NRIC"}), 400
+
+        user = current_user()
+        if not user_is_group_member(group_id, user.get("nric")):
+            return jsonify({"success": False, "error": "Group not found"}), 404
+
+        fitness_group = find_group(group_id)
+        if not fitness_group:
+            return jsonify({"success": False, "error": "Group not found"}), 404
+
+        created, result = create_group_invite_for_user(fitness_group, recipient_nric)
+        if not created:
+            return jsonify({"success": False, "error": result}), 400
+
+        return jsonify({
+            "success": True,
+            "recipient_name": _display_name(result),
+            "group_name": fitness_group.get("name"),
+        })
+
     @app.route("/api/create-group", methods=["POST"])
     @login_required
     @rate_limit("create-group", 10, 300)

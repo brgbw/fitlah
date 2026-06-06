@@ -866,6 +866,49 @@
         pointer-events: none;
     }
 
+    .manual-invite-panel {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        background: #FFFFFF;
+    }
+
+    .manual-invite-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+
+    .manual-invite-input {
+        min-height: 42px;
+        border: 1px solid var(--group-line);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: var(--group-ink);
+        font-size: 14px !important;
+        text-transform: uppercase;
+    }
+
+    .manual-invite-button {
+        min-height: 42px;
+        border: 1px solid var(--group-green);
+        border-radius: 8px;
+        background: var(--group-green);
+        color: #FFFFFF;
+        cursor: pointer;
+        font-size: 14px !important;
+        font-weight: 650;
+        padding: 0 14px;
+        white-space: nowrap;
+    }
+
+    .manual-invite-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
+
     .qr-status {
         color: var(--group-muted);
         font-size: 13px !important;
@@ -996,6 +1039,10 @@
             flex-wrap: wrap;
         }
 
+        .manual-invite-row {
+            grid-template-columns: 1fr;
+        }
+
         .sort-select-shell {
             min-width: min(100vw - 40px, 260px);
         }
@@ -1097,6 +1144,12 @@
                     <video id="qrScanVideo" playsinline muted></video>
                     <canvas id="qrScanCanvas"></canvas>
                     <div class="scan-frame-corners" aria-hidden="true"></div>
+                </div>
+                <div class="manual-invite-panel">
+                    <div class="manual-invite-row">
+                        <input class="manual-invite-input" id="manualInviteNric" name="manualInviteNric" type="text" maxlength="9" autocomplete="off" placeholder="Personnel NRIC">
+                        <button class="manual-invite-button" id="manualInviteButton" type="button" onclick="submitManualInvite()">Add Personnel NRIC</button>
+                    </div>
                 </div>
                 <div class="qr-status" id="scanQrStatus" role="status"></div>
             </div>

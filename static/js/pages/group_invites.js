@@ -6,6 +6,7 @@
         createGroup: '/api/create-group',
         qrPayload: '/api/group-qr-payload',
         scanInvite: '/api/scan-invite',
+        inviteByNric: '/api/invite-by-nric',
         pendingInvites: '/api/pending-invites',
         leaveGroup: '/api/leave-group',
         acceptInvite: (inviteId) => `/api/accept-invite/${inviteId}`,
@@ -253,6 +254,7 @@
         }
         activeGroupId = Number(activeTab.dataset.groupId);
         openModal('scanQrModal');
+        resetManualInviteForm();
         await startQrScanner();
     }
 
@@ -373,6 +375,58 @@
         .catch(err => {
             console.error(err);
             setQrStatus('scanQrStatus', 'Could not send invite.', 'error');
+        });
+    }
+
+    function resetManualInviteForm() {
+        const input = document.getElementById('manualInviteNric');
+        const button = document.getElementById('manualInviteButton');
+        if (input) input.value = '';
+        if (button) button.disabled = false;
+    }
+
+    function submitManualInvite() {
+        const input = document.getElementById('manualInviteNric');
+        const button = document.getElementById('manualInviteButton');
+        const nric = String(input?.value || '').trim().toUpperCase();
+
+        if (!activeGroupId) {
+            setQrStatus('scanQrStatus', 'Select a group first.', 'error');
+            return;
+        }
+        if (!/^[STFG]\d{7}[A-Z]$/i.test(nric)) {
+            setQrStatus('scanQrStatus', 'Enter a valid personnel NRIC.', 'error');
+            input?.focus();
+            return;
+        }
+
+        if (button) button.disabled = true;
+        setQrStatus('scanQrStatus', 'Sending invite...', '');
+
+        fetch(api.inviteByNric, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                group_id: activeGroupId,
+                nric
+            })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                setQrStatus('scanQrStatus', `Invitation sent to ${displayName(data.recipient_name, 'teammate')}.`, 'success');
+                if (input) input.value = '';
+                setTimeout(() => closeModal('scanQrModal'), 900);
+            } else {
+                setQrStatus('scanQrStatus', data.error || 'Could not send invite.', 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            setQrStatus('scanQrStatus', 'Could not send invite.', 'error');
+        })
+        .finally(() => {
+            if (button) button.disabled = false;
         });
     }
 
@@ -528,6 +582,7 @@
     window.submitCreateGroup = submitCreateGroup;
     window.openMyQr = openMyQr;
     window.openQrScanner = openQrScanner;
+    window.submitManualInvite = submitManualInvite;
     window.leaveActiveGroup = leaveActiveGroup;
     window.acceptInvite = acceptInvite;
     window.declineInvite = declineInvite;
