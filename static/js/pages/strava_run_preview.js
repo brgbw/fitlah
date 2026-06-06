@@ -38,6 +38,10 @@ function formatValidityStatus(value) {
     return String(value || '').toLowerCase() === 'valid' ? 'Valid' : 'Invalid';
 }
 
+function validityClass(value) {
+    return String(value || '').toLowerCase() === 'valid' ? 'valid' : 'invalid';
+}
+
 function calendarLinkFor(log) {
     const date = log && log.date ? encodeURIComponent(log.date) : '';
     return `/calendar${date ? `?date=${date}` : ''}`;
@@ -58,18 +62,23 @@ function renderRunCoachCard(rec) {
             <div class="strava-coach-grid">
                 ${recommendations.length ? `
                     <div class="strava-coach-list dos">
-                        <h6>RECOMMENDED ACTIONS</h6>
+                        <h6><img src="/static/icons/greentarget.png" alt="">RECOMMENDED ACTIONS</h6>
                         <ul>${recommendations.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
                 ${avoid.length ? `
                     <div class="strava-coach-list donts">
-                        <h6>AVOID NEXT</h6>
+                        <h6><img src="/static/icons/exclaim.png" alt="">AVOID NEXT</h6>
                         <ul>${avoid.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
             </div>
-            ${focus ? `<div class="strava-coach-focus"><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</div>` : ''}
+            ${focus ? `
+                <div class="strava-coach-focus">
+                    <img src="/static/icons/bluetarget.png" alt="">
+                    <span><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</span>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -199,12 +208,31 @@ async function analyzeIpptPreview(activityId, button) {
         const data = await postActivityJson('/api/strava/ippt-24/preview', activityId);
         const r = data.result;
         const rec = data.recommendation || {};
+        const statusClass = validityClass(r.status);
         area.innerHTML = `
             <div class="strava-analysis-card">
                 <div class="strava-analysis-metrics">
-                    <div><span>2.4km time</span><strong>${escapeHtml(r.official_time)}</strong></div>
-                    <div><span>Status</span><strong>${formatValidityStatus(r.status)}</strong></div>
-                    <div><span>Points</span><strong>${escapeHtml(r.run_points)}</strong></div>
+                    <div class="strava-analysis-metric">
+                        <span class="strava-analysis-icon"><img src="/static/icons/timer.png" alt=""></span>
+                        <span class="strava-analysis-copy">
+                            <span>2.4KM TIME</span>
+                            <strong>${escapeHtml(r.official_time)}</strong>
+                        </span>
+                    </div>
+                    <div class="strava-analysis-metric">
+                        <span class="strava-analysis-icon ${statusClass}"><img src="/static/icons/checkmark.png" alt=""></span>
+                        <span class="strava-analysis-copy">
+                            <span>STATUS</span>
+                            <strong class="strava-status-value"><span class="strava-status-pill ${statusClass}">${formatValidityStatus(r.status)}</span></strong>
+                        </span>
+                    </div>
+                    <div class="strava-analysis-metric">
+                        <span class="strava-analysis-icon"><img src="/static/icons/star.png" alt=""></span>
+                        <span class="strava-analysis-copy">
+                            <span>POINTS</span>
+                            <strong>${escapeHtml(r.run_points)}</strong>
+                        </span>
+                    </div>
                 </div>
                 ${renderRunCoachCard(rec)}
             </div>
@@ -249,7 +277,7 @@ async function saveSession(activityId) {
         }
     } catch (err) {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save session';
+        saveBtn.textContent = 'Save Session';
         if (calendarBtn) calendarBtn.style.display = 'none';
         resultArea.innerHTML = `<div class="strava-import-status error">${escapeHtml(err.message)}</div>`;
     }
@@ -296,7 +324,7 @@ async function loadPreview() {
             <div class="strava-preview-footer">
                 <a class="strava-btn strava-btn-ghost" href="${escapeHtml(config.dashboardUrl || '/dashboard')}">Back</a>
                 <button id="stravaAnalyzeBtn" class="strava-btn strava-btn-secondary" type="button">Analyse</button>
-                <button id="stravaSaveBtn" class="strava-btn strava-btn-primary" type="button" disabled style="display:none">Save session</button>
+                <button id="stravaSaveBtn" class="strava-btn strava-btn-primary" type="button" disabled style="display:none">Save Session</button>
                 <a id="stravaCalendarBtn" class="strava-calendar-btn" href="/calendar" style="display:none">View In Calendar</a>
             </div>
         `;
