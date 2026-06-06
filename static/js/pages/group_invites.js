@@ -72,8 +72,7 @@
 
         const members = sortedMembers(selected.members);
         if (leaderboardList) {
-            const highestPoints = Math.max(...members.map(member => Number(member.ippt_score?.total_points ?? member.ippt_points ?? 0)));
-            leaderboardList.innerHTML = members.map((member, index) => leaderCard(member, index, highestPoints)).join('');
+            leaderboardList.innerHTML = members.map((member, index) => leaderCard(member, index)).join('');
         }
     }
 
@@ -92,7 +91,7 @@
         if (scanButton) scanButton.disabled = !selected;
     }
 
-    function leaderCard(member, index, highestPoints) {
+    function leaderCard(member, index) {
         const best = member.personal_best || {};
         const score = member.ippt_score || {};
         const award = score.award || {};
@@ -100,13 +99,13 @@
         const awardCode = award.code || 'fail';
         const awardLabel = award.label || 'Fail';
         const showAward = !['fail', 'incomplete'].includes(awardCode);
-        const isTopScore = showAward && Number(points) === highestPoints && highestPoints > 0;
+        const hasRankIcon = index < 3;
 
         return `
-            <article class="leader-card leader-card-rank-${index + 1} ${isTopScore ? '' : 'no-trophy'}">
-                ${isTopScore ? `
+            <article class="leader-card leader-card-rank-${index + 1} ${hasRankIcon ? '' : 'no-trophy'}">
+                ${hasRankIcon ? `
                     <div class="leader-rank-block">
-                        <img class="trophy-icon" src="/static/icons/championtrophy.png" alt="">
+                        <img class="trophy-icon" src="${rankIcon(index + 1)}" alt="${index + 1} place">
                     </div>` : ''}
                 <div class="leader-main">
                     <div class="leader-name">
@@ -142,17 +141,17 @@
                         <small>min</small>
                     </div>
                     <div class="leader-metric metric-score">
+                        <img class="metric-icon" src="/static/icons/star.png" alt="">
                         <span>POINTS</span>
                         <strong>${escapeHtml(points)}</strong>
                         <small>pts</small>
                     </div>
-                    ${showAward ? `
-                    <div class="leader-metric metric-award">
+                    <div class="leader-metric metric-award award-${escapeHtml(awardCode)}">
                         <img class="metric-icon" src="${awardIcon(awardCode)}" alt="">
                         <span>IPPT</span>
                         <strong>${escapeHtml(awardLabel)}</strong>
                         <small>status</small>
-                    </div>` : ''}
+                    </div>
                 </div>
                 ${member.can_be_removed ? `
                     <div class="member-card-actions">
@@ -166,6 +165,12 @@
         if (code === 'silver') return '/static/icons/silverbadge.png';
         if (code === 'pass-incentive') return '/static/icons/passwithincentivebadge.png';
         return '/static/icons/passbadge.png';
+    }
+
+    function rankIcon(rank) {
+        if (rank === 1) return '/static/icons/1stplace.png';
+        if (rank === 2) return '/static/icons/2ndplace.png';
+        return '/static/icons/3rdplace.png';
     }
 
     function escapeHtml(value) {

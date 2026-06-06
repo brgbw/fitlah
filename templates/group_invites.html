@@ -14,6 +14,15 @@
         {{ asset_url('icons/passbadge.png') }}
     {%- endif -%}
 {%- endmacro %}
+{% macro rank_icon(rank) -%}
+    {%- if rank == 1 -%}
+        {{ asset_url('icons/1stplace.png') }}
+    {%- elif rank == 2 -%}
+        {{ asset_url('icons/2ndplace.png') }}
+    {%- elif rank == 3 -%}
+        {{ asset_url('icons/3rdplace.png') }}
+    {%- endif -%}
+{%- endmacro %}
 
 <style>
     .groups-page {
@@ -2135,6 +2144,231 @@
         display: none;
     }
 
+    .group-switcher-shell {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .group-switcher-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    @media (min-width: 761px) {
+        .group-switcher-shell {
+            grid-template-columns: minmax(0, max-content) auto;
+            align-items: stretch;
+            justify-content: start;
+        }
+
+        .group-switcher {
+            width: fit-content;
+            max-width: min(100%, 760px);
+            min-width: 0;
+            gap: 6px;
+            padding: 8px;
+            margin-bottom: 0;
+        }
+
+        .group-switcher-actions {
+            align-items: stretch;
+            flex-wrap: nowrap;
+        }
+
+        .group-tab,
+        .create-group-pill,
+        .qr-switcher-button {
+            min-height: 42px;
+            gap: 7px;
+            padding: 7px 12px;
+            font-size: 15px !important;
+        }
+
+        .group-tab-icon,
+        .create-group-icon {
+            width: 22px;
+            height: 22px;
+            flex: 0 0 22px;
+        }
+
+        .leaderboard-list {
+            gap: 10px;
+        }
+
+        .leader-card,
+        .leader-card.no-trophy {
+            display: grid;
+            grid-template-columns: minmax(160px, 0.72fr) minmax(0, 3fr) auto;
+            align-items: stretch;
+            gap: 12px;
+            min-height: 0;
+            padding: 14px 16px;
+            border-bottom-width: 3px;
+        }
+
+        .leader-card:not(.no-trophy) {
+            grid-template-columns: 46px minmax(160px, 0.72fr) minmax(0, 3fr) auto;
+        }
+
+        .leader-rank-block {
+            grid-column: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: stretch;
+            gap: 0;
+            min-width: 0;
+        }
+
+        .leader-rank-block:empty {
+            display: none;
+        }
+
+        .trophy-icon {
+            width: 42px;
+            height: 42px;
+        }
+
+        .leader-main,
+        .leader-card.no-trophy .leader-main,
+        .leader-card:not(.no-trophy) .leader-main {
+            grid-column: auto;
+            align-self: center;
+            display: grid;
+            align-content: center;
+            min-height: 52px;
+        }
+
+        .leader-name strong {
+            font-size: 20px !important;
+            line-height: 1.15;
+            text-transform: none;
+            white-space: normal;
+        }
+
+        .award-pill {
+            width: fit-content;
+            min-height: 24px;
+            margin-top: 6px;
+            padding: 0 9px 0 5px;
+        }
+
+        .award-pill img {
+            width: 22px;
+            height: 22px;
+        }
+
+        .leader-score,
+        .leader-card.no-trophy .leader-score,
+        .leader-card:not(.no-trophy) .leader-score {
+            display: none;
+        }
+
+        .leader-metrics {
+            grid-column: auto;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 0;
+            align-self: stretch;
+        }
+
+        .leader-metric {
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 7px;
+            padding: 8px 10px;
+        }
+
+        .metric-icon {
+            width: 22px;
+            height: 22px;
+            flex: 0 0 22px;
+            margin: 0;
+        }
+
+        .leader-metric span {
+            display: inline;
+            font-size: 11px !important;
+            line-height: 1;
+            flex: 0 0 auto;
+        }
+
+        .leader-metric strong {
+            display: inline;
+            font-size: 20px !important;
+            line-height: 1;
+            margin-top: 0;
+            overflow-wrap: normal;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .leader-metric.metric-run strong {
+            font-size: 19px !important;
+        }
+
+        .leader-metric small {
+            display: inline;
+            font-size: 11px !important;
+            line-height: 1;
+            margin-top: 0;
+            flex: 0 0 auto;
+        }
+
+        .leader-metric.metric-score {
+            border-color: #C9EADA;
+            background: #F7FCFA;
+        }
+
+        .leader-metric.metric-score span,
+        .leader-metric.metric-score strong {
+            color: var(--group-green);
+        }
+
+        .leader-metric.metric-award span {
+            color: var(--group-muted);
+        }
+
+        .leader-metric.metric-award small {
+            display: none;
+        }
+
+        .leader-metric.metric-award.award-gold strong {
+            color: #A36300;
+        }
+
+        .leader-metric.metric-award.award-silver strong {
+            color: #526173;
+        }
+
+        .leader-metric.metric-award.award-pass,
+        .leader-metric.metric-award.award-pass-incentive {
+            border-color: #C9EADA;
+            background: #F7FCFA;
+        }
+
+        .leader-metric.metric-award.award-pass strong,
+        .leader-metric.metric-award.award-pass-incentive strong {
+            color: var(--group-green-strong);
+        }
+
+        .leader-metric.metric-award.award-fail strong,
+        .leader-metric.metric-award.award-incomplete strong {
+            color: var(--group-red);
+        }
+
+        .member-card-actions {
+            grid-column: auto;
+            align-self: center;
+            margin-top: 0;
+        }
+    }
+
 </style>
 
 <div class="groups-page">
@@ -2207,25 +2441,26 @@
 
     <div class="groups-layout">
         <main class="groups-main">
-            <div class="group-switcher" id="groupTabsRow" aria-label="Your groups">
-                {% for item in group_data %}
-                <button class="filter-pill group-tab {% if loop.first %}active{% endif %}" type="button" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">
-                    <img class="group-tab-icon" src="{{ asset_url('icons/group.png') }}" alt="">
-                    <span>{{ item.group.name }}</span>
-                </button>
-                {% endfor %}
-                {% if group_data %}
-                <span class="group-switcher-divider" aria-hidden="true"></span>
-                {% endif %}
-                <button class="filter-pill create-group-pill" type="button" onclick="openModal('createGroupModal')" aria-label="Create group">
-                    <img class="create-group-icon" src="{{ asset_url('icons/creategroup.png') }}" alt="">
-                    <span class="create-group-label">New Group</span>
-                    <span class="create-group-short" aria-hidden="true">+</span>
-                </button>
-                <button class="filter-pill qr-switcher-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                    <img class="create-group-icon" src="{{ asset_url('icons/qrcode.png') }}" alt="">
-                    <span class="create-group-label">Invite QR</span>
-                </button>
+            <div class="group-switcher-shell">
+                <div class="group-switcher" id="groupTabsRow" aria-label="Your groups">
+                    {% for item in group_data %}
+                    <button class="filter-pill group-tab {% if loop.first %}active{% endif %}" type="button" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">
+                        <img class="group-tab-icon" src="{{ asset_url('icons/group.png') }}" alt="">
+                        <span>{{ item.group.name }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                <div class="group-switcher-actions" aria-label="Group shortcuts">
+                    <button class="filter-pill create-group-pill" type="button" onclick="openModal('createGroupModal')" aria-label="Create group">
+                        <img class="create-group-icon" src="{{ asset_url('icons/creategroup.png') }}" alt="">
+                        <span class="create-group-label">New Group</span>
+                        <span class="create-group-short" aria-hidden="true">+</span>
+                    </button>
+                    <button class="filter-pill create-group-pill qr-switcher-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                        <img class="create-group-icon" src="{{ asset_url('icons/qrcode.png') }}" alt="">
+                        <span class="create-group-label">Invite QR</span>
+                    </button>
+                </div>
             </div>
 
             <article class="group-summary-card" id="groupSummaryCard">
@@ -2263,20 +2498,14 @@
 
             <div class="leaderboard-list" id="mobileLeaderboardList">
                 {% if group_data and group_data[0].members %}
-                    {% set top_score = namespace(value=0) %}
-                    {% for top_member in group_data[0].members %}
-                        {% if (top_member.ippt_score.total_points or 0) > top_score.value %}
-                            {% set top_score.value = top_member.ippt_score.total_points or 0 %}
-                        {% endif %}
-                    {% endfor %}
                     {% for member in group_data[0].members %}
                     {% set award_code = member.ippt_score.award.code %}
                     {% set show_award = award_code not in ['fail', 'incomplete'] %}
-                    {% set is_top_score = show_award and member.ippt_score.total_points == top_score.value and top_score.value > 0 %}
-                    <article class="leader-card leader-card-rank-{{ loop.index }} {% if not is_top_score %}no-trophy{% endif %}">
-                        {% if is_top_score %}
+                    {% set has_rank_icon = loop.index <= 3 %}
+                    <article class="leader-card leader-card-rank-{{ loop.index }} {% if not has_rank_icon %}no-trophy{% endif %}">
+                        {% if has_rank_icon %}
                         <div class="leader-rank-block">
-                            <img class="trophy-icon" src="{{ asset_url('icons/championtrophy.png') }}" alt="">
+                            <img class="trophy-icon" src="{{ rank_icon(loop.index) }}" alt="{{ loop.index }} place">
                         </div>
                         {% endif %}
                         <div class="leader-main">
@@ -2314,18 +2543,17 @@
                                 <small>min</small>
                             </div>
                             <div class="leader-metric metric-score">
+                                <img class="metric-icon" src="{{ asset_url('icons/star.png') }}" alt="">
                                 <span>POINTS</span>
                                 <strong>{{ member.ippt_score.total_points }}</strong>
                                 <small>pts</small>
                             </div>
-                            {% if show_award %}
-                            <div class="leader-metric metric-award">
+                            <div class="leader-metric metric-award award-{{ award_code }}">
                                 <img class="metric-icon" src="{{ award_icon(award_code) }}" alt="">
                                 <span>IPPT</span>
                                 <strong>{{ member.ippt_score.award.label }}</strong>
                                 <small>status</small>
                             </div>
-                            {% endif %}
                         </div>
                         {% if member.can_be_removed %}
                         <div class="member-card-actions">
