@@ -26,7 +26,7 @@
         --group-ink: #0F172A;
         --group-muted: #64748B;
         --group-line: #D9E3EE;
-        --group-bg: #EEF4FA;
+        --group-bg: var(--bg-body);
         --group-card: #FFFFFF;
         --group-green: #059669;
         --group-green-strong: #047857;
@@ -214,12 +214,12 @@
 
     .quick-action,
     .group-danger-button {
-        min-height: 66px;
+        min-height: 82px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 12px;
-        padding: 0 18px;
+        padding: 0 24px;
         border-radius: 8px;
         box-shadow: none;
         cursor: pointer;
@@ -244,16 +244,17 @@
     }
 
     .action-icon-shell {
-        width: 28px;
-        height: 28px;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
 
     .action-icon-shell img {
-        width: 24px;
-        height: 24px;
+        width: 30px;
+        height: 30px;
         object-fit: contain;
     }
 
@@ -265,14 +266,14 @@
 
     .action-copy strong {
         color: inherit;
-        font-size: 14px !important;
+        font-size: 16px !important;
         font-weight: 650;
         line-height: 1.1;
     }
 
     .action-copy small {
         color: var(--group-muted);
-        font-size: 12px !important;
+        font-size: 13px !important;
         font-weight: 400;
         line-height: 1.1;
     }
@@ -345,7 +346,7 @@
     .leader-card.no-trophy,
     .leader-card:not(.no-trophy) {
         display: grid;
-        grid-template-columns: 72px minmax(180px, 0.72fr) minmax(460px, 1.65fr) 72px 42px;
+        grid-template-columns: 72px minmax(150px, 0.7fr) minmax(0, 1.8fr) 72px auto;
         align-items: center;
         gap: 16px;
         min-height: 148px;
@@ -354,6 +355,7 @@
         border-radius: 0;
         background: transparent;
         box-shadow: none;
+        min-width: 0;
     }
 
     .leader-card-rank-1 {
@@ -372,6 +374,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        min-width: 0;
     }
 
     .trophy-icon {
@@ -407,19 +410,17 @@
         line-height: 1.35;
         text-transform: uppercase;
         white-space: normal;
-    }
-
-    .leader-main > .award-pill {
-        display: none;
+        overflow-wrap: anywhere;
     }
 
     .leader-metrics {
         grid-column: 3;
         grid-row: 1;
         display: grid;
-        grid-template-columns: repeat(4, minmax(108px, 1fr));
+        grid-template-columns: repeat(4, minmax(96px, 1fr));
         gap: 14px;
         margin: 0;
+        min-width: 0;
     }
 
     .leader-metric {
@@ -431,19 +432,21 @@
         justify-content: center;
         justify-items: center;
         column-gap: 8px;
-        row-gap: 14px;
-        padding: 18px 22px;
+        row-gap: 12px;
+        padding: 16px 14px;
         border: 1px solid transparent;
         border-radius: 8px;
         overflow: hidden;
+        min-width: 0;
     }
 
     .metric-icon,
     .leader-metric.metric-award .award-pill img {
         grid-column: 1;
         grid-row: 1;
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
         margin: 0;
         object-fit: contain;
     }
@@ -454,9 +457,10 @@
         color: inherit;
         font-size: 15px !important;
         font-weight: 650;
-        line-height: 1;
+        line-height: 1.15;
         text-transform: uppercase;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .leader-metric strong {
@@ -465,8 +469,10 @@
         color: var(--group-ink);
         font-size: 30px !important;
         font-weight: 700;
-        line-height: 1;
-        white-space: nowrap;
+        line-height: 1.05;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: center;
     }
 
     .leader-metric small {
@@ -478,7 +484,8 @@
         font-size: 14px !important;
         font-weight: 400;
         line-height: 1;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .leader-metric.metric-pushup {
@@ -524,7 +531,10 @@
         font-weight: 700;
         line-height: 1;
         text-transform: uppercase;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        justify-content: center;
+        text-align: center;
     }
 
     .leader-metric.metric-award small {
@@ -593,33 +603,40 @@
         grid-column: 5;
         grid-row: 1;
         align-self: center;
+        justify-self: end;
     }
 
     .member-action-button {
-        width: auto;
-        height: auto;
-        min-height: 0;
-        display: inline-grid;
-        place-items: center;
-        padding: 0;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 12px;
+        border: 1px solid #FECACA;
+        border-radius: 8px;
+        background: #FEF2F2;
         color: var(--group-red);
-        font-size: 20px !important;
-        font-weight: 700;
+        font-size: 13px !important;
+        font-weight: 650;
         line-height: 1;
         cursor: pointer;
         box-shadow: none;
     }
 
+    .member-action-button:hover {
+        background: #FEE2E2;
+        border-color: #FCA5A5;
+    }
+
+    .member-action-mark {
+        font-size: 18px !important;
+        line-height: 1;
+    }
+
     .member-action-button:disabled {
         cursor: default;
         opacity: 1;
-    }
-
-    .member-action-button::before {
-        content: none;
     }
 
     .section-title {
@@ -670,14 +687,10 @@
         color: #94A3B8;
     }
 
-    .invite-empty-icon svg {
+    .invite-empty-icon img {
         width: 30px;
         height: 30px;
-        stroke: currentColor;
-        stroke-width: 1.8;
-        fill: none;
-        stroke-linecap: round;
-        stroke-linejoin: round;
+        object-fit: contain;
     }
 
     .invite-card {
@@ -911,11 +924,11 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 70px minmax(160px, 0.65fr) minmax(0, 1fr) 76px 42px;
+            grid-template-columns: 70px minmax(140px, 0.65fr) minmax(0, 1fr) 76px auto;
         }
 
         .leader-metrics {
-            grid-template-columns: repeat(4, minmax(130px, 1fr));
+            grid-template-columns: repeat(4, minmax(96px, 1fr));
         }
     }
 
@@ -931,7 +944,7 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 70px minmax(180px, 1fr) 86px 42px;
+            grid-template-columns: 70px minmax(180px, 1fr) 86px auto;
         }
 
         .leader-score {
@@ -945,7 +958,7 @@
         .leader-metrics {
             grid-column: 1 / -1;
             grid-row: 2;
-            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
         }
     }
 
@@ -1014,7 +1027,7 @@
 
         .quick-action,
         .group-danger-button {
-            min-height: 56px;
+            min-height: 64px;
         }
 
         .leaderboard-bar {
@@ -1029,7 +1042,7 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 58px minmax(0, 1fr) 64px 42px;
+            grid-template-columns: 58px minmax(0, 1fr) 64px auto;
             gap: 14px;
             padding: 18px;
             min-height: 0;
@@ -1086,15 +1099,6 @@
                 <div class="form-element-block">
                     <label for="newGroupName">Group Name</label>
                     <input type="text" id="newGroupName" class="form-input" placeholder="e.g., Bedok Runners / Section 2 Kakis" required>
-                </div>
-                <div class="form-element-block">
-                    <label for="groupFocus">Training Focus Target</label>
-                    <select id="groupFocus" class="form-input">
-                        <option value="all">All Exercises</option>
-                        <option value="pushups">Push-Up Focus</option>
-                        <option value="situps">Sit-Up Focus</option>
-                        <option value="run">2.4Km Run Focus</option>
-                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1155,9 +1159,9 @@
                         <span class="create-group-label">New Group</span>
                         <span class="create-group-short" aria-hidden="true">+</span>
                     </button>
-                    <button class="filter-pill create-group-pill qr-switcher-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
+                    <button class="filter-pill create-group-pill qr-switcher-button" type="button" onclick="openMyQr()" title="Show my join group QR" aria-label="Show my join group QR">
                         <img class="create-group-icon" src="{{ asset_url('icons/qrcode.png') }}" alt="">
-                        <span class="create-group-label">Invite QR</span>
+                        <span class="create-group-label">Join Group</span>
                     </button>
                 </div>
             </div>
@@ -1173,7 +1177,7 @@
                 <div class="group-action-bar" aria-label="Group actions">
                     <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
                         <span class="action-icon-shell"><img src="{{ asset_url('icons/scan.png') }}" alt=""></span>
-                        <span class="action-copy"><strong>Scan</strong><small>Join group</small></span>
+                        <span class="action-copy"><strong>Scan</strong><small>Invite</small></span>
                     </button>
                     <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
                         <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
@@ -1214,12 +1218,6 @@
                             <div class="leader-name">
                                 <strong>{{ member.name }}</strong>
                             </div>
-                            {% if show_award %}
-                            <span class="award-pill {{ award_code }}">
-                                {% if award_icon_url %}<img src="{{ award_icon_url }}" alt="">{% endif %}
-                                {{ member.ippt_score.award.label }}
-                            </span>
-                            {% endif %}
                         </div>
                         <div class="leader-score">
                             <strong>{{ member.ippt_score.total_points }}</strong>
@@ -1255,7 +1253,7 @@
                         </div>
                         {% if member.can_be_removed %}
                         <div class="member-card-actions">
-                            <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})" aria-label="Remove {{ member.name }}">X</button>
+                            <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})" title="Remove member" aria-label="Remove {{ member.name }}"><span class="member-action-mark" aria-hidden="true">&times;</span><span>Remove</span></button>
                         </div>
                         {% endif %}
                     </article>
@@ -1289,10 +1287,7 @@
                     {% endif %}
                     <div id="emptyState" class="invite-empty-state" style="{% if pending_invites %}display:none;{% endif %}">
                         <span class="invite-empty-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M4 6h16v12H4z"></path>
-                                <path d="m4 7 8 6 8-6"></path>
-                            </svg>
+                            <img src="{{ asset_url('icons/mail.png') }}" alt="">
                         </span>
                         <span>No pending invitations found.</span>
                     </div>

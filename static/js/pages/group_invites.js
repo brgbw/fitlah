@@ -99,7 +99,6 @@
         const awardCode = award.code || 'fail';
         const awardLabel = award.label || 'Fail';
         const awardIconUrl = awardIcon(awardCode);
-        const showAward = !['fail', 'incomplete'].includes(awardCode);
         const hasRankIcon = index < 3;
 
         return `
@@ -113,11 +112,6 @@
                     <div class="leader-name">
                         <strong>${escapeHtml(displayName(member.name, 'NSman'))}</strong>
                     </div>
-                    ${showAward ? `
-                    <span class="award-pill ${escapeHtml(awardCode)}">
-                        ${awardIconUrl ? `<img src="${awardIconUrl}" alt="">` : ''}
-                        ${escapeHtml(awardLabel)}
-                    </span>` : ''}
                 </div>
                 <div class="leader-score">
                     <strong>${escapeHtml(points)}</strong>
@@ -153,7 +147,9 @@
                 </div>
                 ${member.can_be_removed ? `
                 <div class="member-card-actions">
-                    <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">X</button>
+                    <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" title="Remove member" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">
+                        <span class="member-action-mark" aria-hidden="true">&times;</span><span>Remove</span>
+                    </button>
                 </div>` : ''}
             </article>`;
     }
@@ -493,7 +489,7 @@
 
         panel.classList.toggle('no-pending-invites', pending.length === 0);
         if (pending.length === 0) {
-            stack.innerHTML = '<div id="emptyState" class="invite-empty-state"><span class="invite-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16v12H4z"></path><path d="m4 7 8 6 8-6"></path></svg></span><span>No pending invitations found.</span></div>';
+            stack.innerHTML = emptyInviteState();
             knownInviteIds = new Set();
             return;
         }
@@ -540,6 +536,14 @@
                 if (data?.success) renderPendingInvites(data.invites, focusNew);
             })
             .catch(err => console.error('Invite poll failed:', err));
+    }
+
+    function emptyInviteState() {
+        return `
+            <div id="emptyState" class="invite-empty-state">
+                <span class="invite-empty-icon" aria-hidden="true"><img src="/static/icons/mail.png" alt=""></span>
+                <span>No pending invitations found.</span>
+            </div>`;
     }
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
