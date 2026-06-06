@@ -43,7 +43,6 @@ class AppConfig:
     allow_strava_settings_write: bool
     gemini_api_key: str
     gemini_model: str
-    ai_fallback: bool
 
     @property
     def missing_required(self):
@@ -91,7 +90,6 @@ def get_config():
         allow_strava_settings_write=env_bool("FITLAH_ALLOW_STRAVA_SETTINGS_WRITE", False),
         gemini_api_key=_first_present("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY", "AI_API_KEY"),
         gemini_model=env_str("GEMINI_MODEL", "gemini-2.5-flash") or "gemini-2.5-flash",
-        ai_fallback=env_bool("FITLAH_AI_FALLBACK", True),
     )
 
 

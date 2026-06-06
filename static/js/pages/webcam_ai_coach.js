@@ -94,13 +94,13 @@
             if (options.status) options.status.className = 'ai-reco-status';
             if (options.skeleton) options.skeleton.style.display = 'none';
 
-            if (data.ai_error || data.debug?.fallback_used) {
+            if (data.ai_error) {
                 const debugDetail = data.debug ? ` (${formatAiDebug(data.debug)})` : '';
                 if (options.status) {
                     options.status.className = 'ai-reco-status error';
-                    options.status.textContent = `AI fallback used: ${data.ai_error || 'Gemini failed.'}${debugDetail}`;
+                    options.status.textContent = `AI recommendation failed: ${data.ai_error}${debugDetail}`;
                 }
-                console.error('AI recommendation fallback used', data);
+                console.error('AI recommendation failed', data);
             } else if (options.status) {
                 options.status.textContent = 'AI personalised coaching';
             }

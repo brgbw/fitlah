@@ -338,7 +338,7 @@ def _cached_ippt_recommendation(nric, activity_id, result, age_group, streams=No
 
 def _build_ippt_recommendation(result, age_group, streams=None):
     recommendation = generate_ippt_run_recommendation(_ippt_ai_summary(result, age_group, streams))
-    return recommendation
+    return recommendation if recommendation.get("success") else None
 
 
 def _strava_authorize_url():

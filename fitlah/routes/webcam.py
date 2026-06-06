@@ -327,11 +327,9 @@ def register_webcam_routes(app):
 
         if result.get("success"):
             logger.info(
-                "AI recommendation completed. session_id=%s exercise=%s source=%s fallback_used=%s saved=%s",
+                "AI recommendation completed. session_id=%s exercise=%s saved=%s",
                 session_id,
                 metrics.get("exercise"),
-                result.get("source", "gemini"),
-                bool((result.get("debug") or {}).get("fallback_used")),
                 result.get("saved_to_database"),
             )
         else:

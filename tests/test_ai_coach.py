@@ -25,21 +25,37 @@ class AiCoachTest(unittest.TestCase):
         self.assertNotIn("samples", compact["movement_analysis"])
         self.assertNotIn("reps", compact["movement_analysis"])
 
-    def test_parse_json_response_normalises_run_shape(self):
+    def test_parse_json_response_uses_current_coach_shape(self):
         parsed = ai_coach._parse_coach_json("""
         {
           "summary": "Hold **target pace**",
-          "strength": "Cadence stayed **stable**",
-          "weakness": "Speed dropped after **1600m**",
+          "dos": ["Run **400m repeats**"],
+          "donts": ["Speed dropped after **1600m**"],
+          "focus_areas": ["Pacing", "Cadence"]
+        }
+        """)
+
+        self.assertEqual(parsed["summary"], "Hold **target pace**")
+        self.assertEqual(parsed["donts"], ["Speed dropped after **1600m**"])
+        self.assertEqual(parsed["dos"], ["Run **400m repeats**"])
+        self.assertEqual(parsed["focus_areas"], ["Pacing", "Cadence"])
+        self.assertNotIn("safetyNote", parsed)
+
+    def test_legacy_recommendation_fields_are_not_backfilled(self):
+        parsed = ai_coach._parse_coach_json("""
+        {
+          "summary": "Hold **target pace**",
           "recommendations": ["Run **400m repeats**"],
           "safetyNote": "Warm up **8 minutes**"
         }
         """)
 
         self.assertEqual(parsed["summary"], "Hold **target pace**")
-        self.assertEqual(parsed["strength"], "Cadence stayed **stable**")
-        self.assertEqual(parsed["donts"], ["Speed dropped after **1600m**"])
-        self.assertEqual(parsed["dos"], ["Run **400m repeats**"])
+        self.assertEqual(parsed["dos"], [])
+        self.assertEqual(parsed["donts"], [])
+        self.assertEqual(parsed["focus_areas"], [])
+        self.assertNotIn("recommendations", parsed)
+        self.assertNotIn("safetyNote", parsed)
 
 
 if __name__ == "__main__":

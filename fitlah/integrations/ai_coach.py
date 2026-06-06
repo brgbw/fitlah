@@ -14,7 +14,6 @@ except Exception as exc:
 else:
     GENAI_IMPORT_ERROR = None
 
-# Using 2.5-flash as the fallback string in code, but instructions are optimized for 3.1 Flash Lite
 DEFAULT_MODEL = "gemini-2.5-flash"
 MAX_PROMPT_CHARS = 12000
 logger = logging.getLogger(__name__)
@@ -167,30 +166,12 @@ def _parse_coach_json(text):
         except json.JSONDecodeError:
             continue
         if isinstance(data, dict):
-            parsed = {
+            return {
                 "summary": _clean_text(data.get("summary", "")),
                 "dos": [_clean_text(item) for item in _as_list(data.get("dos"))],
                 "donts": [_clean_text(item) for item in _as_list(data.get("donts"))],
                 "focus_areas": [_clean_text(item) for item in _as_list(data.get("focus_areas"))],
             }
-            if any(key in data for key in ("strength", "weakness", "recommendations", "safetyNote", "safety_note")):
-                weakness = _clean_text(data.get("weakness", ""))
-                recommendations = [
-                    _clean_text(item)
-                    for item in _as_list(data.get("recommendations"))[:5]
-                    if _clean_text(item)
-                ]
-                parsed.update({
-                    "summary": _clean_text(data.get("summary", "")),
-                    "strength": _clean_text(data.get("strength", "")),
-                    "weakness": weakness,
-                    "recommendations": recommendations,
-                    "safetyNote": _clean_text(data.get("safetyNote") or data.get("safety_note", "")),
-                    "dos": recommendations,
-                    "donts": [weakness] if weakness else [],
-                    "focus_areas": [],
-                })
-            return parsed
     return None
 
 
@@ -268,25 +249,73 @@ def _clean_text(text):
     return cleaned
 
 
+def _json_output_rules(domain_rules):
+    return (
+        "Follow these strict formatting and content rules for the JSON output keys:\n"
+        "1. `summary`: Strictly limit to 10 words maximum. Provide a tailored overall verdict.\n"
+        f"2. `dos`: {domain_rules['dos']}\n"
+        f"3. `donts`: {domain_rules['donts']}\n"
+        "4. `focus_areas`: Return 1-2 concise labels. Strictly limit each label to a maximum of 2 words "
+        f"(e.g., {domain_rules['focus_examples']}).\n"
+        "5. STYLE: No greetings. No first-person wording. Bold key action cues using Markdown **double asterisks**."
+    )
+
+
+def _json_output_schema(summary_placeholder, dos_placeholder, donts_placeholder):
+    return (
+        "Output strictly in this JSON format:\n"
+        "{\n"
+        f'  "summary": "{summary_placeholder}",\n'
+        '  "dos": [\n'
+        f'    "{dos_placeholder}",\n'
+        '    "<Another detailed future recommendation>"\n'
+        "  ],\n"
+        '  "donts": [\n'
+        f'    "{donts_placeholder}",\n'
+        '    "<Another detailed pitfall to keep in mind>"\n'
+        "  ],\n"
+        '  "focus_areas": [\n'
+        '    "<Max 2 words>",\n'
+        '    "<Max 2 words>"\n'
+        "  ]\n"
+        "}"
+    )
+
+
+def _normalise_coach_response(data):
+    return {
+        "success": True,
+        "summary": _clean_text(data.get("summary", "")),
+        "dos": [_clean_text(item) for item in _as_list(data.get("dos"))],
+        "donts": [_clean_text(item) for item in _as_list(data.get("donts"))],
+        "focus_areas": [_clean_text(item) for item in _as_list(data.get("focus_areas"))],
+    }
+
+
 def _build_system_prompt():
+    rules = _json_output_rules({
+        "dos": (
+            "Write detailed, comprehensive recommended actions for the user to take in *future* training sessions. "
+            "Evaluate their pacing and range of motion, and use your fitness knowledge to explain *how* they can improve. "
+            "Do NOT quote the specific raw amplitude or period numbers."
+        ),
+        "donts": (
+            "Write detailed explanations of what the user must avoid doing in *future* exercises, or highlight specific "
+            "poor habits from the data that will negatively affect their fitness level. Translate technical errors into "
+            "easy-to-understand feedback. Do NOT use terms like \"shallow rep\" or \"period fluctuations\"."
+        ),
+        "focus_examples": '"Core Strength", "Pacing"',
+    })
     return (
         "You are a certified Singapore IPPT fitness coach evaluating push-up and sit-up sessions. "
         "You will receive structured computer-vision metrics (rep counts, form flags, amplitude, period_s).\n\n"
         "Your objective is to evaluate this data using your expert fitness knowledge and provide highly actionable, future-oriented coaching. "
         "Feel free to compliment the user for good performance, strong consistency, or solid effort. "
         "Use simple, everyday language and avoid complicated physical, biomechanical, or scientific terminology.\n\n"
-        "Follow these strict formatting and content rules for the JSON output keys:\n"
-        "1. `summary`: Strictly limit to 10 words maximum. Provide a tailored overall verdict.\n"
-        "2. `dos`: Write detailed, comprehensive recommended actions for the user to take in *future* training sessions. "
-        "Evaluate their pacing and range of motion, and use your fitness knowledge to explain *how* they can improve. "
-        "Do NOT quote the specific raw amplitude or period numbers.\n"
-        "3. `donts`: Write detailed explanations of what the user must avoid doing in *future* exercises, or highlight specific poor habits from the data that will negatively affect their fitness level. "
-        "Translate technical errors into easy-to-understand feedback. Do NOT use terms like \"shallow rep\" or \"period fluctuations\".\n"
+        f"{rules}\n"
         "   - Example for amplitude/depth drops: Instead of saying \"Avoid shallow rep 5\", say \"Push up strength for rep 5 was too low.\"\n"
         "   - Example for period/timing spikes: Instead of saying \"Avoid period fluctuations\", say \"Push up pacing was not consistent from rep 3 to 4.\"\n"
-        "   Do NOT tell the user the specific raw amplitude or period numbers.\n"
-        "4. `focus_areas`: Strictly limit to a maximum of 2 words per label (e.g., \"Core Strength\", \"Pacing\").\n"
-        "5. STYLE: No greetings. No first-person wording. Bold key action cues using Markdown **double asterisks**.\n\n"
+        "   Do NOT tell the user the specific raw amplitude or period numbers.\n\n"
         "Metric Context (For your analysis only, do not output these raw numbers):\n"
         "- Consistency: period_s variation of +-2 seconds is good.\n"
         "- Depth: consistent amplitude (range of motion) is good."
@@ -366,22 +395,11 @@ def _build_user_prompt(metrics):
         f"Analyse this 1-minute {label} IPPT station session and return specific, future-oriented coaching.\n\n"
         f"Session metrics (JSON):\n{json.dumps(metrics, indent=2)}\n"
         f"{csv_note}\n"
-        "Output strictly in this JSON format:\n"
-        "{\n"
-        '  "summary": "<Max 10 words verdict>",\n'
-        '  "dos": [\n'
-        '    "<Detailed future recommendation based on data analysis>",\n'
-        '    "<Another detailed future recommendation>"\n'
-        '  ],\n'
-        '  "donts": [\n'
-        '    "<Detailed explanation of what to avoid in future exercises using simple language>",\n'
-        '    "<Another detailed pitfall to keep in mind>"\n'
-        '  ],\n'
-        '  "focus_areas": [\n'
-        '    "<Max 2 words>",\n'
-        '    "<Max 2 words>"\n'
-        '  ]\n'
-        "}"
+        + _json_output_schema(
+            "<Max 10 words verdict>",
+            "<Detailed future recommendation based on data analysis>",
+            "<Detailed explanation of what to avoid in future exercises using simple language>",
+        )
     )
     return prompt[:MAX_PROMPT_CHARS]
 
@@ -395,68 +413,7 @@ def generate_exercise_recommendation(metrics):
     if exercise not in {"pushup", "situp"}:
         return {"success": False, "error": "Invalid exercise type in metrics."}
 
-    if not get_gemini_config()["api_key"]:
-        return _fallback_exercise_recommendation(metrics)
-
-    result = _call_gemini(_build_system_prompt(), _build_user_prompt(metrics))
-    if not result.get("success") and get_config().ai_fallback:
-        return _fallback_exercise_recommendation(metrics)
-    return result
-
-
-def _fallback_exercise_recommendation(metrics):
-    """Return deterministic mock coaching when live AI is unavailable."""
-    exercise = metrics.get("exercise")
-    flags = " ".join(_as_list(metrics.get("form_flags"))).lower()
-    shallow_signals = int(metrics.get("shallow_rep_signals") or 0)
-
-    if exercise == "pushup":
-        if "depth" in flags or shallow_signals >= 2:
-            summary = "**Push-up depth** needs work"
-            dos = ["Focus on lowering your chest with more **control** in future sessions to build better chest strength."]
-            donts = ["Try not to short-change your range of motion at the bottom of the movement. Half reps will slow your fitness progression."]
-            focus = ["**Depth**"]
-        elif "hips" in flags or "plank" in flags:
-            summary = "**Body line** needs control"
-            dos = ["Work on locking your **hips and ribs** together tightly like a solid plank before you even start the descent."]
-            donts = ["Make sure your lower back doesn't dip towards the floor. Sagging hips will rob your chest of the proper workout."]
-            focus = ["**Alignment**"]
-        elif "rushed" in flags or "control" in flags:
-            summary = "**Rep quality** needs tightening"
-            dos = ["Slow down the descent on each **full rep** to build true pushing power and stamina."]
-            donts = ["Don't rush through the movement just to get higher numbers. Fast, uncontrolled reps increase the risk of injury."]
-            focus = ["**Control**"]
-        else:
-            summary = "Solid **push-up rhythm**"
-            dos = ["Keep maintaining this **steady full range** in your future training to consistently increase your IPPT score."]
-            donts = []
-            focus = ["**Pacing**"]
-    else:
-        if "partial" in flags or "height" in flags:
-            summary = "**Sit-up height** needs work"
-            dos = ["Focus on driving your chest all the way up to reach your **full upright height** on every single rep."]
-            donts = ["Make sure you don't cut the movement short before your elbows cross the knee line. Partial reps will not build complete core strength."]
-            focus = ["**Height**"]
-        elif "hands" in flags:
-            summary = "**Technique** needs cleaner control"
-            dos = ["Keep your **hands locked behind your ears** the entire time to make your core do all the heavy lifting."]
-            donts = ["Don't swing your arms forward to create momentum. Using arm swing takes the tension away from your abs."]
-            focus = ["**Form**"]
-        else:
-            summary = "Solid **sit-up rhythm**"
-            dos = ["Keep your reps **smooth and controlled** like this in your next sessions to continue building core endurance."]
-            donts = []
-            focus = ["**Control**"]
-
-    return {
-        "success": True,
-        "summary": summary,
-        "dos": dos,
-        "donts": donts,
-        "focus_areas": focus,
-        "mock": True,
-        "source": "fallback",
-    }
+    return _call_gemini(_build_system_prompt(), _build_user_prompt(metrics))
 
 
 def generate_ippt_run_recommendation(run_summary):
@@ -464,6 +421,19 @@ def generate_ippt_run_recommendation(run_summary):
     if not run_summary or not isinstance(run_summary, dict):
         return {"success": False, "error": "No run summary provided."}
 
+    rules = _json_output_rules({
+        "dos": (
+            "Write detailed, comprehensive recommended training actions for the user to take in *future* runs based on "
+            "their telemetry. Evaluate pacing/cadence and use your fitness knowledge to outline specific future "
+            "training strategies."
+        ),
+        "donts": (
+            "Write detailed explanations of specific running habits, pacing errors, or physical form mistakes to avoid "
+            "in *future* runs. Outline what they must keep in mind that will negatively affect their fitness level. "
+            "Translate technical metrics into easy-to-understand running advice."
+        ),
+        "focus_examples": '"Aerobic Base", "Kick Finish"',
+    })
     system_prompt = (
         "You are a certified Singapore IPPT fitness coach evaluating 2.4km run performance. "
         "You will receive run telemetry, including overall speed data and a compact 100m-interval stream CSV "
@@ -472,64 +442,22 @@ def generate_ippt_run_recommendation(run_summary):
         "expert fitness knowledge and provide highly actionable, future-oriented coaching. Do not recalculate official timings or splits. "
         "Feel free to compliment the user for good performance, steady pacing, or a strong finish. "
         "Use simple, everyday language and avoid complicated physical or scientific terminology.\n\n"
-        "Follow these strict formatting and content rules for the JSON output keys:\n"
-        "1. `summary`: Strictly limit to 10 words maximum. Provide a tailored overall verdict.\n"
-        "2. `dos`: Write detailed, comprehensive recommended training actions for the user to take in *future* runs based on their telemetry. "
-        "Evaluate their pacing/cadence and use your fitness knowledge to outline specific future training strategies.\n"
-        "3. `donts`: Write detailed explanations of specific running habits, pacing errors, or physical form mistakes to avoid in *future* runs. "
-        "Outline what they must keep in mind that will negatively affect their fitness level. Translate technical metrics into easy-to-understand running advice.\n"
-        "4. `focus_areas`: Strictly limit to a maximum of 2 words per label (e.g., \"Aerobic Base\", \"Kick Finish\").\n"
-        "5. STYLE: No greetings. No first-person wording. Bold exact split marks, speed/cadence numbers, and key action cues using Markdown **double asterisks**."
+        f"{rules} Bold exact split marks, speed/cadence numbers, and key action cues."
     )
     user_prompt = (
         "Give personalised, future-oriented coaching from this computed 2.4km run telemetry.\n\n"
         f"Run summary & telemetry JSON:\n{json.dumps(run_summary, indent=2)}\n\n"
         "Focus on specific 100m marks where speed or cadence dropped, or where pacing was exceptional. "
         "Explain these drops in simple, everyday language.\n\n"
-        "Output strictly in this JSON format:\n"
-        "{\n"
-        '  "summary": "<Max 10 words verdict citing telemetry insights>",\n'
-        '  "dos": [\n'
-        '    "<Detailed recommended actions for future training based on telemetry analysis>",\n'
-        '    "<Another detailed future recommendation>"\n'
-        '  ],\n'
-        '  "donts": [\n'
-        '    "<Detailed explanation of pacing or form mistakes to avoid in future runs>",\n'
-        '    "<Another detailed pitfall to keep in mind>"\n'
-        '  ],\n'
-        '  "focus_areas": [\n'
-        '    "<Max 2 words>",\n'
-        '    "<Max 2 words>"\n'
-        '  ]\n'
-        "}"
+        + _json_output_schema(
+            "<Max 10 words verdict citing telemetry insights>",
+            "<Detailed recommended actions for future training based on telemetry analysis>",
+            "<Detailed explanation of pacing or form mistakes to avoid in future runs>",
+        )
     )[:MAX_PROMPT_CHARS]
     
     result = _call_gemini(system_prompt, user_prompt)
     if not result.get("success"):
         return result
 
-    return _normalise_ippt_run_response(result)
-
-
-def _normalise_ippt_run_response(data):
-    """Normalise the response to ensure both the new UI standard and legacy fields are cleanly formatted."""
-    dos_list = _as_list(data.get("dos") or data.get("recommendations"))
-    donts_list = _as_list(data.get("donts") or data.get("weakness"))
-    focus_list = _as_list(data.get("focus_areas"))
-    
-    # Backwards compatibility fallbacks
-    weakness = _clean_text(data.get("weakness", "")) or _clean_text((donts_list + [""])[0])
-    strength = _clean_text(data.get("strength", "")) or _clean_text((dos_list + [""])[0])
-    recommendations = [_clean_text(item) for item in dos_list[:5] if _clean_text(item)]
-
-    return {
-        "success": True,
-        "summary": _clean_text(data.get("summary", "")),
-        "strength": strength,
-        "weakness": weakness,
-        "recommendations": recommendations,
-        "safetyNote": _clean_text(data.get("safetyNote") or data.get("safety_note", "")),
-        "dos": [_clean_text(item) for item in dos_list],
-        "donts": [_clean_text(item) for item in donts_list],
-        "focus_areas": [_clean_text(item) for item in focus_list],
-    }
+    return _normalise_coach_response(result)

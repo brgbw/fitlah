@@ -55,6 +55,26 @@ class StravaClientTest(unittest.TestCase):
 
         self.assertEqual(strava_client.pacing_trend(splits), "slowed down")
 
+    def test_build_activity_record_does_not_attach_hardcoded_ai_recommendation(self):
+        activity = {
+            "id": "run-2",
+            "name": "Benchmark Run",
+            "distance_km": 2.4,
+            "score": "2.40 km",
+            "time": "10:00",
+            "date": "2026-06-06",
+            "notes": "Imported from Strava.",
+            "moving_time": 600,
+            "elapsed_time": 610,
+            "pace": "4:10/km",
+            "start_date": "2026-06-06T00:00:00Z",
+            "start_date_local": "2026-06-06T08:00:00Z",
+        }
+
+        record = strava_client.build_activity_record(activity, "S1234567A")
+
+        self.assertNotIn("ai_recommendation", record)
+
 
 if __name__ == "__main__":
     unittest.main()

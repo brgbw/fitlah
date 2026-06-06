@@ -49,9 +49,9 @@ function calendarLinkFor(log) {
 
 function renderRunCoachCard(rec) {
     if (!rec) return '';
-    const recommendations = rec.recommendations || rec.dos || [];
-    const avoid = uniqueAiItems([rec.weakness, ...(rec.donts || [])]);
-    const focus = rec.safetyNote || (rec.focus_areas || []).join(' | ') || (rec.strength ? `Strength: ${rec.strength}` : '');
+    const recommendations = rec.dos || [];
+    const avoid = uniqueAiItems(rec.donts || []);
+    const focus = (rec.focus_areas || []).join(' | ');
 
     if (!rec.summary && !recommendations.length && !avoid.length && !focus) return '';
 
@@ -76,7 +76,7 @@ function renderRunCoachCard(rec) {
             ${focus ? `
                 <div class="ai-analysis-focus strava-coach-focus">
                     <img src="/static/icons/bluetarget.png" alt="">
-                    <span><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</span>
+                    <span><strong>Focus area:</strong> ${aiTextHtml(focus)}</span>
                 </div>
             ` : ''}
         </div>

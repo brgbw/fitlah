@@ -380,10 +380,9 @@
 
     if (!ai.summary) return '';
 
-    const dos = (ai.dos || ai.recommendations || []).map(item => `<li>${aiTextHtml(item)}</li>`).join('');
-    const dontItems = ai.donts || [ai.weakness].filter(Boolean);
-    const donts = dontItems.map(item => `<li>${aiTextHtml(item)}</li>`).join('');
-    const focus = ai.safetyNote || (ai.focus_areas || []).join(' · ');
+    const dos = (ai.dos || []).map(item => `<li>${aiTextHtml(item)}</li>`).join('');
+    const donts = (ai.donts || []).map(item => `<li>${aiTextHtml(item)}</li>`).join('');
+    const focus = (ai.focus_areas || []).join(' · ');
     return `
       <div class="ai-analysis-card ai-coach-block">
         <h5 class="ai-analysis-heading"><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
@@ -392,7 +391,7 @@
           ${dos ? `<div class="ai-analysis-list dos"><h6><img src="/static/icons/greentarget.png" alt="">RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}
           ${donts ? `<div class="ai-analysis-list avoid donts"><h6><img src="/static/icons/exclaim.png" alt="">AVOID NEXT</h6><ul>${donts}</ul></div>` : ''}
         </div>
-        ${focus ? `<div class="ai-analysis-focus"><img src="/static/icons/bluetarget.png" alt=""><span><strong>${ai.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</span></div>` : ''}
+        ${focus ? `<div class="ai-analysis-focus"><img src="/static/icons/bluetarget.png" alt=""><span><strong>Focus area:</strong> ${aiTextHtml(focus)}</span></div>` : ''}
       </div>`;
   }
 
