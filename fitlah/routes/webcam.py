@@ -310,7 +310,7 @@ def register_webcam_routes(app):
                 result["debug"]["database_save_failed"] = True
                 result["debug"]["missing_session_id"] = True
             else:
-                saved = save_ai_recommendation(None, session_id, nric, result)
+                saved = save_ai_recommendation(session_id, nric, result)
                 result["session_id"] = session_id
                 result["saved_to_database"] = saved
                 if not saved:

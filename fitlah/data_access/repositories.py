@@ -84,14 +84,6 @@ def _source(value, exercise=None):
     return "manual"
 
 
-def next_id(table):
-    ensure_tables()
-    if table not in {"users", "workouts", "fitness_groups", "group_members", "group_invites", "activity_records", "strava_ippt_results"}:
-        raise ValueError("Unsupported table.")
-    with session_scope() as conn:
-        return conn.execute(text(f"SELECT nextval(pg_get_serial_sequence('{table}', 'id'))")).scalar_one()
-
-
 def get_user(nric):
     ensure_tables()
     with session_scope() as conn:

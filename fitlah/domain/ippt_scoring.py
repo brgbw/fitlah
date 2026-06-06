@@ -12,7 +12,6 @@ GENDER_OPTIONS = [
     {"value": "male", "label": "Male"},
     {"value": "female", "label": "Female"},
 ]
-GENDER_VALUES = {option["value"] for option in GENDER_OPTIONS}
 
 AGE_GROUPS = [
     {"label": "< 22", "value": "below22", "min_age": 18, "max_age": 21},

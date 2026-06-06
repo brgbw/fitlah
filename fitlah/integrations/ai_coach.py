@@ -14,7 +14,6 @@ except Exception as exc:
 else:
     GENAI_IMPORT_ERROR = None
 
-DEFAULT_MODEL = "gemini-2.5-flash"
 MAX_PROMPT_CHARS = 12000
 logger = logging.getLogger(__name__)
 REP_METRIC_KEYS = ["rep", "amplitude", "period_s"]

@@ -12,7 +12,7 @@ from ..data_access.repositories import (
 )
 
 
-def save_ai_recommendation(db, session_id, nric, recommendation):
+def save_ai_recommendation(session_id, nric, recommendation):
     """Persist AI coach output on unified activity records."""
     if not recommendation.get("success") or not session_id:
         return False

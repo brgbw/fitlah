@@ -5,7 +5,6 @@ from functools import lru_cache
 
 PACKAGE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 BASE_DIR = os.path.abspath(os.path.dirname(PACKAGE_DIR))
-SEEDDATA_DIR = os.path.join(BASE_DIR, "seeddata")
 
 
 def env_str(name, default=""):
