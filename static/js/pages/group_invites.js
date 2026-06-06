@@ -98,6 +98,7 @@
         const points = score.total_points ?? member.ippt_points ?? 0;
         const awardCode = award.code || 'fail';
         const awardLabel = award.label || 'Fail';
+        const awardIconUrl = awardIcon(awardCode);
         const showAward = !['fail', 'incomplete'].includes(awardCode);
         const hasRankIcon = index < 3;
 
@@ -114,7 +115,7 @@
                     </div>
                     ${showAward ? `
                     <span class="award-pill ${escapeHtml(awardCode)}">
-                        <img src="${awardIcon(awardCode)}" alt="">
+                        ${awardIconUrl ? `<img src="${awardIconUrl}" alt="">` : ''}
                         ${escapeHtml(awardLabel)}
                     </span>` : ''}
                 </div>
@@ -144,17 +145,16 @@
                     <div class="leader-metric metric-award award-${escapeHtml(awardCode)}">
                         <span>IPPT</span>
                         <span class="award-pill ${escapeHtml(awardCode)}">
-                            <img src="${awardIcon(awardCode)}" alt="">
+                            ${awardIconUrl ? `<img src="${awardIconUrl}" alt="">` : ''}
                             ${escapeHtml(awardLabel)}
                         </span>
                         <small>status</small>
                     </div>
                 </div>
+                ${member.can_be_removed ? `
                 <div class="member-card-actions">
-                    ${member.can_be_removed
-                        ? `<button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">Remove</button>`
-                        : '<button class="member-action-button" type="button" aria-label="Member actions" disabled></button>'}
-                </div>
+                    <button class="member-action-button" type="button" onclick="removeGroupMember(${Number(member.id)})" aria-label="Remove ${escapeHtml(displayName(member.name, 'NSman'))}">Remove</button>
+                </div>` : ''}
             </article>`;
     }
 
@@ -162,7 +162,8 @@
         if (code === 'gold') return '/static/icons/goldbadge.png';
         if (code === 'silver') return '/static/icons/silverbadge.png';
         if (code === 'pass-incentive') return '/static/icons/passwithincentivebadge.png';
-        return '/static/icons/passbadge.png';
+        if (code === 'pass') return '/static/icons/passbadge.png';
+        return '';
     }
 
     function rankIcon(rank) {

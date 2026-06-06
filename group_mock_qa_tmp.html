@@ -1,25 +1,587 @@
-{% extends 'base.html' %}
-{% block content %}
-{% macro award_icon(code) -%}
-    {%- if code == 'gold' -%}
-        {{ asset_url('icons/goldbadge.png') }}
-    {%- elif code == 'silver' -%}
-        {{ asset_url('icons/silverbadge.png') }}
-    {%- elif code == 'pass-incentive' -%}
-        {{ asset_url('icons/passwithincentivebadge.png') }}
-    {%- elif code == 'pass' -%}
-        {{ asset_url('icons/passbadge.png') }}
-    {%- endif -%}
-{%- endmacro %}
-{% macro rank_icon(rank) -%}
-    {%- if rank == 1 -%}
-        {{ asset_url('icons/1stplace.png') }}
-    {%- elif rank == 2 -%}
-        {{ asset_url('icons/2ndplace.png') }}
-    {%- elif rank == 3 -%}
-        {{ asset_url('icons/3rdplace.png') }}
-    {%- endif -%}
-{%- endmacro %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#00A86B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="FitLah">
+    <link rel="manifest" href="/static/manifest.json">
+    <title>FitLah NSmen Portal</title>
+    <style>
+        :root {
+            --primary: #00A86B;
+            --primary-hover: #008F5B;
+            --bg-body: #E2E8F0;
+            --bg-sidebar: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --bg-badge: #E8F8F2;
+            --bg-surface: #FFFFFF;
+            --bg-subtle: #F8FAFC;
+            --card-radius: 12px;
+            --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            --font-scale: 1.0;
+            --page-title-size: clamp(30px, calc(40px * var(--font-scale)), 40px);
+            --page-title-weight: 650;
+            --page-subtitle-size: clamp(16px, calc(20px * var(--font-scale)), 20px);
+            --page-max-width: none;
+            --marker-pushup: #015936;
+            --marker-situp: #2563EB;
+            --marker-run: #F97316;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            letter-spacing: 0;
+        }
+
+        html {
+            min-width: 0;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            display: flex;
+            min-height: 100vh;
+            font-size: calc(18px * var(--font-scale));
+            overflow-x: hidden;
+            color: var(--text-main);
+            touch-action: manipulation;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+            align-items: stretch;
+            min-width: 0;
+        }
+
+        a,
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button,
+        a,
+        input,
+        select,
+        textarea {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button,
+        [role="button"],
+        input[type="button"],
+        input[type="submit"],
+        input[type="file"],
+        select {
+            min-height: 44px;
+        }
+
+        input,
+        select,
+        textarea {
+            max-width: 100%;
+            font-size: 16px;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+        }
+
+        .mobile-topbar,
+        .mobile-nav-backdrop {
+            display: none;
+        }
+
+        .sidebar-rail {
+            width: 16px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            flex: 0 0 16px;
+            transition: width 0.2s ease, flex-basis 0.2s ease;
+            position: relative;
+            align-self: stretch;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            z-index: 50;
+        }
+
+        .sidebar-rail:hover,
+        .sidebar-rail:focus-within {
+            width: 240px;
+            flex-basis: 240px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background-color: var(--bg-sidebar);
+            border-right: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 36px 24px;
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
+            position: sticky;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 50;
+            transition: transform 0.2s ease;
+            transform: translateX(calc(-100% + 16px));
+
+            /* subtle depth */
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 16px;
+            height: 100%;
+            background: transparent;
+        }
+
+        .sidebar:hover,
+        .sidebar:focus-within {
+            transform: translateX(0);
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 48px;
+        }
+
+        .logo span { color: var(--primary); }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: calc(18px * var(--font-scale));
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            min-height: 44px;
+        }
+
+        .nav-item:hover {
+            background-color: #F8FAFC;
+            color: var(--text-main);
+            transform: translateX(2px);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background-color: var(--bg-badge);
+            font-weight: 600;
+
+            border-left: 3px solid var(--primary);
+            padding-left: 11px;
+        }
+
+        /* Footer */
+        .sidebar-footer {
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: inherit;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: background-color 0.15s ease, padding 0.15s ease;
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-sidebar);
+            z-index: 2;
+        }
+
+        .sidebar-footer:hover {
+            background-color: #F8FAFC;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+
+        /* Soldier image */
+        .soldier-img {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+
+            /* subtle polish */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        /* User info */
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .user-info .name {
+            font-size: calc(18px * var(--font-scale));
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .user-info .role {
+            font-size: calc(16px * var(--font-scale));
+            color: var(--text-muted);
+        }
+
+        .logout-link {
+            font-size: calc(16px * var(--font-scale));
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .logout-link:hover {
+            color: #E11D48;
+        }
+
+        /* Main */
+        .main-workspace {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            transition: margin-left 0.2s ease;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 44px 40px;
+            overflow-y: auto;
+            width: 100%;
+            min-height: 100vh;
+            min-width: 0;
+        }
+
+        @media (min-width: 901px) {
+            .sidebar-rail {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+            }
+
+            .main-workspace {
+                margin-left: 16px;
+            }
+
+            body.sidebar-expanded .main-workspace {
+                margin-left: 240px;
+            }
+        }
+
+        .header-section h1 {
+            font-size: var(--page-title-size);
+            font-weight: var(--page-title-weight);
+            color: var(--text-main);
+            overflow-wrap: anywhere;
+        }
+
+        .header-section p {
+            font-size: var(--page-subtitle-size);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                display: block;
+            }
+
+            .mobile-topbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 80;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                min-height: calc(58px + env(safe-area-inset-top));
+                padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+                background: rgba(255, 255, 255, 0.96);
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+            }
+
+            .mobile-brand {
+                font-size: 24px;
+                font-weight: 800;
+                text-decoration: none;
+                color: var(--text-main);
+                line-height: 1;
+            }
+
+            .mobile-brand span {
+                color: var(--primary);
+            }
+
+            .mobile-menu-button {
+                width: 44px;
+                height: 44px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: #FFFFFF;
+                display: inline-grid;
+                place-items: center;
+                cursor: pointer;
+            }
+
+            .mobile-menu-button-lines {
+                width: 20px;
+                height: 14px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .mobile-menu-button-lines span {
+                display: block;
+                width: 100%;
+                height: 2px;
+                border-radius: 2px;
+                background: var(--text-main);
+            }
+
+            .mobile-nav-backdrop {
+                position: fixed;
+                inset: 0;
+                z-index: 60;
+                background: rgba(15, 23, 42, 0.36);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.18s ease;
+            }
+
+            body.nav-open .mobile-nav-backdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .sidebar-rail,
+            .sidebar-rail:hover,
+            .sidebar-rail:focus-within {
+                width: 100%;
+                flex-basis: 0;
+                min-height: 0;
+                background: transparent;
+                border-right: 0;
+                position: fixed;
+                inset: auto 0 0;
+                z-index: 70;
+                pointer-events: none;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                min-height: 0;
+                max-height: calc(100svh - 74px);
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+                border-top: 1px solid var(--border);
+                border-right: 0;
+                border-radius: 18px 18px 0 0;
+                transform: translateY(110%);
+                box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.18);
+                overflow-y: auto;
+                pointer-events: auto;
+            }
+
+            .sidebar:hover,
+            .sidebar:focus-within,
+            body.nav-open .sidebar {
+                transform: translateY(0);
+            }
+
+            .sidebar::after {
+                display: none;
+            }
+
+            .logo {
+                display: none;
+            }
+
+            .nav-item {
+                padding: 9px 12px;
+                font-size: 15px;
+                min-height: 46px;
+                border: 1px solid transparent;
+            }
+
+            .nav-item.active {
+                border-left: 0;
+                padding-left: 12px;
+                border-color: #BCEBD9;
+            }
+
+            .main-workspace {
+                margin-left: 0;
+            }
+
+            .main-content {
+                padding: calc(82px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+                min-height: 100svh;
+            }
+
+            .main-content :where(h1) {
+                font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+            }
+
+            .main-content :where(h2) {
+                font-size: clamp(24px, calc(28px * var(--font-scale)), 30px) !important;
+            }
+
+            .main-content :where(h3) {
+                font-size: clamp(20px, calc(24px * var(--font-scale)), 26px) !important;
+            }
+
+            .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+            }
+
+            .sidebar-footer {
+                margin-top: 10px;
+                padding: 10px;
+                border-top: 1px solid var(--border);
+                border-radius: 8px;
+                background: #F8FAFC;
+                position: static;
+            }
+
+            .soldier-img {
+                width: 42px;
+                height: 42px;
+                border-radius: 8px;
+            }
+
+            .user-info .name {
+                font-size: 15px;
+            }
+
+            .user-info .role,
+            .logout-link {
+                font-size: 13px;
+            }
+
+            .sidebar .nav-item {
+                font-size: 15px !important;
+                line-height: 1.25;
+            }
+        }
+    </style>
+    <script src="/static/js/pages/ai_text_format.js?v=1780409404"></script>
+    
+</head>
+
+<body>
+<div class="app-container">
+    <header class="mobile-topbar">
+        <a href="/" class="mobile-brand" aria-label="FitLah dashboard">Fit<span>Lah</span></a>
+        <button class="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="appSidebar">
+            <span class="mobile-menu-button-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+    </header>
+    <button class="mobile-nav-backdrop" type="button" aria-label="Close navigation"></button>
+
+    <!-- Sidebar -->
+    <div class="sidebar-rail">
+    <aside class="sidebar" id="appSidebar">
+
+        <div class="logo">Fit<span>Lah</span></div>
+
+        <nav class="nav-group">
+            <a href="/" class="nav-item ">
+                Dashboard
+            </a>
+
+            <a href="/group" class="nav-item active">
+                Group
+            </a>
+
+            <a href="/calendar" class="nav-item ">
+                Calendar
+            </a>
+
+            <a href="/analytics" class="nav-item ">
+                Analytics
+            </a>
+        </nav>
+
+        <!-- Footer -->
+        <a class="sidebar-footer" href="/settings" aria-label="Open settings">
+
+            <img class="soldier-img"
+                 src="/static/icons/soldier.jpg"
+                 alt="Soldier">
+
+            <div class="user-info">
+                <div class="name">
+                    FitLah User
+                </div>
+
+                <div class="role">
+                    Soldier
+                </div>
+
+                
+            </div>
+
+        </a>
+
+    </aside>
+    </div>
+
+    <!-- Main -->
+    <div class="main-workspace">
+        <div class="main-content">
+            
+
+
 
 <style>
     .groups-page {
@@ -1141,41 +1703,46 @@
         <main class="groups-main">
             <div class="group-switcher-shell">
                 <div class="group-switcher" id="groupTabsRow" aria-label="Your groups">
-                    {% for item in group_data %}
-                    <button class="filter-pill group-tab {% if loop.first %}active{% endif %}" type="button" data-group-id="{{ item.group.id }}" onclick="selectTab(this)">
-                        <img class="group-tab-icon" src="{{ asset_url('icons/group.png') }}" alt="">
-                        <span>{{ item.group.name }}</span>
+                    
+                    <button class="filter-pill group-tab active" type="button" data-group-id="1" onclick="selectTab(this)">
+                        <img class="group-tab-icon" src="/static/icons/group.png?v=1780659259" alt="">
+                        <span>Cool Runners</span>
                     </button>
-                    {% endfor %}
+                    
+                    <button class="filter-pill group-tab " type="button" data-group-id="2" onclick="selectTab(this)">
+                        <img class="group-tab-icon" src="/static/icons/group.png?v=1780659259" alt="">
+                        <span>Pushup Up Competition</span>
+                    </button>
+                    
                 </div>
                 <div class="group-switcher-actions" aria-label="Group shortcuts">
                     <button class="filter-pill create-group-pill" type="button" onclick="openModal('createGroupModal')" aria-label="Create group">
-                        <img class="create-group-icon" src="{{ asset_url('icons/creategroup.png') }}" alt="">
+                        <img class="create-group-icon" src="/static/icons/creategroup.png?v=1780715543" alt="">
                         <span class="create-group-label">New Group</span>
                         <span class="create-group-short" aria-hidden="true">+</span>
                     </button>
                     <button class="filter-pill create-group-pill qr-switcher-button" type="button" onclick="openMyQr()" title="Show my invite QR" aria-label="Show my invite QR">
-                        <img class="create-group-icon" src="{{ asset_url('icons/qrcode.png') }}" alt="">
+                        <img class="create-group-icon" src="/static/icons/qrcode.png?v=1780666540" alt="">
                         <span class="create-group-label">Invite QR</span>
                     </button>
                 </div>
             </div>
 
             <article class="group-summary-card" id="groupSummaryCard">
-                <span class="summary-icon" aria-hidden="true"><img src="{{ asset_url('icons/group.png') }}" alt=""></span>
+                <span class="summary-icon" aria-hidden="true"><img src="/static/icons/group.png?v=1780659259" alt=""></span>
                 <div>
-                    <h2 id="tableTitleContext">{{ group_data[0].group.name if group_data else 'No group yet' }}</h2>
+                    <h2 id="tableTitleContext">Cool Runners</h2>
                     <p>
-                        <span id="groupMemberCount">{{ (group_data[0].members|length) if group_data else 0 }} members</span>
+                        <span id="groupMemberCount">2 members</span>
                     </p>
                 </div>
                 <div class="group-action-bar" aria-label="Group actions">
-                    <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" {% if not group_data %}disabled{% endif %}>
-                        <span class="action-icon-shell"><img src="{{ asset_url('icons/scan.png') }}" alt=""></span>
+                    <button class="quick-action" type="button" onclick="openQrScanner()" title="Scan teammate QR to invite" aria-label="Scan teammate QR to invite" >
+                        <span class="action-icon-shell"><img src="/static/icons/scan.png?v=1780657241" alt=""></span>
                         <span class="action-copy"><strong>Scan</strong><small>Join group</small></span>
                     </button>
-                    <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" {% if not group_data %}disabled{% endif %}>
-                        <span class="action-icon-shell"><img src="{{ asset_url('icons/exitgroup.png') }}" alt=""></span>
+                    <button class="group-danger-button" id="leaveGroupButton" type="button" onclick="leaveActiveGroup()" >
+                        <span class="action-icon-shell"><img src="/static/icons/exitgroup.png?v=1780656867" alt=""></span>
                         <span class="action-copy"><strong>Leave</strong><small>Exit group</small></span>
                     </button>
                 </div>
@@ -1186,8 +1753,8 @@
                 <label class="sort-control">
                     <span class="sort-select-shell">
                         <select id="leaderboardSort" onchange="setLeaderboardSort(this.value)" aria-label="Sort leaderboard">
-                            <option value="desc" {% if sort_order != 'asc' %}selected{% endif %}>Highest score</option>
-                            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Lowest score</option>
+                            <option value="desc" selected>Highest score</option>
+                            <option value="asc" >Lowest score</option>
                         </select>
                         <span class="sort-chevron" aria-hidden="true"></span>
                     </span>
@@ -1195,98 +1762,134 @@
             </div>
 
             <div class="leaderboard-list" id="mobileLeaderboardList">
-                {% if group_data and group_data[0].members %}
-                    {% for member in group_data[0].members %}
-                    {% set award_code = member.ippt_score.award.code %}
-                    {% set show_award = award_code not in ['fail', 'incomplete'] %}
-                    {% set award_icon_url = award_icon(award_code)|trim %}
-                    {% set has_rank_icon = loop.index <= 3 %}
-                    <article class="leader-card leader-card-rank-{{ loop.index }} {% if not has_rank_icon %}no-trophy{% endif %}">
+                
+                    
+                    
+                    
+                    
+                    
+                    <article class="leader-card leader-card-rank-1 ">
                         <div class="leader-rank-block">
-                            {% if has_rank_icon %}
-                            <img class="trophy-icon" src="{{ rank_icon(loop.index) }}" alt="{{ loop.index }} place">
-                            {% else %}
-                            <span class="rank-number">{{ loop.index }}</span>
-                            {% endif %}
+                            
+                            <img class="trophy-icon" src="/static/icons/1stplace.png?v=1780729949" alt="1 place">
+                            
                         </div>
                         <div class="leader-main">
                             <div class="leader-name">
-                                <strong>{{ member.name }}</strong>
+                                <strong>GOH BOON WAN, BRANDEN</strong>
                             </div>
-                            {% if show_award %}
-                            <span class="award-pill {{ award_code }}">
-                                {% if award_icon_url %}<img src="{{ award_icon_url }}" alt="">{% endif %}
-                                {{ member.ippt_score.award.label }}
+                            
+                            <span class="award-pill gold">
+                                <img src="/static/icons/goldbadge.png?v=1780657023" alt="">
+                                Gold
                             </span>
-                            {% endif %}
+                            
                         </div>
                         <div class="leader-score">
-                            <strong>{{ member.ippt_score.total_points }}</strong>
+                            <strong>100</strong>
                             <span>PTS</span>
                         </div>
                         <div class="leader-metrics">
                             <div class="leader-metric metric-pushup">
-                                <img class="metric-icon" src="{{ asset_url('icons/greenpushup.png') }}" alt="">
+                                <img class="metric-icon" src="/static/icons/greenpushup.png?v=1780656920" alt="">
                                 <span>PUSH-UP</span>
-                                <strong>{{ member.personal_best.pushups or '--' }}</strong>
+                                <strong>100</strong>
                                 <small>reps</small>
                             </div>
                             <div class="leader-metric metric-situp">
-                                <img class="metric-icon" src="{{ asset_url('icons/bluesitup.png') }}" alt="">
+                                <img class="metric-icon" src="/static/icons/bluesitup.png?v=1780656944" alt="">
                                 <span>SIT-UP</span>
-                                <strong>{{ member.personal_best.situps or '--' }}</strong>
+                                <strong>100</strong>
                                 <small>reps</small>
                             </div>
                             <div class="leader-metric metric-run">
-                                <img class="metric-icon" src="{{ asset_url('icons/orangerun.png') }}" alt="">
+                                <img class="metric-icon" src="/static/icons/orangerun.png?v=1780656932" alt="">
                                 <span>RUN</span>
-                                <strong>{{ member.personal_best.run_time or '--:--' }}</strong>
+                                <strong>8:20</strong>
                                 <small>min</small>
                             </div>
-                            <div class="leader-metric metric-award award-{{ award_code }}">
+                            <div class="leader-metric metric-award award-gold">
                                 <span>IPPT</span>
-                                <span class="award-pill {{ award_code }}">
-                                    {% if award_icon_url %}<img src="{{ award_icon_url }}" alt="">{% endif %}
-                                    {{ member.ippt_score.award.label }}
+                                <span class="award-pill gold">
+                                    <img src="/static/icons/goldbadge.png?v=1780657023" alt="">
+                                    Gold
                                 </span>
                                 <small>status</small>
                             </div>
                         </div>
-                        {% if member.can_be_removed %}
                         <div class="member-card-actions">
-                            <button class="member-action-button" type="button" onclick="removeGroupMember({{ member.id }})" aria-label="Remove {{ member.name }}">Remove</button>
+                            
+                            <button class="member-action-button" type="button" onclick="removeGroupMember(1)" aria-label="Remove GOH BOON WAN, BRANDEN">Remove</button>
+                            
                         </div>
-                        {% endif %}
                     </article>
-                    {% endfor %}
-                {% else %}
-                    <div class="mobile-empty-state">No groups available. Create a group to get started.</div>
-                {% endif %}
+                    
+                    
+                    
+                    
+                    
+                    <article class="leader-card leader-card-rank-2 ">
+                        <div class="leader-rank-block">
+                            
+                            <img class="trophy-icon" src="/static/icons/2ndplace.png?v=1780729972" alt="2 place">
+                            
+                        </div>
+                        <div class="leader-main">
+                            <div class="leader-name">
+                                <strong>LIM CHU KANG ALIBABA</strong>
+                            </div>
+                            
+                        </div>
+                        <div class="leader-score">
+                            <strong>0</strong>
+                            <span>PTS</span>
+                        </div>
+                        <div class="leader-metrics">
+                            <div class="leader-metric metric-pushup">
+                                <img class="metric-icon" src="/static/icons/greenpushup.png?v=1780656920" alt="">
+                                <span>PUSH-UP</span>
+                                <strong>--</strong>
+                                <small>reps</small>
+                            </div>
+                            <div class="leader-metric metric-situp">
+                                <img class="metric-icon" src="/static/icons/bluesitup.png?v=1780656944" alt="">
+                                <span>SIT-UP</span>
+                                <strong>--</strong>
+                                <small>reps</small>
+                            </div>
+                            <div class="leader-metric metric-run">
+                                <img class="metric-icon" src="/static/icons/orangerun.png?v=1780656932" alt="">
+                                <span>RUN</span>
+                                <strong>--:--</strong>
+                                <small>min</small>
+                            </div>
+                            <div class="leader-metric metric-award award-fail">
+                                <span>IPPT</span>
+                                <span class="award-pill fail">
+                                    
+                                    -
+                                </span>
+                                <small>status</small>
+                            </div>
+                        </div>
+                        <div class="member-card-actions">
+                            
+                            <button class="member-action-button" type="button" aria-label="Member actions" disabled></button>
+                            
+                        </div>
+                    </article>
+                    
+                
             </div>
         </main>
 
-        {% set pending_invites = invites|selectattr('status', 'equalto', 'Pending')|list %}
-        <aside class="right-panel-column {% if not pending_invites %}no-pending-invites{% endif %}" id="pendingInvitePanel">
+        
+        <aside class="right-panel-column no-pending-invites" id="pendingInvitePanel">
             <div class="section-title">Incoming Invites</div>
             <div class="panel-box">
                 <div class="invite-stack" id="inviteStackContainer">
-                    {% if invites %}
-                        {% for invite in invites %}
-                        {% if invite.status == 'Pending' %}
-                        <div class="invite-card" id="invite-{{ invite.id }}" data-invite-id="{{ invite.id }}" tabindex="-1">
-                            <div class="invite-meta">
-                                <div class="sender">{{ invite.sender }}</div>
-                                <div class="group-target">wants you to join "{{ invite.group_name }}"</div>
-                            </div>
-                            <div class="invite-actions">
-                                <button class="btn-accept" type="button" onclick="acceptInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Accept</button>
-                                <button class="btn-decline" type="button" onclick="declineInvite({{ invite.id }}, 'invite-{{ invite.id }}')">Decline</button>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                    <div id="emptyState" class="invite-empty-state" style="{% if pending_invites %}display:none;{% endif %}">
+                    
+                    <div id="emptyState" class="invite-empty-state" style="">
                         <span class="invite-empty-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
                                 <path d="M4 6h16v12H4z"></path>
@@ -1301,6 +1904,117 @@
     </div>
 </div>
 
-<script id="groupRosterData" type="application/json">{{ group_data | tojson }}</script>
-<script src="{{ asset_url('js/pages/group_invites.js') }}"></script>
-{% endblock %}
+<script id="groupRosterData" type="application/json">[{"group": {"id": 1, "name": "Cool Runners"}, "members": [{"can_be_removed": true, "id": 1, "ippt_score": {"award": {"code": "gold", "label": "Gold"}, "total_points": 100}, "name": "GOH BOON WAN, BRANDEN", "personal_best": {"pushups": 100, "run_time": "8:20", "situps": 100}}, {"can_be_removed": false, "id": 2, "ippt_score": {"award": {"code": "fail", "label": "-"}, "total_points": 0}, "name": "LIM CHU KANG ALIBABA", "personal_best": {"pushups": null, "run_time": null, "situps": null}}]}, {"group": {"id": 2, "name": "Pushup Up Competition"}, "members": []}]</script>
+<script src="/static/js/pages/group_invites.js?v=1780736168"></script>
+
+            <style>
+                .main-content :where(h1) {
+                    font-size: calc(40px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h2) {
+                    font-size: calc(34px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h3) {
+                    font-size: calc(26px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(h4, h5, h6) {
+                    font-size: calc(22px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                    font-size: max(calc(18px * var(--font-scale)), 1em) !important;
+                    line-height: 1.5;
+                }
+
+                .main-content :where(span) {
+                    font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+                    line-height: 1.35;
+                }
+
+                .main-content :where(.panel-title, .panel-kicker, .action-meta, .award-pill, .strava-btn, .primary-btn, .calendar-day, .weekday-label, .agenda-date, .metric-label-small, .legend-item, .status-badge-pill) {
+                    font-size: calc(18px * var(--font-scale)) !important;
+                }
+
+                .main-content :where(.score-pill) {
+                    font-size: max(calc(15px * var(--font-scale)), 15px) !important;
+                    line-height: 1.2;
+                }
+
+                .main-content :where(.rank-badge) {
+                    font-size: max(calc(13px * var(--font-scale)), 13px) !important;
+                    line-height: 1.2;
+                }
+
+                .main-content :where(.score-pill span, .leader-score span, .leader-metric span, .pb-unit, .group-award-badge) {
+                    font-size: max(calc(12px * var(--font-scale)), 12px) !important;
+                    line-height: 1.2;
+                }
+
+                .main-content :where(.modal-description) {
+                    font-size: max(calc(14px * var(--font-scale)), 14px) !important;
+                    line-height: 1.45;
+                }
+
+                @media (max-width: 900px) {
+                    .main-content :where(h1) {
+                        font-size: clamp(28px, calc(32px * var(--font-scale)), 34px) !important;
+                    }
+
+                    .main-content :where(h2) {
+                        font-size: clamp(24px, calc(28px * var(--font-scale)), 30px) !important;
+                    }
+
+                    .main-content :where(h3) {
+                        font-size: clamp(20px, calc(24px * var(--font-scale)), 26px) !important;
+                    }
+
+                    .main-content :where(p, li, td, th, label, input, select, textarea, button, a, small) {
+                        font-size: max(calc(16px * var(--font-scale)), 1em) !important;
+                    }
+                }
+            </style>
+        </div>
+    </div>
+
+</div>
+<script>
+    (function () {
+        const body = document.body;
+        const menuButton = document.querySelector('.mobile-menu-button');
+        const backdrop = document.querySelector('.mobile-nav-backdrop');
+        const sidebarRail = document.querySelector('.sidebar-rail');
+        const navLinks = document.querySelectorAll('.sidebar a');
+
+        function setNavOpen(open) {
+            body.classList.toggle('nav-open', open);
+            if (menuButton) {
+                menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+                menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+            }
+        }
+
+        if (menuButton) {
+            menuButton.addEventListener('click', () => setNavOpen(!body.classList.contains('nav-open')));
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', () => setNavOpen(false));
+        }
+        if (sidebarRail) {
+            sidebarRail.addEventListener('mouseenter', () => body.classList.add('sidebar-expanded'));
+            sidebarRail.addEventListener('mouseleave', () => body.classList.remove('sidebar-expanded'));
+            sidebarRail.addEventListener('focusin', () => body.classList.add('sidebar-expanded'));
+            sidebarRail.addEventListener('focusout', event => {
+                if (!sidebarRail.contains(event.relatedTarget)) body.classList.remove('sidebar-expanded');
+            });
+        }
+        navLinks.forEach(link => link.addEventListener('click', () => setNavOpen(false)));
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') setNavOpen(false);
+        });
+    })();
+</script>
+</body>
+</html>
