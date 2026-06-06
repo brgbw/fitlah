@@ -23,21 +23,21 @@
 
 <style>
     .groups-page {
-        --group-ink: #0F172A;
-        --group-muted: #64748B;
-        --group-line: #D9E3EE;
+        --group-ink: var(--text-main);
+        --group-muted: var(--text-muted);
+        --group-line: var(--border);
         --group-bg: var(--bg-body);
-        --group-card: #FFFFFF;
-        --group-green: #059669;
-        --group-green-strong: #047857;
-        --group-blue: #2563EB;
-        --group-orange: #F97316;
+        --group-card: var(--bg-surface);
+        --group-green: var(--marker-pushup);
+        --group-green-strong: #008F5B;
+        --group-blue: var(--marker-situp);
+        --group-orange: var(--marker-run);
         --group-gold: #D97706;
         --group-red: #DC2626;
         width: 100%;
-        max-width: 1480px;
-        margin: 0 auto;
-        padding: 14px 18px 56px;
+        max-width: var(--page-max-width);
+        margin: 0;
+        padding: 0 0 40px;
         color: var(--group-ink);
     }
 
@@ -65,31 +65,31 @@
 
     .group-hero h1 {
         color: var(--group-ink);
-        font-size: clamp(40px, 4.2vw, 54px) !important;
-        line-height: 1;
-        font-weight: 700;
-        margin: 0 0 14px;
+        font-size: var(--page-title-size);
+        line-height: 1.1;
+        font-weight: var(--page-title-weight);
+        margin: 0 0 8px;
     }
 
     .group-hero p {
         color: var(--group-muted);
-        font-size: clamp(16px, 1.5vw, 20px) !important;
-        line-height: 1.25;
-        font-weight: 500;
+        font-size: var(--page-subtitle-size);
+        line-height: 1.6;
+        font-weight: 400;
         margin: 0;
     }
 
     .groups-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 280px;
-        gap: 28px;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.32fr);
+        gap: 20px;
         align-items: start;
     }
 
     .groups-main {
         min-width: 0;
         display: grid;
-        gap: 24px;
+        gap: 20px;
     }
 
     .group-switcher-shell {
@@ -121,19 +121,19 @@
     .groups-page .group-tab,
     .groups-page .create-group-pill,
     .groups-page .qr-switcher-button {
-        min-height: 64px;
+        min-height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        padding: 0 28px;
+        gap: 8px;
+        padding: 0 14px;
         border: 1px solid var(--group-line);
         border-radius: 8px;
         background: var(--group-card);
         color: var(--group-ink);
-        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-        font-size: 16px !important;
-        font-weight: 650;
+        box-shadow: var(--card-shadow);
+        font-size: 14px;
+        font-weight: 600;
         line-height: 1;
         white-space: nowrap;
         cursor: pointer;
@@ -143,7 +143,7 @@
         color: var(--group-green-strong);
         background: #E8F8F2;
         border-color: #BCEBD9;
-        box-shadow: 0 10px 24px rgba(5, 150, 105, 0.07);
+        box-shadow: var(--card-shadow);
     }
 
     .group-tab-icon,
@@ -159,21 +159,21 @@
     }
 
     .group-summary-card {
-        min-height: 132px;
+        min-height: 0;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
-        gap: 22px;
-        padding: 26px 30px;
+        gap: 16px;
+        padding: 22px 24px;
         border: 1px solid var(--group-line);
         border-radius: 8px;
         background: var(--group-card);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+        box-shadow: var(--card-shadow);
     }
 
     .summary-icon {
-        width: 72px;
-        height: 72px;
+        width: 48px;
+        height: 48px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -183,25 +183,25 @@
     }
 
     .summary-icon img {
-        width: 38px;
-        height: 38px;
+        width: 26px;
+        height: 26px;
         object-fit: contain;
     }
 
     .group-summary-card h2 {
         color: var(--group-ink);
         font-size: 22px !important;
-        line-height: 1.15;
+        line-height: 1.25;
         font-weight: 700;
-        margin: 0 0 8px;
+        margin: 0 0 4px;
     }
 
     .group-summary-card p,
     #groupMemberCount {
         color: var(--group-muted);
-        font-size: 14px !important;
-        line-height: 1.2;
-        font-weight: 500;
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 400;
         margin: 0;
     }
 
@@ -214,12 +214,12 @@
 
     .quick-action,
     .group-danger-button {
-        min-height: 82px;
+        min-height: 56px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 12px;
-        padding: 0 24px;
+        gap: 10px;
+        padding: 0 14px;
         border-radius: 8px;
         box-shadow: none;
         cursor: pointer;
@@ -244,17 +244,17 @@
     }
 
     .action-icon-shell {
-        width: 34px;
-        height: 34px;
-        flex: 0 0 34px;
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
 
     .action-icon-shell img {
-        width: 30px;
-        height: 30px;
+        width: 22px;
+        height: 22px;
         object-fit: contain;
     }
 
@@ -266,16 +266,16 @@
 
     .action-copy strong {
         color: inherit;
-        font-size: 16px !important;
-        font-weight: 650;
-        line-height: 1.1;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.2;
     }
 
     .action-copy small {
         color: var(--group-muted);
-        font-size: 13px !important;
+        font-size: 12px;
         font-weight: 400;
-        line-height: 1.1;
+        line-height: 1.25;
     }
 
     .leaderboard-bar {
@@ -286,8 +286,8 @@
 
     .leaderboard-bar > span {
         color: var(--group-muted);
-        font-size: 14px !important;
-        font-weight: 650;
+        font-size: 13px;
+        font-weight: 600;
     }
 
     .sort-control,
@@ -299,14 +299,14 @@
     .sort-select-shell {
         position: relative;
         min-width: 230px;
-        height: 52px;
+        height: 44px;
         display: inline-flex;
         align-items: center;
         padding: 0 42px 0 18px;
         border: 1px solid var(--group-line);
         border-radius: 8px;
         background: var(--group-card);
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+        box-shadow: var(--card-shadow);
     }
 
     .sort-select-shell select {
@@ -315,8 +315,8 @@
         outline: 0;
         background: transparent;
         color: var(--group-ink);
-        font-size: 14px !important;
-        font-weight: 650;
+        font-size: 14px;
+        font-weight: 600;
         appearance: none;
         cursor: pointer;
     }
@@ -339,18 +339,18 @@
         border: 1px solid var(--group-line);
         border-radius: 8px;
         background: var(--group-card);
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
+        box-shadow: var(--card-shadow);
     }
 
     .leader-card,
     .leader-card.no-trophy,
     .leader-card:not(.no-trophy) {
         display: grid;
-        grid-template-columns: 72px minmax(150px, 0.7fr) minmax(0, 1.8fr) 72px;
+        grid-template-columns: 54px minmax(140px, 0.7fr) minmax(0, 1.8fr) 64px;
         align-items: center;
-        gap: 16px;
-        min-height: 148px;
-        padding: 28px 24px;
+        gap: 14px;
+        min-height: 118px;
+        padding: 18px 18px;
         border: 0;
         border-radius: 0;
         background: transparent;
@@ -363,14 +363,14 @@
     }
 
     .leader-card:not(:last-child) {
-        border-bottom: 3px solid #10B981;
+        border-bottom: 1px solid var(--group-line);
     }
 
     .leader-rank-block {
         grid-column: 1;
         grid-row: 1;
-        width: 64px;
-        height: 64px;
+        width: 48px;
+        height: 48px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -378,14 +378,14 @@
     }
 
     .trophy-icon {
-        width: 64px;
-        height: 64px;
+        width: 48px;
+        height: 48px;
         object-fit: contain;
     }
 
     .rank-number {
-        width: 42px;
-        height: 42px;
+        width: 34px;
+        height: 34px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -393,8 +393,8 @@
         background: #F8FAFC;
         border: 1px solid #D9E3EE;
         color: var(--group-muted);
-        font-size: 16px !important;
-        font-weight: 650;
+        font-size: 13px;
+        font-weight: 600;
     }
 
     .leader-main {
@@ -405,9 +405,9 @@
 
     .leader-name strong {
         color: var(--group-ink);
-        font-size: 20px !important;
+        font-size: 16px;
         font-weight: 700;
-        line-height: 1.35;
+        line-height: 1.3;
         text-transform: uppercase;
         white-space: normal;
         overflow-wrap: anywhere;
@@ -418,13 +418,13 @@
         grid-row: 1;
         display: grid;
         grid-template-columns: repeat(4, minmax(96px, 1fr));
-        gap: 14px;
+        gap: 10px;
         margin: 0;
         min-width: 0;
     }
 
     .leader-metric {
-        min-height: 114px;
+        min-height: 88px;
         display: grid !important;
         grid-template-columns: auto auto;
         grid-template-rows: auto auto auto;
@@ -432,8 +432,8 @@
         justify-content: center;
         justify-items: center;
         column-gap: 8px;
-        row-gap: 12px;
-        padding: 16px 14px;
+        row-gap: 8px;
+        padding: 12px 10px;
         border: 1px solid transparent;
         border-radius: 8px;
         overflow: hidden;
@@ -444,9 +444,9 @@
     .leader-metric.metric-award .award-pill img {
         grid-column: 1;
         grid-row: 1;
-        width: 30px;
-        height: 30px;
-        flex: 0 0 30px;
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
         margin: 0;
         object-fit: contain;
     }
@@ -455,8 +455,8 @@
         grid-column: 2 / -1;
         grid-row: 1;
         color: inherit;
-        font-size: 15px !important;
-        font-weight: 650;
+        font-size: 12px;
+        font-weight: 700;
         line-height: 1.15;
         text-transform: uppercase;
         white-space: normal;
@@ -467,7 +467,7 @@
         grid-column: 1 / -1;
         grid-row: 2;
         color: var(--group-ink);
-        font-size: 30px !important;
+        font-size: 22px;
         font-weight: 700;
         line-height: 1.05;
         white-space: normal;
@@ -481,7 +481,7 @@
         align-self: start;
         justify-self: center;
         color: var(--group-muted);
-        font-size: 14px !important;
+        font-size: 12px;
         font-weight: 400;
         line-height: 1;
         white-space: normal;
@@ -490,26 +490,26 @@
 
     .leader-metric.metric-pushup {
         color: var(--group-green);
-        border-color: #C9EADA;
-        background: #F2FBF7;
+        border-color: #D9E7E0;
+        background: #F8FAFC;
     }
 
     .leader-metric.metric-situp {
         color: var(--group-blue);
-        border-color: #CFE0FF;
-        background: #F3F7FF;
+        border-color: #E2E8F0;
+        background: #F8FAFC;
     }
 
     .leader-metric.metric-run {
         color: var(--group-orange);
-        border-color: #FED7AA;
-        background: #FFF7ED;
+        border-color: #E2E8F0;
+        background: #F8FAFC;
     }
 
     .leader-metric.metric-award {
         color: var(--group-gold);
-        border-color: #FDE68A;
-        background: #FFFBEB;
+        border-color: #E2E8F0;
+        background: #F8FAFC;
     }
 
     .leader-metric.metric-award .award-pill {
@@ -518,15 +518,15 @@
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         width: 100%;
-        max-width: 132px;
+        max-width: 118px;
         padding: 0;
         border: 0;
         background: transparent;
         color: #B45309;
-        font-size: 20px !important;
-        font-weight: 800;
+        font-size: 14px;
+        font-weight: 700;
         line-height: 1.15;
         text-transform: uppercase;
         white-space: normal;
@@ -536,14 +536,14 @@
     }
 
     .leader-metric.metric-award .award-pill img {
-        width: 34px;
-        height: 34px;
-        flex: 0 0 34px;
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
     }
 
     .leader-metric.metric-award.award-pass-incentive .award-pill {
-        font-size: 17px !important;
-        max-width: 140px;
+        font-size: 12px;
+        max-width: 124px;
     }
 
     .leader-metric.metric-award.award-silver {
@@ -559,8 +559,8 @@
     .leader-metric.metric-award.award-pass,
     .leader-metric.metric-award.award-pass-incentive {
         color: var(--group-green);
-        border-color: #C9EADA;
-        background: #F2FBF7;
+        border-color: #D9E7E0;
+        background: #F8FAFC;
     }
 
     .leader-metric.metric-award.award-pass .award-pill,
@@ -571,8 +571,8 @@
     .leader-metric.metric-award.award-fail,
     .leader-metric.metric-award.award-incomplete {
         color: var(--group-orange);
-        border-color: #FED7AA;
-        background: #FFF7ED;
+        border-color: #E2E8F0;
+        background: #F8FAFC;
     }
 
     .leader-metric.metric-award.award-fail .award-pill,
@@ -591,7 +591,7 @@
 
     .leader-score strong {
         color: var(--group-green);
-        font-size: 28px !important;
+        font-size: 24px;
         font-weight: 700;
         line-height: 1;
         font-variant-numeric: tabular-nums;
@@ -599,14 +599,14 @@
 
     .leader-score span {
         color: var(--group-muted);
-        font-size: 12px !important;
-        font-weight: 650;
+        font-size: 11px;
+        font-weight: 700;
         line-height: 1;
     }
 
     .section-title {
         color: var(--group-ink);
-        font-size: 16px !important;
+        font-size: 15px;
         line-height: 1.2;
         font-weight: 700;
         margin: 0 0 14px;
@@ -618,7 +618,7 @@
         border: 1px solid var(--group-line);
         border-radius: 8px;
         background: var(--group-card);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+        box-shadow: var(--card-shadow);
     }
 
     .invite-stack {
@@ -633,16 +633,16 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 16px;
+        gap: 12px;
         color: var(--group-muted);
-        font-size: 15px !important;
+        font-size: 14px;
         font-weight: 500;
         text-align: center;
     }
 
     .invite-empty-icon {
-        width: 62px;
-        height: 62px;
+        width: 46px;
+        height: 46px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
@@ -653,8 +653,8 @@
     }
 
     .invite-empty-icon img {
-        width: 30px;
-        height: 30px;
+        width: 22px;
+        height: 22px;
         object-fit: contain;
     }
 
@@ -664,18 +664,18 @@
         padding: 14px;
         border: 1px solid var(--group-line);
         border-radius: 8px;
-        background: #F8FAFC;
+        background: #FFFFFF;
     }
 
     .invite-meta .sender {
         color: var(--group-ink);
-        font-size: 14px !important;
+        font-size: 14px;
         font-weight: 700;
     }
 
     .invite-meta .group-target {
         color: var(--group-muted);
-        font-size: 13px !important;
+        font-size: 13px;
         line-height: 1.35;
         margin-top: 3px;
     }
@@ -691,8 +691,8 @@
         flex: 1;
         border-radius: 8px;
         border: 1px solid transparent;
-        font-size: 13px !important;
-        font-weight: 650;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
     }
 
@@ -751,7 +751,7 @@
 
     .modal-header h3 {
         color: var(--group-ink);
-        font-size: 20px !important;
+        font-size: 18px;
         font-weight: 700;
         margin: 0;
     }
@@ -763,7 +763,7 @@
         border-radius: 8px;
         background: #FFFFFF;
         color: var(--group-muted);
-        font-size: 22px !important;
+        font-size: 22px;
         line-height: 1;
         cursor: pointer;
     }
@@ -776,7 +776,7 @@
 
     .modal-description {
         color: var(--group-muted);
-        font-size: 14px !important;
+        font-size: 14px;
         line-height: 1.45;
         margin: 0;
     }
@@ -788,8 +788,8 @@
 
     .form-element-block label {
         color: var(--group-ink);
-        font-size: 13px !important;
-        font-weight: 650;
+        font-size: 13px;
+        font-weight: 600;
     }
 
     .form-input {
@@ -800,7 +800,7 @@
         border-radius: 8px;
         background: #FFFFFF;
         color: var(--group-ink);
-        font-size: 14px !important;
+        font-size: 14px;
     }
 
     .btn-modal-cancel,
@@ -808,8 +808,8 @@
         min-height: 42px;
         padding: 0 16px;
         border-radius: 8px;
-        font-size: 14px !important;
-        font-weight: 650;
+        font-size: 14px;
+        font-weight: 600;
         cursor: pointer;
     }
 
@@ -873,6 +873,7 @@
         border: 1px solid var(--group-line);
         border-radius: 8px;
         background: #FFFFFF;
+        box-shadow: var(--card-shadow);
     }
 
     .manual-invite-row {
@@ -887,7 +888,7 @@
         border-radius: 8px;
         padding: 0 12px;
         color: var(--group-ink);
-        font-size: 14px !important;
+        font-size: 14px;
         text-transform: uppercase;
     }
 
@@ -898,8 +899,8 @@
         background: var(--group-green);
         color: #FFFFFF;
         cursor: pointer;
-        font-size: 14px !important;
-        font-weight: 650;
+        font-size: 14px;
+        font-weight: 600;
         padding: 0 14px;
         white-space: nowrap;
     }
@@ -911,7 +912,7 @@
 
     .qr-status {
         color: var(--group-muted);
-        font-size: 13px !important;
+        font-size: 13px;
         line-height: 1.35;
         text-align: center;
     }
@@ -926,17 +927,17 @@
 
     @media (max-width: 1280px) {
         .groups-layout {
-            grid-template-columns: minmax(0, 1fr) 260px;
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 0.32fr);
         }
 
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 70px minmax(140px, 0.65fr) minmax(0, 1fr) 76px;
+            grid-template-columns: 54px minmax(130px, 0.65fr) minmax(0, 1fr) 64px;
         }
 
         .leader-metrics {
-            grid-template-columns: repeat(4, minmax(96px, 1fr));
+            grid-template-columns: repeat(4, minmax(88px, 1fr));
         }
     }
 
@@ -952,7 +953,7 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 70px minmax(180px, 1fr) 86px;
+            grid-template-columns: 54px minmax(180px, 1fr) 64px;
         }
 
         .leader-score {
@@ -962,13 +963,13 @@
         .leader-metrics {
             grid-column: 1 / -1;
             grid-row: 2;
-            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            grid-template-columns: repeat(4, minmax(100px, 1fr));
         }
     }
 
     @media (max-width: 760px) {
         .groups-page {
-            padding: 8px 10px 38px;
+            padding: 0 0 32px;
         }
 
         .group-hero {
@@ -976,11 +977,11 @@
         }
 
         .group-hero h1 {
-            font-size: 34px !important;
+            font-size: var(--page-title-size);
         }
 
         .group-hero p {
-            font-size: 15px !important;
+            font-size: var(--page-subtitle-size);
         }
 
         .group-switcher-shell,
@@ -999,7 +1000,7 @@
         .groups-page .qr-switcher-button {
             min-height: 46px;
             padding: 0 12px;
-            font-size: 14px !important;
+            font-size: 14px;
         }
 
         .group-summary-card {
@@ -1009,13 +1010,13 @@
         }
 
         .summary-icon {
-            width: 58px;
-            height: 58px;
+            width: 44px;
+            height: 44px;
         }
 
         .summary-icon img {
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
         }
 
         .group-summary-card h2 {
@@ -1031,7 +1032,7 @@
 
         .quick-action,
         .group-danger-button {
-            min-height: 64px;
+            min-height: 56px;
         }
 
         .leaderboard-bar {
@@ -1050,24 +1051,24 @@
         .leader-card,
         .leader-card.no-trophy,
         .leader-card:not(.no-trophy) {
-            grid-template-columns: 58px minmax(0, 1fr) 64px;
+            grid-template-columns: 48px minmax(0, 1fr) 58px;
             gap: 14px;
             padding: 18px;
             min-height: 0;
         }
 
         .leader-rank-block {
-            width: 52px;
-            height: 52px;
+            width: 44px;
+            height: 44px;
         }
 
         .trophy-icon {
-            width: 52px;
-            height: 52px;
+            width: 44px;
+            height: 44px;
         }
 
         .leader-name strong {
-            font-size: 19px !important;
+            font-size: 16px;
         }
 
         .leader-metrics {
@@ -1078,7 +1079,7 @@
         }
 
         .leader-metric {
-            min-height: 72px;
+            min-height: 76px;
             padding: 12px;
         }
     }
