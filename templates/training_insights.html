@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Session Analysis | FitLah{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ asset_url('css/ai_analysis.css') }}">
+{% endblock %}
 {% block content %}
 <style>
     .notes-shell {
@@ -171,6 +174,10 @@
         border-top: 1px solid var(--border);
     }
 
+    .session-ai-card {
+        margin-top: 16px;
+    }
+
     .analysis-topline {
         display: flex;
         justify-content: space-between;
@@ -307,41 +314,43 @@
             <h2 class="note-title">{{ log.score or 'Saved set' }}</h2>
 
             {% if ai %}
-            <h3 class="note-ai-heading"><img src="{{ asset_url('icons/aisummary.png') }}" alt="">AI RECOMMENDATION COACH</h3>
-            {% endif %}
+            <section class="ai-analysis-card session-ai-card">
+                <h3 class="ai-analysis-heading"><img class="ai-summary-inline-icon" src="{{ asset_url('icons/aisummary.png') }}" alt="">AI PERSONALISED COACH</h3>
 
-            {% if ai.summary %}
-            <div class="note-verdict">{{ ai.summary|ai_bold }}</div>
-            {% endif %}
-
-            <div class="note-grid">
-                {% if ai.dos %}
-                <section class="note-block do">
-                    <h2>RECOMMENDED ACTIONS</h2>
-                    <ul class="note-list">
-                        {% for item in ai.dos %}
-                        <li>{{ item|ai_bold }}</li>
-                        {% endfor %}
-                    </ul>
-                </section>
+                {% if ai.summary %}
+                <div class="ai-analysis-summary">{{ ai.summary|ai_bold }}</div>
                 {% endif %}
 
-                {% if ai.donts %}
-                <section class="note-block avoid">
-                    <h2>AVOID NEXT</h2>
-                    <ul class="note-list">
-                        {% for item in ai.donts %}
-                        <li>{{ item|ai_bold }}</li>
-                        {% endfor %}
-                    </ul>
-                </section>
-                {% endif %}
-            </div>
+                <div class="ai-analysis-grid">
+                    {% if ai.dos %}
+                    <section class="ai-analysis-list dos">
+                        <h2><img src="{{ asset_url('icons/greentarget.png') }}" alt="">RECOMMENDED ACTIONS</h2>
+                        <ul>
+                            {% for item in ai.dos %}
+                            <li>{{ item|ai_bold }}</li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                    {% endif %}
 
-            {% if ai.focus_areas %}
-            <section class="note-focus">
-                <h2>FOCUS AREA</h2>
-                <span class="focus-chip">{{ ai.focus_areas[0]|ai_bold }}</span>
+                    {% if ai.donts %}
+                    <section class="ai-analysis-list avoid donts">
+                        <h2><img src="{{ asset_url('icons/exclaim.png') }}" alt="">AVOID NEXT</h2>
+                        <ul>
+                            {% for item in ai.donts %}
+                            <li>{{ item|ai_bold }}</li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                    {% endif %}
+                </div>
+
+                {% if ai.focus_areas %}
+                <div class="ai-analysis-focus">
+                    <img src="{{ asset_url('icons/bluetarget.png') }}" alt="">
+                    <span><strong>Focus area:</strong> {{ ai.focus_areas|join(' · ')|ai_bold }}</span>
+                </div>
+                {% endif %}
             </section>
             {% endif %}
 

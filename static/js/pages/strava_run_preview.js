@@ -56,25 +56,25 @@ function renderRunCoachCard(rec) {
     if (!rec.summary && !recommendations.length && !avoid.length && !focus) return '';
 
     return `
-        <div class="strava-coach-card">
-            <h5><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
-            ${rec.summary ? `<div class="strava-coach-summary">${aiTextHtml(rec.summary)}</div>` : ''}
-            <div class="strava-coach-grid">
+        <div class="ai-analysis-card strava-coach-card">
+            <h5 class="ai-analysis-heading"><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
+            ${rec.summary ? `<div class="ai-analysis-summary strava-coach-summary">${aiTextHtml(rec.summary)}</div>` : ''}
+            <div class="ai-analysis-grid strava-coach-grid">
                 ${recommendations.length ? `
-                    <div class="strava-coach-list dos">
+                    <div class="ai-analysis-list strava-coach-list dos">
                         <h6><img src="/static/icons/greentarget.png" alt="">RECOMMENDED ACTIONS</h6>
                         <ul>${recommendations.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
                 ${avoid.length ? `
-                    <div class="strava-coach-list donts">
+                    <div class="ai-analysis-list strava-coach-list avoid donts">
                         <h6><img src="/static/icons/exclaim.png" alt="">AVOID NEXT</h6>
                         <ul>${avoid.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
             </div>
             ${focus ? `
-                <div class="strava-coach-focus">
+                <div class="ai-analysis-focus strava-coach-focus">
                     <img src="/static/icons/bluetarget.png" alt="">
                     <span><strong>${rec.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</span>
                 </div>

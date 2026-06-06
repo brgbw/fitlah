@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from flask import current_app, jsonify, render_template, request
@@ -23,6 +24,7 @@ from ..data_access.repositories import (
 from ..core.web_security import clean_text, json_too_large, rate_limit
 
 QR_TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+NRIC_PATTERN = re.compile(r"^[STFG]\d{7}[A-Z]$", re.IGNORECASE)
 
 
 def _qr_serializer():
@@ -34,6 +36,19 @@ def _int_or_none(value):
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _display_name(value, fallback="NSman"):
+    if isinstance(value, dict):
+        raw = value.get("name") or ""
+        nric = value.get("nric") or ""
+    else:
+        raw = value or ""
+        nric = ""
+    name = str(raw).strip()
+    if not name or NRIC_PATTERN.match(name) or (nric and name.upper() == str(nric).strip().upper()):
+        return fallback
+    return name
 
 
 def _default_best(nric):
@@ -55,7 +70,7 @@ def _member_with_best(member, best_by_nric):
     return {
         "id": member.get("id"),
         "group_id": member.get("group_id"),
-        "name": member.get("name"),
+        "name": _display_name(member),
         "rank": member.get("rank"),
         "personal_best": {
             "pushups": best.get("pushups", 0),
@@ -74,7 +89,7 @@ def _member_with_best(member, best_by_nric):
 def _public_invite(invite):
     return {
         "id": invite.get("id"),
-        "sender": invite.get("sender"),
+        "sender": _display_name(invite.get("sender")),
         "group_id": invite.get("group_id"),
         "group_name": invite.get("group_name"),
         "invited_on": invite.get("invited_on"),
@@ -132,7 +147,7 @@ def register_group_routes(app):
 
         return render_template(
             "group_invites.html",
-            invites=invites,
+            invites=[_public_invite(invite) for invite in invites],
             group_data=group_data,
             sort_order=sort_order,
         )
@@ -217,14 +232,15 @@ def register_group_routes(app):
     @rate_limit("group-qr-payload", 60, 300)
     def group_qr_payload():
         user = current_user()
+        display_name = _display_name(user)
         token = _qr_serializer().dumps({
             "nric": user.get("nric"),
-            "name": user.get("name", "NSman"),
+            "name": display_name,
         })
         return jsonify({
             "success": True,
             "payload": token,
-            "name": user.get("name", "NSman"),
+            "name": display_name,
         })
 
     @app.route("/api/pending-invites")
@@ -277,7 +293,7 @@ def register_group_routes(app):
 
         return jsonify({
             "success": True,
-            "recipient_name": result,
+            "recipient_name": _display_name(result),
             "group_name": fitness_group.get("name"),
         })
 

@@ -278,6 +278,7 @@
             flex: 1;
             min-width: 0;
             display: flex;
+            transition: margin-left 0.2s ease;
         }
 
         .main-content {
@@ -291,14 +292,18 @@
 
         @media (min-width: 901px) {
             .sidebar-rail {
-                position: sticky;
+                position: fixed;
+                left: 0;
                 top: 0;
-                height: 100vh;
-                height: 100dvh;
+                bottom: 0;
             }
 
             .main-workspace {
-                margin-left: 0;
+                margin-left: 16px;
+            }
+
+            body.sidebar-expanded .main-workspace {
+                margin-left: 240px;
             }
         }
 
@@ -655,6 +660,7 @@
         const body = document.body;
         const menuButton = document.querySelector('.mobile-menu-button');
         const backdrop = document.querySelector('.mobile-nav-backdrop');
+        const sidebarRail = document.querySelector('.sidebar-rail');
         const navLinks = document.querySelectorAll('.sidebar a');
 
         function setNavOpen(open) {
@@ -670,6 +676,14 @@
         }
         if (backdrop) {
             backdrop.addEventListener('click', () => setNavOpen(false));
+        }
+        if (sidebarRail) {
+            sidebarRail.addEventListener('mouseenter', () => body.classList.add('sidebar-expanded'));
+            sidebarRail.addEventListener('mouseleave', () => body.classList.remove('sidebar-expanded'));
+            sidebarRail.addEventListener('focusin', () => body.classList.add('sidebar-expanded'));
+            sidebarRail.addEventListener('focusout', event => {
+                if (!sidebarRail.contains(event.relatedTarget)) body.classList.remove('sidebar-expanded');
+            });
         }
         navLinks.forEach(link => link.addEventListener('click', () => setNavOpen(false)));
         window.addEventListener('keydown', event => {

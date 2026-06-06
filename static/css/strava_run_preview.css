@@ -322,131 +322,6 @@
     line-height: 1;
 }
 
-.strava-coach-card .ai-summary-inline-icon {
-    width: 52px;
-    height: 52px;
-    object-fit: contain;
-    flex: 0 0 52px;
-}
-
-.strava-coach-card {
-    border: 1px solid #E2E8F0;
-    border-radius: 8px;
-    background: #FFFFFF;
-    padding: 40px;
-    box-shadow:
-        0 1px 2px rgba(15, 23, 42, 0.04),
-        0 14px 36px rgba(15, 23, 42, 0.05);
-}
-
-.strava-coach-card h5 {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    color: #0A64BC;
-    font-size: calc(24px * var(--font-scale)) !important;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    line-height: 1.2;
-    margin-bottom: 24px;
-}
-
-.strava-coach-summary {
-    color: #0F172A;
-    font-size: calc(22px * var(--font-scale));
-    font-weight: 400;
-    line-height: 1.55;
-    margin-bottom: 34px;
-    padding-bottom: 34px;
-    border-bottom: 1px solid #E2E8F0;
-}
-
-.strava-coach-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 44px;
-    align-items: start;
-}
-
-.strava-coach-list + .strava-coach-list {
-    border-left: 1px dashed #CBD5E1;
-    padding-left: 44px;
-}
-
-.strava-coach-list h6 {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    min-height: 54px;
-    border-radius: 999px;
-    padding: 8px 22px 8px 10px;
-    color: #15803D;
-    background: #E6F8EF;
-    font-size: calc(18px * var(--font-scale)) !important;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    line-height: 1.15;
-    margin-bottom: 22px;
-}
-
-.strava-coach-list h6 img {
-    width: 38px;
-    height: 38px;
-    object-fit: contain;
-    flex: 0 0 38px;
-}
-
-.strava-coach-list.dos h6 {
-    color: #15803D;
-}
-
-.strava-coach-list.donts h6 {
-    color: #D97706;
-    background: #FFF4E1;
-}
-
-.strava-coach-list ul {
-    margin: 0;
-    padding-left: 0;
-    color: #0F172A;
-    font-size: calc(21px * var(--font-scale));
-    font-weight: 400;
-    line-height: 1.55;
-    list-style: none;
-}
-
-.strava-coach-list li + li {
-    margin-top: 26px;
-}
-
-.strava-coach-focus {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 36px;
-    border-radius: 8px;
-    background: #F1F7FF;
-    color: #0F172A;
-    font-size: calc(19px * var(--font-scale));
-    font-weight: 400;
-    line-height: 1.45;
-    padding: 18px 22px;
-}
-
-.strava-coach-focus img {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    flex: 0 0 40px;
-}
-
-.strava-coach-focus strong {
-    color: #0A64BC;
-    font-weight: 800;
-}
-
 .strava-status-value {
     display: flex;
     align-items: center;
@@ -455,21 +330,20 @@
 .strava-status-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 30px;
-    border-radius: 999px;
-    padding: 5px 13px;
+    min-height: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent !important;
     font-size: calc(18px * var(--font-scale)) !important;
     font-weight: 700;
     line-height: 1;
 }
 
 .strava-status-pill.valid {
-    background: #DDF8E9;
     color: #00845C;
 }
 
 .strava-status-pill.invalid {
-    background: #FEE2E2;
     color: #B91C1C;
 }
 
@@ -531,13 +405,6 @@
         grid-template-columns: 1fr;
     }
 
-    .strava-coach-list + .strava-coach-list {
-        border-left: 0;
-        border-top: 1px dashed #CBD5E1;
-        padding-left: 0;
-        padding-top: 28px;
-    }
-
     .strava-preview-footer {
         flex-wrap: wrap;
         justify-content: stretch;
@@ -590,31 +457,6 @@
 
     .strava-analysis-copy strong {
         font-size: calc(22px * var(--font-scale));
-    }
-
-    .strava-coach-card {
-        padding: 24px;
-    }
-
-    .strava-coach-card h5 {
-        font-size: calc(20px * var(--font-scale)) !important;
-        gap: 12px;
-    }
-
-    .strava-coach-summary,
-    .strava-coach-list ul {
-        font-size: calc(18px * var(--font-scale));
-    }
-
-    .strava-coach-list h6 {
-        font-size: calc(16px * var(--font-scale)) !important;
-        white-space: normal;
-    }
-
-    .strava-coach-focus {
-        align-items: flex-start;
-        font-size: calc(17px * var(--font-scale));
-        padding: 16px;
     }
 
     .strava-route-map {

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Calendar | FitLah NSmen Portal{% endblock %}
 {% block extra_head %}
+<link rel="stylesheet" href="{{ asset_url('css/ai_analysis.css') }}">
 <link rel="stylesheet" href="{{ asset_url('css/calendar.css') }}">
 {% endblock %}
 {% block content %}
@@ -193,74 +194,8 @@
     margin-bottom: 4px;
   }
 
-  .ai-coach-block {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #E2E8F0;
-    width: 100%;
-  }
-
-  .ai-coach-block h5 {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--marker-situp);
-    text-transform: uppercase;
-    letter-spacing: 0;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .ai-coach-summary {
-    font-size: 16px;
-    color: #334155;
-    line-height: 1.6;
-    margin-bottom: 12px;
-    padding: 12px 14px;
-    background: #F8FAFC;
-    border-radius: 8px;
-    border-left: 4px solid var(--marker-situp);
-  }
-
-  .ai-coach-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  @media (max-width: 700px) {
-    .ai-coach-grid { grid-template-columns: 1fr; }
-  }
-
-  .ai-coach-list h6 {
-    font-size: 16px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    margin-bottom: 8px;
-  }
-
-  .ai-coach-list.dos h6 { color: #15803D; }
-  .ai-coach-list.donts h6 { color: #F59E0B; }
-
-  .ai-coach-list ul {
-    margin: 0;
-    padding-left: 18px;
-    font-size: 16px;
-    color: #475569;
-    line-height: 1.55;
-  }
-
-  .ai-coach-list li { margin-bottom: 4px; }
-
-  .ai-coach-focus {
-    margin-top: 10px;
-    font-size: 16px;
-    color: #64748B;
-    font-style: normal;
-    line-height: 1.5;
-  }
+  .ai-coach-block { margin-top: 16px; }
+  .calendar-run-analysis { flex: 1 1 100%; }
 
   @media (max-width: 700px) {
     .log-workspace-grid { grid-template-columns: 1fr; }

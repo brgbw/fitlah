@@ -1,0 +1,289 @@
+.strava-analysis-card {
+    display: grid;
+    gap: 18px;
+    width: 100%;
+}
+
+.strava-analysis-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(86px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.strava-analysis-metric {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 78px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #F8FAFC;
+    padding: 10px 12px;
+}
+
+.strava-analysis-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 999px;
+    background: #EFF6FF;
+}
+
+.strava-analysis-icon.valid {
+    background: #E5F8EF;
+}
+
+.strava-analysis-icon.invalid {
+    background: #FEF2F2;
+}
+
+.strava-analysis-icon img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.strava-analysis-copy {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.strava-analysis-copy > span {
+    display: block;
+    color: #64748B;
+    font-size: calc(18px * var(--font-scale));
+    font-weight: 650;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.strava-analysis-copy strong {
+    color: #0F172A;
+    font-size: calc(22px * var(--font-scale));
+    font-weight: 700;
+    line-height: 1;
+}
+
+.strava-status-value {
+    display: flex;
+    align-items: center;
+}
+
+.strava-status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent !important;
+    font-size: calc(18px * var(--font-scale)) !important;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.strava-status-pill.valid {
+    color: #00845C;
+}
+
+.strava-status-pill.invalid {
+    color: #B91C1C;
+}
+
+.ai-analysis-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #FFFFFF;
+    padding: 40px;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 14px 36px rgba(15, 23, 42, 0.05);
+    width: 100%;
+}
+
+.ai-analysis-heading {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #0A64BC;
+    font-size: calc(24px * var(--font-scale)) !important;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    margin: 0 0 24px;
+}
+
+.ai-analysis-heading img,
+.ai-summary-inline-icon {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    flex: 0 0 52px;
+}
+
+.ai-analysis-summary {
+    color: #0F172A;
+    font-size: calc(22px * var(--font-scale));
+    font-weight: 400;
+    line-height: 1.55;
+    margin-bottom: 34px;
+    padding-bottom: 34px;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.ai-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px;
+    align-items: start;
+}
+
+.ai-analysis-list + .ai-analysis-list {
+    border-left: 1px dashed #CBD5E1;
+    padding-left: 44px;
+}
+
+.ai-analysis-list h6,
+.ai-analysis-list h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 54px;
+    border-radius: 999px;
+    padding: 8px 22px 8px 10px;
+    color: #15803D;
+    background: #E6F8EF;
+    font-size: calc(18px * var(--font-scale)) !important;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    margin: 0 0 22px;
+}
+
+.ai-analysis-list h6 img,
+.ai-analysis-list h2 img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    flex: 0 0 38px;
+}
+
+.ai-analysis-list.avoid h6,
+.ai-analysis-list.avoid h2,
+.ai-analysis-list.donts h6,
+.ai-analysis-list.donts h2 {
+    color: #D97706;
+    background: #FFF4E1;
+}
+
+.ai-analysis-list ul {
+    margin: 0;
+    padding-left: 0;
+    color: #0F172A;
+    font-size: calc(21px * var(--font-scale));
+    font-weight: 400;
+    line-height: 1.55;
+    list-style: none;
+}
+
+.ai-analysis-list li + li {
+    margin-top: 26px;
+}
+
+.ai-analysis-focus {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 36px;
+    border-radius: 8px;
+    background: #F1F7FF;
+    color: #0F172A;
+    font-size: calc(19px * var(--font-scale));
+    font-weight: 400;
+    line-height: 1.45;
+    padding: 18px 22px;
+}
+
+.ai-analysis-focus img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex: 0 0 40px;
+}
+
+.ai-analysis-focus strong {
+    color: #0A64BC;
+    font-weight: 800;
+}
+
+@media (max-width: 980px) {
+    .strava-analysis-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-analysis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-analysis-list + .ai-analysis-list {
+        border-left: 0;
+        border-top: 1px dashed #CBD5E1;
+        padding-left: 0;
+        padding-top: 28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .strava-analysis-metric {
+        min-height: 74px;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .strava-analysis-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+    }
+
+    .strava-analysis-icon img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .strava-analysis-copy strong {
+        font-size: calc(22px * var(--font-scale));
+    }
+
+    .ai-analysis-card {
+        padding: 24px;
+    }
+
+    .ai-analysis-heading {
+        font-size: calc(20px * var(--font-scale)) !important;
+        gap: 12px;
+    }
+
+    .ai-analysis-summary,
+    .ai-analysis-list ul {
+        font-size: calc(18px * var(--font-scale));
+    }
+
+    .ai-analysis-list h6,
+    .ai-analysis-list h2 {
+        font-size: calc(16px * var(--font-scale)) !important;
+        white-space: normal;
+    }
+
+    .ai-analysis-focus {
+        align-items: flex-start;
+        font-size: calc(17px * var(--font-scale));
+        padding: 16px;
+    }
+}

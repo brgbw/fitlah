@@ -110,7 +110,7 @@
                     </div>` : ''}
                 <div class="leader-main">
                     <div class="leader-name">
-                        <strong>${escapeHtml(member.name || 'NSman')}</strong>
+                        <strong>${escapeHtml(displayName(member.name, 'NSman'))}</strong>
                     </div>
                     ${showAward ? `
                     <span class="award-pill ${escapeHtml(awardCode)}">
@@ -178,6 +178,12 @@
         }[char]));
     }
 
+    function displayName(value, fallback = 'NSman') {
+        const text = String(value || '').trim();
+        if (!text || /^[STFG]\d{7}[A-Z]$/i.test(text)) return fallback;
+        return text;
+    }
+
     function selectTab(tabElement) {
         if (tabElement.classList.contains('create-group-pill')) return;
         const pills = document.querySelectorAll('.filter-pill:not(.create-group-pill)');
@@ -241,7 +247,7 @@
                 colorLight: '#FFFFFF',
                 correctLevel: window.QRCode.CorrectLevel.M
             });
-            setQrStatus('myQrStatus', `${data.name || 'Your'} QR is ready.`, 'success');
+            setQrStatus('myQrStatus', `${displayName(data.name, 'Your')} QR is ready.`, 'success');
         } catch (error) {
             console.error(error);
             setQrStatus('myQrStatus', 'QR generator unavailable. Check your connection and try again.', 'error');
@@ -356,7 +362,7 @@
         .then(res => res.json().then(data => ({ ok: res.ok, data })))
         .then(({ ok, data }) => {
             if (ok && data.success) {
-                setQrStatus('scanQrStatus', `Invitation sent to ${data.recipient_name || 'teammate'}.`, 'success');
+                setQrStatus('scanQrStatus', `Invitation sent to ${displayName(data.recipient_name, 'teammate')}.`, 'success');
                 setTimeout(() => closeModal('scanQrModal'), 900);
             } else {
                 setQrStatus('scanQrStatus', data.error || 'Could not send invite.', 'error');
@@ -418,7 +424,7 @@
         if (!activeGroupId || !memberId) return;
         const selected = groupRosterData.find(item => item.group.id === Number(activeGroupId));
         const member = selected?.members?.find(item => item.id === Number(memberId));
-        const name = member?.name || 'this member';
+        const name = displayName(member?.name, 'this member');
         if (!window.confirm(`Remove ${name} from the group?`)) return;
 
         fetch(api.removeGroupMember, {
@@ -509,7 +515,7 @@
         return `
             <div class="invite-card ${isNew ? 'is-new' : ''}" id="invite-${inviteId}" data-invite-id="${inviteId}" tabindex="-1">
                 <div class="invite-meta">
-                    <div class="sender">${escapeHtml(invite.sender || 'NSman')}</div>
+                    <div class="sender">${escapeHtml(displayName(invite.sender, 'NSman'))}</div>
                     <div class="group-target">wants you to join "${escapeHtml(invite.group_name || 'Group')}"</div>
                 </div>
                 <div class="invite-actions">

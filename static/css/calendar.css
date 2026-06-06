@@ -29,28 +29,21 @@
 
 .calendar-ai-summary h2 {
   color: #0F172A;
-  font-size: 22px !important;
+  font-size: calc(28px * var(--font-scale)) !important;
   line-height: 1.2;
   margin: 0 0 4px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .calendar-ai-summary p {
-  color: #64748B;
-  font-size: 17px !important;
+  color: #334155;
+  font-size: calc(21px * var(--font-scale)) !important;
   line-height: 1.55;
   margin: 0;
 }
 
 .mobile-month-list {
   display: none;
-}
-
-.ai-summary-inline-icon {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  flex: 0 0 34px;
 }
 
 @media (max-width: 700px) {
@@ -66,11 +59,11 @@
   }
 
   .calendar-ai-summary h2 {
-    font-size: 19px !important;
+    font-size: calc(22px * var(--font-scale)) !important;
   }
 
   .calendar-ai-summary p {
-    font-size: 15px !important;
+    font-size: calc(18px * var(--font-scale)) !important;
   }
 
   .calendar-card {

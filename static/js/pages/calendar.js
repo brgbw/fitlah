@@ -219,6 +219,52 @@
     return previousHtml && nextHtml ? '<div class="metric-divider-line"></div>' : '';
   }
 
+  function formatValidityStatus(value) {
+    const text = String(value || '').trim();
+    if (!text) return '--';
+    return text.toLowerCase() === 'valid' ? 'Valid' : 'Invalid';
+  }
+
+  function validityClass(value) {
+    return String(value || '').toLowerCase() === 'valid' ? 'valid' : 'invalid';
+  }
+
+  function renderRunAnalysisMetrics(entry) {
+    const runTime = entry.calendar_run_time || entry.official_time || estimated24Time(entry) || '--:--';
+    const status = entry.run_status || '';
+    const statusClass = status ? validityClass(status) : '';
+    const points = entry.run_points !== '' && entry.run_points !== null && entry.run_points !== undefined
+      ? entry.run_points
+      : '--';
+
+    return `
+      <div class="strava-analysis-card calendar-run-analysis">
+        <div class="strava-analysis-metrics">
+          <div class="strava-analysis-metric">
+            <span class="strava-analysis-icon"><img src="/static/icons/timer.png" alt=""></span>
+            <span class="strava-analysis-copy">
+              <span>2.4KM TIME</span>
+              <strong>${escapeHtml(runTime)}</strong>
+            </span>
+          </div>
+          <div class="strava-analysis-metric">
+            <span class="strava-analysis-icon ${statusClass}"><img src="/static/icons/checkmark.png" alt=""></span>
+            <span class="strava-analysis-copy">
+              <span>STATUS</span>
+              <strong class="strava-status-value"><span class="strava-status-pill ${statusClass}">${escapeHtml(formatValidityStatus(status))}</span></strong>
+            </span>
+          </div>
+          <div class="strava-analysis-metric">
+            <span class="strava-analysis-icon"><img src="/static/icons/star.png" alt=""></span>
+            <span class="strava-analysis-copy">
+              <span>POINTS</span>
+              <strong>${escapeHtml(points)}</strong>
+            </span>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function parseDurationSeconds(value) {
     if (value === null || value === undefined || value === '') return 0;
     if (Number.isFinite(Number(value))) return Number(value);
@@ -260,13 +306,7 @@
 
   function renderEntryMetrics(entry) {
     if (entry.type === 'run') {
-      const runTime = entry.calendar_run_time || entry.official_time || estimated24Time(entry);
-      const points = entry.run_points !== '' && entry.run_points !== null && entry.run_points !== undefined
-        ? `${entry.run_points} pts`
-        : '';
-      const officialHtml = metricBlock('2.4km Time', runTime || '--:--');
-      const pointsHtml = metricBlock('Run Points', points);
-      return `${officialHtml}${metricDivider(officialHtml, pointsHtml)}${pointsHtml}`;
+      return renderRunAnalysisMetrics(entry);
     }
 
     const scoreHtml = metricBlock('Score / Reps', entry.score);
@@ -290,7 +330,8 @@
   function renderActivitySummary(logs) {
     const title = document.getElementById('calendarSummaryTitle');
     const text = document.getElementById('calendarSummaryText');
-    const userName = (document.getElementById('calendarAiSummary')?.dataset.userName || '').trim().split(/\s+/)[0];
+    const rawName = (document.getElementById('calendarAiSummary')?.dataset.userName || '').trim();
+    const userName = /^[STFG]\d{7}[A-Z]$/i.test(rawName) ? '' : rawName;
     if (!title || !text) return;
 
     const counts = logs.reduce((acc, log) => {
@@ -331,9 +372,9 @@
 
     if (typeof ai === 'string') {
       return `
-        <div class="ai-coach-block">
-          <h5><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
-          <div class="ai-coach-summary">${aiTextHtml(ai)}</div>
+        <div class="ai-analysis-card ai-coach-block">
+          <h5 class="ai-analysis-heading"><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
+          <div class="ai-analysis-summary">${aiTextHtml(ai)}</div>
         </div>`;
     }
 
@@ -344,14 +385,14 @@
     const donts = dontItems.map(item => `<li>${aiTextHtml(item)}</li>`).join('');
     const focus = ai.safetyNote || (ai.focus_areas || []).join(' · ');
     return `
-      <div class="ai-coach-block">
-        <h5><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
-        <div class="ai-coach-summary">${aiTextHtml(ai.summary)}</div>
-        <div class="ai-coach-grid">
-          ${dos ? `<div class="ai-coach-list dos"><h6>RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}
-          ${donts ? `<div class="ai-coach-list donts"><h6>AVOID NEXT</h6><ul>${donts}</ul></div>` : ''}
+      <div class="ai-analysis-card ai-coach-block">
+        <h5 class="ai-analysis-heading"><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
+        <div class="ai-analysis-summary">${aiTextHtml(ai.summary)}</div>
+        <div class="ai-analysis-grid">
+          ${dos ? `<div class="ai-analysis-list dos"><h6><img src="/static/icons/greentarget.png" alt="">RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}
+          ${donts ? `<div class="ai-analysis-list avoid donts"><h6><img src="/static/icons/exclaim.png" alt="">AVOID NEXT</h6><ul>${donts}</ul></div>` : ''}
         </div>
-        ${focus ? `<div class="ai-coach-focus"><strong>${ai.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</div>` : ''}
+        ${focus ? `<div class="ai-analysis-focus"><img src="/static/icons/bluetarget.png" alt=""><span><strong>${ai.safetyNote ? 'Safety note' : 'Focus area'}:</strong> ${aiTextHtml(focus)}</span></div>` : ''}
       </div>`;
   }
 
