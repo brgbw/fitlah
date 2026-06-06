@@ -26,7 +26,7 @@
         --group-ink: var(--text-main);
         --group-muted: var(--text-muted);
         --group-line: var(--border);
-        --group-bg: var(--bg-body);
+        --group-bg: #E2E8F0;
         --group-card: var(--bg-surface);
         --group-green: var(--marker-pushup);
         --group-green-strong: #008F5B;
@@ -39,6 +39,10 @@
         margin: 0;
         padding: 0 0 40px;
         color: var(--group-ink);
+        background: var(--group-bg);
+        box-shadow: 0 0 0 100vmax var(--group-bg);
+        clip-path: inset(0 -100vmax);
+        min-height: calc(100vh - 88px);
     }
 
     body:has(.groups-page),

@@ -861,7 +861,7 @@
 
     .station-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 9px;
     }
 
@@ -876,6 +876,8 @@
         border-radius: 8px;
         background: #F7FCFA;
         border: 1px solid #DBE8EA;
+        overflow: hidden;
+        min-width: 0;
     }
 
     .station-card.station-situp {
@@ -900,15 +902,18 @@
 
     .station-card > div {
         min-width: 0;
+        display: grid;
+        gap: 3px;
     }
 
     .station-card > div > span {
         color: #015936;
-        font-size: 10px;
+        font-size: 10px !important;
         font-weight: 650;
         line-height: 1;
         text-transform: uppercase;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .station-card.station-situp > div > span {
@@ -925,13 +930,14 @@
         font-weight: 700;
         line-height: 1;
         margin-top: 7px;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .station-card small {
         display: block;
         color: #64748B;
-        font-size: 12px;
+        font-size: 12px !important;
         font-weight: 400;
         line-height: 1.1;
         margin-top: 3px;
@@ -940,13 +946,22 @@
 
     .station-card em {
         display: block;
-        grid-column: 2;
+        grid-column: 1 / -1;
         color: #64748B;
         font-size: 11px;
         font-style: normal;
         font-weight: 600;
         line-height: 1;
         margin-top: 1px;
+        text-align: center;
+        width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .station-card em span {
+        font-size: inherit !important;
+        line-height: inherit;
     }
 
     @media (max-width: 640px) {
@@ -970,26 +985,33 @@
         }
 
         .station-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
             gap: 8px;
         }
 
         .station-card {
-            grid-template-columns: auto minmax(0, 1fr);
+            grid-template-columns: 1fr;
             min-height: 82px;
             padding: 8px;
-            column-gap: 8px;
-            row-gap: 4px;
+            gap: 5px;
+            justify-items: center;
+            text-align: center;
         }
 
         .station-icon {
             width: 28px;
             height: 28px;
             margin: 0;
+            grid-column: 1;
+            grid-row: auto;
+        }
+
+        .station-card > div {
+            justify-items: center;
         }
 
         .station-card > div > span {
-            font-size: 9px;
+            font-size: 9px !important;
         }
 
         .station-card strong {
@@ -999,5 +1021,13 @@
 
         .station-card.station-run strong {
             font-size: 17px;
+        }
+
+        .station-card small {
+            text-align: center;
+        }
+
+        .station-card em {
+            grid-column: 1;
         }
     }
