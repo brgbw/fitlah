@@ -29,8 +29,8 @@
         // EMA smoothing reduces small landmark jitter while keeping transitions responsive.
         SMOOTHING_ALPHA: 0.4,
         // Sit-up counting is intentionally lenient: a rep is driven by shoulder height only.
-        SHOULDER_LIFT_MIN: 0.045,
-        SHOULDER_LIFT_RETURN_TOLERANCE: 0.028,
+        SHOULDER_LIFT_MIN: 0.035,
+        SHOULDER_LIFT_RETURN_TOLERANCE: 0.035,
         SHOULDER_DESCENT_MIN: 0.018,
         SHOULDER_BASELINE_ALPHA: 0.08,
         MIN_REP_DURATION_MS: 50,
