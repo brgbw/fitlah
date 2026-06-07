@@ -27,11 +27,11 @@
         // MediaPipe visibility can flicker during floor exercises; low-confidence frames do not move states.
         POSE_CONFIDENCE_MIN: 0.2,
         // EMA smoothing reduces small landmark jitter while keeping transitions responsive.
-        SMOOTHING_ALPHA: 0.4,
+        SMOOTHING_ALPHA: 0.6,
         // Sit-up counting is intentionally lenient: a rep is driven by shoulder height only.
         SHOULDER_LIFT_MIN: 0.035,
-        SHOULDER_LIFT_RETURN_TOLERANCE: 0.030,
-        SHOULDER_DESCENT_MIN: 0.020,
+        SHOULDER_LIFT_RETURN_TOLERANCE: 0.045,
+        SHOULDER_DESCENT_MIN: 0.012,
         SHOULDER_BASELINE_ALPHA: 0.08,
         MIN_REP_DURATION_MS: 50,
         REP_COOLDOWN_MS: 50,

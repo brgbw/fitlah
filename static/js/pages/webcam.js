@@ -549,7 +549,8 @@ let currentMode = 'pushup';
             return;
         }
 
-        if (Date.now() - lastRepAt < 500) {
+        const minRepGapMs = currentMode === 'situp' && isReplayMode ? 150 : 500;
+        if (Date.now() - lastRepAt < minRepGapMs) {
             stage = nextStage;
             return;
         }
