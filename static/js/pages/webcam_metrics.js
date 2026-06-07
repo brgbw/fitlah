@@ -41,7 +41,8 @@
                 time: Number(sample.time.toFixed(2)),
                 value: Number(sample.value.toFixed(4)),
                 elbow_angle: Number.isFinite(sample.elbow_angle) ? sample.elbow_angle : null,
-                hip_angle: Number.isFinite(sample.hip_angle) ? sample.hip_angle : null
+                hip_angle: Number.isFinite(sample.hip_angle) ? sample.hip_angle : null,
+                torso_lift: Number.isFinite(sample.torso_lift) ? sample.torso_lift : null
             }));
         if (validSamples.length <= maxPoints) return smoothMovementSamples(validSamples);
 
@@ -59,9 +60,9 @@
         const range = maxValue - minValue;
 
         return {
-            type: exercise === 'pushup' ? 'shoulder_height' : 'hip_angle',
-            label: exercise === 'pushup' ? 'Shoulder height' : 'Hip angle',
-            unit: exercise === 'pushup' ? 'px' : 'degrees',
+            type: exercise === 'pushup' ? 'shoulder_height' : 'torso_lift',
+            label: exercise === 'pushup' ? 'Shoulder height' : 'Sit-up lift',
+            unit: exercise === 'pushup' ? 'px' : '%',
             duration_seconds: duration,
             samples,
             reps: Array.isArray(metrics.rep_metrics) ? metrics.rep_metrics.slice() : [],
