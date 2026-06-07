@@ -32,6 +32,7 @@
         SHOULDER_LIFT_MIN: 0.020,
         SHOULDER_LIFT_RETURN_TOLERANCE: 0.045,
         SHOULDER_DESCENT_MIN: 0.006,
+        STARTUP_RETURN_LIFT_MIN: 0.020,
         SHOULDER_BASELINE_ALPHA: 0.12,
         MIN_REP_DURATION_MS: 50,
         REP_COOLDOWN_MS: 50,
@@ -49,6 +50,8 @@
         repStartedAt: 0,
         lastCountedAt: 0,
         maxShoulderLiftThisRep: 0,
+        startupShoulderY: null,
+        startupReturnCounted: false,
         invalidPostureFrames: 0,
         downFrames: 0,
         upFrames: 0,
@@ -67,6 +70,8 @@
         tracker.repStartedAt = 0;
         tracker.lastCountedAt = 0;
         tracker.maxShoulderLiftThisRep = 0;
+        tracker.startupShoulderY = null;
+        tracker.startupReturnCounted = false;
         tracker.invalidPostureFrames = 0;
         tracker.downFrames = 0;
         tracker.upFrames = 0;
@@ -201,6 +206,9 @@
 
         tracker.readyConfirmed = true;
         tracker.state = STATE.READY;
+        if (tracker.startupShoulderY === null) {
+            tracker.startupShoulderY = validation.metrics.shoulderY;
+        }
         updateDownShoulderBaseline(validation.metrics.shoulderY);
         helpers.setPositionReady(true);
         helpers.setStage(STATE.READY);
@@ -308,6 +316,30 @@
         metrics.rep_count_signal = metrics.rep_metrics.length;
     }
 
+    function recoverStartupReturnRep(helpers, now, posture) {
+        if (!helpers.isReplayMode ||
+            tracker.startupReturnCounted ||
+            tracker.startupShoulderY === null ||
+            (helpers.validReps || 0) > 0) {
+            return false;
+        }
+
+        const startupReturnLift = posture.metrics.shoulderY - tracker.startupShoulderY;
+        if (startupReturnLift < CONFIG.STARTUP_RETURN_LIFT_MIN) return false;
+
+        tracker.maxShoulderLiftThisRep = Math.max(tracker.maxShoulderLiftThisRep, startupReturnLift);
+        tracker.repStartedAt = Math.max(0, now - CONFIG.MIN_REP_DURATION_MS);
+        tracker.repStartedAtSeconds = Math.max(0, helpers.sessionElapsedSeconds() - CONFIG.MIN_REP_DURATION_MS / 1000);
+        recordRepMetrics(helpers.metrics, helpers, CONFIG.MIN_REP_DURATION_MS);
+        tracker.lastCountedAt = now;
+        tracker.startupReturnCounted = true;
+        tracker.state = STATE.REP_COUNTED;
+        updateDownShoulderBaseline(posture.metrics.shoulderY);
+        helpers.countValidRep(STATE.DOWN);
+        helpers.setStage(STATE.REP_COUNTED);
+        return true;
+    }
+
     function analyze(landmarks, helpers) {
         const now = Date.now();
 
@@ -350,6 +382,10 @@
 
         tracker.maxShoulderLiftThisRep = Math.max(tracker.maxShoulderLiftThisRep, shoulderLift);
         if (isDown && (tracker.state === STATE.READY || tracker.state === STATE.DOWN || tracker.state === STATE.REP_COUNTED)) {
+            if (recoverStartupReturnRep(helpers, now, posture)) {
+                sampleMetrics(helpers.metrics, helpers, posture);
+                return;
+            }
             updateDownShoulderBaseline(posture.metrics.shoulderY);
         }
 
