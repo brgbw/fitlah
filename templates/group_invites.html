@@ -45,9 +45,10 @@
         min-height: calc(100vh - 88px);
     }
 
+    html:has(.groups-page),
     body:has(.groups-page),
     .main-content:has(.groups-page) {
-        background: var(--group-bg);
+        background: #E2E8F0;
     }
 
     .groups-page *,
@@ -522,16 +523,16 @@
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         width: 100%;
-        max-width: 118px;
+        max-width: 142px;
         padding: 0;
         border: 0;
         background: transparent;
         color: #B45309;
-        font-size: 14px;
+        font-size: 18px !important;
         font-weight: 700;
-        line-height: 1.15;
+        line-height: 1.12;
         text-transform: uppercase;
         white-space: normal;
         overflow-wrap: anywhere;
@@ -540,14 +541,14 @@
     }
 
     .leader-metric.metric-award .award-pill img {
-        width: 24px;
-        height: 24px;
-        flex: 0 0 24px;
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
     }
 
     .leader-metric.metric-award.award-pass-incentive .award-pill {
-        font-size: 12px;
-        max-width: 124px;
+        font-size: 15px !important;
+        max-width: 150px;
     }
 
     .leader-metric.metric-award.award-silver {

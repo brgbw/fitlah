@@ -341,8 +341,8 @@ let currentMode = 'pushup';
                 locateFile: (file) => `/static/mediapipe/pose/${file}`
             });
             pose.setOptions({
-                modelComplexity: 0,
-                smoothLandmarks: !isMobileLikeDevice,
+                modelComplexity: 1,
+                smoothLandmarks: true,
                 enableSegmentation: false,
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
