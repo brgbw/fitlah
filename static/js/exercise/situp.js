@@ -237,13 +237,13 @@
         metrics.rep_metrics_csv = repMetricsCsv(metrics.rep_metrics);
     }
 
-    function countRep(time, amplitude, helpers) {
+    function countRep(time, amplitude, helpers, periodStartTime = tracker.lowTime) {
         if (helpers.canCountReps && !helpers.canCountReps()) {
             helpers.setWarning(helpers.poseReadinessMessage ? helpers.poseReadinessMessage() : 'Hold position...');
             return false;
         }
         if (time - tracker.lastCountedAt < CONFIG.REP_COOLDOWN_S) return false;
-        const period = tracker.lowTime > 0 ? time - tracker.lowTime : CONFIG.MIN_REP_PERIOD_S;
+        const period = periodStartTime > 0 ? time - periodStartTime : CONFIG.MIN_REP_PERIOD_S;
         if (period < CONFIG.MIN_REP_PERIOD_S || period > CONFIG.MAX_REP_PERIOD_S) return false;
 
         tracker.repCount++;
@@ -270,6 +270,7 @@
     }
 
     function processSignal(time, value, helpers) {
+        const cycleLowTime = tracker.lowTime;
         tracker.minValue = Math.min(tracker.minValue, value);
         tracker.maxValue = Math.max(tracker.maxValue, value);
 
@@ -325,7 +326,7 @@
         const amplitude = tracker.high - tracker.low;
         const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO;
         if (tracker.liftConfirmed && amplitude >= confirmedLift && returnedLowEnough) {
-            if (countRep(time, amplitude, helpers)) {
+            if (countRep(time, amplitude, helpers, cycleLowTime)) {
                 tracker.stage = 'SEEK_HIGH';
                 tracker.low = value;
                 tracker.lowTime = time;
