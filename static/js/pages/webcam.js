@@ -69,6 +69,7 @@ let currentMode = 'pushup';
     let poseReadiness = null;
     let attachmentPreflightActive = false;
     let suppressRepCounting = false;
+    let replayAnalysisEnding = false;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -602,7 +603,7 @@ let currentMode = 'pushup';
 
         const replayFrameAdvanced = attachmentPreflightActive ||
             !isReplayMode ||
-            (analyzeReplayMode && !playbackVideo.paused && playbackVideo.currentTime !== lastAnalyzedVideoTime);
+            (analyzeReplayMode && !replayAnalysisEnding && !playbackVideo.paused && playbackVideo.currentTime !== lastAnalyzedVideoTime);
 
         if (replayFrameAdvanced) {
             if (isReplayMode && !attachmentPreflightActive) {
@@ -712,7 +713,7 @@ let currentMode = 'pushup';
     }
 
     function poseCountingReady() {
-        if (suppressRepCounting) return false;
+        if (suppressRepCounting || replayAnalysisEnding) return false;
         const readiness = ensurePoseReadiness();
         return readiness.ready &&
             readiness.readyVisibleAtMs !== null &&
@@ -732,6 +733,13 @@ let currentMode = 'pushup';
             },
             get isReplayMode() {
                 return isReplayMode;
+            },
+            get isReplayAnalysisEnding() {
+                return replayAnalysisEnding;
+            },
+            replaySecondsRemaining() {
+                if (!isReplayMode || !Number.isFinite(playbackVideo.duration)) return Infinity;
+                return Math.max(0, playbackVideo.duration - Number(playbackVideo.currentTime || 0));
             },
             get frameWidth() {
                 return poseCanvas.width || sourceVideo.videoWidth || playbackVideo.videoWidth || 640;
@@ -1085,6 +1093,7 @@ let currentMode = 'pushup';
     async function startPlaybackReplay(options = {}) {
         isReplayMode = true;
         analyzeReplayMode = Boolean(options.analyze);
+        replayAnalysisEnding = false;
         playbackVideo.style.display = 'none';
         poseCanvas.style.display = 'block';
         playbackVideo.currentTime = 0;
@@ -1104,7 +1113,10 @@ let currentMode = 'pushup';
 
         playbackVideo.onended = () => {
             const wasAnalyzingAttachment = analyzeReplayMode;
+            replayAnalysisEnding = true;
+            suppressRepCounting = true;
             analyzeReplayMode = false;
+            stopPoseLoop();
             playbackVideo.style.display = 'none';
             poseCanvas.style.display = 'block';
             uploadBtn.style.display = 'inline-block';
@@ -1119,6 +1131,7 @@ let currentMode = 'pushup';
             } else {
                 setWarning('Playback complete');
             }
+            suppressRepCounting = false;
         };
         startPoseLoop();
     }

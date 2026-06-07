@@ -31,6 +31,7 @@
         MIN_REP_PERIOD_S: 0.12,
         MAX_REP_PERIOD_S: 8,
         REP_COOLDOWN_S: 0.28,
+        REPLAY_END_GUARD_S: 0.25,
         CALIBRATION_FRAMES: 4,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
@@ -264,6 +265,12 @@
     function countRep(time, amplitude, helpers, periodStartTime = tracker.lowTime) {
         if (helpers.canCountReps && !helpers.canCountReps()) {
             helpers.setWarning(helpers.poseReadinessMessage ? helpers.poseReadinessMessage() : 'Hold position...');
+            return false;
+        }
+        if (helpers.isReplayMode && (
+            helpers.isReplayAnalysisEnding ||
+            (helpers.replaySecondsRemaining && helpers.replaySecondsRemaining() <= CONFIG.REPLAY_END_GUARD_S)
+        )) {
             return false;
         }
         if (time - tracker.lastCountedAt < CONFIG.REP_COOLDOWN_S) return false;
