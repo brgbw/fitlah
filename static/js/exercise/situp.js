@@ -22,15 +22,18 @@
         SMOOTHING_ALPHA: 0.82,
         SIGNAL_ALPHA: 0.82,
         MIN_AMPLITUDE: 0.025,
-        MIN_CONFIRMED_LIFT: 0.045,
+        MIN_CONFIRMED_LIFT: 0.04,
+        ADAPTIVE_AMPLITUDE_RATIO: 0.18,
+        MAX_ADAPTIVE_AMPLITUDE_MULTIPLIER: 1.6,
         REVERSAL_RATIO: 0.2,
-        RETURN_RATIO: 0.78,
+        RETURN_RATIO: 0.74,
         MIN_REP_PERIOD_S: 0.32,
         MAX_REP_PERIOD_S: 8,
         REP_COOLDOWN_S: 0.38,
         CALIBRATION_FRAMES: 4,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
+        DROPOUT_BRIDGE_FRAMES: 6,
         MAX_MISSING_FRAMES: 8
     };
 
@@ -40,6 +43,8 @@
         smoothedSignal: null,
         previousSignal: null,
         previousTime: null,
+        liveStartedAtMs: null,
+        lastLiveTime: 0,
         missingFrames: 0,
         framesSeen: 0,
         stage: 'SEEK_HIGH',
@@ -49,10 +54,13 @@
         highTime: 0,
         lastCountedAt: -Infinity,
         liftConfirmed: false,
+        awaitingFreshLift: false,
         repLogs: [],
         repCount: 0,
         minValue: Infinity,
-        maxValue: -Infinity
+        maxValue: -Infinity,
+        lastSignalSource: '',
+        lastSignalConfidence: 0
     };
 
     function reset() {
@@ -61,6 +69,8 @@
         tracker.smoothedSignal = null;
         tracker.previousSignal = null;
         tracker.previousTime = null;
+        tracker.liveStartedAtMs = null;
+        tracker.lastLiveTime = 0;
         tracker.missingFrames = 0;
         tracker.framesSeen = 0;
         tracker.stage = 'SEEK_HIGH';
@@ -70,10 +80,13 @@
         tracker.highTime = 0;
         tracker.lastCountedAt = -Infinity;
         tracker.liftConfirmed = false;
+        tracker.awaitingFreshLift = false;
         tracker.repLogs = [];
         tracker.repCount = 0;
         tracker.minValue = Infinity;
         tracker.maxValue = -Infinity;
+        tracker.lastSignalSource = '';
+        tracker.lastSignalConfidence = 0;
     }
 
     function visible(point, minVisibility = CONFIG.POSE_CONFIDENCE_MIN) {
@@ -86,6 +99,27 @@
             y: (a.y + b.y) / 2,
             z: ((a.z || 0) + (b.z || 0)) / 2,
             visibility: Math.min(a.visibility || 0, b.visibility || 0)
+        };
+    }
+
+    function averagedPoint(points, minVisibility = CONFIG.POSE_CONFIDENCE_MIN) {
+        const visiblePoints = points.filter(point => visible(point, minVisibility));
+        if (!visiblePoints.length) return null;
+        const total = visiblePoints.reduce((sum, point) => ({
+            x: sum.x + point.x,
+            y: sum.y + point.y,
+            z: sum.z + (point.z || 0),
+            visibility: sum.visibility + (point.visibility || 0)
+        }), { x: 0, y: 0, z: 0, visibility: 0 });
+        return {
+            point: {
+                x: total.x / visiblePoints.length,
+                y: total.y / visiblePoints.length,
+                z: total.z / visiblePoints.length,
+                visibility: total.visibility / visiblePoints.length
+            },
+            count: visiblePoints.length,
+            confidence: total.visibility / visiblePoints.length
         };
     }
 
@@ -122,8 +156,15 @@
 
     function timeSeconds(helpers) {
         if (helpers.isReplayMode) return helpers.sessionElapsedSeconds();
-        if (tracker.previousTime === null) return 0;
-        return tracker.previousTime + Math.max(0.001, 1 / 30);
+        const now = window.performance?.now ? window.performance.now() : Date.now();
+        if (tracker.liveStartedAtMs === null) {
+            tracker.liveStartedAtMs = now;
+            tracker.lastLiveTime = 0;
+            return 0;
+        }
+        const elapsed = Math.max(0, (now - tracker.liveStartedAtMs) / 1000);
+        tracker.lastLiveTime = Math.max(tracker.lastLiveTime + 0.001, elapsed);
+        return tracker.lastLiveTime;
     }
 
     function shoulderPoint(landmarks) {
@@ -136,12 +177,42 @@
     }
 
     function situpSignal(landmarks) {
-        const shoulder = shoulderPoint(landmarks);
-        if (!shoulder) return null;
-        const raw = -shoulder.y;
+        const shoulderInfo = averagedPoint([
+            landmarks[LANDMARK.LEFT_SHOULDER],
+            landmarks[LANDMARK.RIGHT_SHOULDER]
+        ]);
+        if (!shoulderInfo) return null;
+
+        const hipInfo = averagedPoint([
+            landmarks[LANDMARK.LEFT_HIP],
+            landmarks[LANDMARK.RIGHT_HIP]
+        ], 0.1);
+        const kneeInfo = averagedPoint([
+            landmarks[LANDMARK.LEFT_KNEE],
+            landmarks[LANDMARK.RIGHT_KNEE]
+        ], 0.1);
+
+        const shoulder = shoulderInfo.point;
+        let raw = -shoulder.y;
+        let source = shoulderInfo.count > 1 ? 'shoulders' : 'single_shoulder';
+        let confidence = shoulderInfo.confidence;
+
+        if (hipInfo && kneeInfo) {
+            const hip = hipInfo.point;
+            const knee = kneeInfo.point;
+            const torsoLength = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y);
+            const thighLength = Math.hypot(hip.x - knee.x, hip.y - knee.y);
+            const bodyScale = Math.max(0.001, torsoLength + thighLength);
+            raw = (hip.y - shoulder.y) / bodyScale;
+            source = shoulderInfo.count > 1 ? 'torso_normalized' : 'single_shoulder_normalized';
+            confidence = Math.min(shoulderInfo.confidence, hipInfo.confidence, kneeInfo.confidence);
+        }
+
         tracker.smoothedSignal = tracker.smoothedSignal === null
             ? raw
             : tracker.smoothedSignal * (1 - CONFIG.SIGNAL_ALPHA) + raw * CONFIG.SIGNAL_ALPHA;
+        tracker.lastSignalSource = source;
+        tracker.lastSignalConfidence = confidence;
         return tracker.smoothedSignal;
     }
 
@@ -178,9 +249,16 @@
             period_s: Number(period.toFixed(3)),
             amplitude: Number((amplitude * 100).toFixed(3)),
             amplitude_lift_pct: Number((amplitude * 100).toFixed(3)),
+            signal_source: tracker.lastSignalSource,
+            confidence: Number(tracker.lastSignalConfidence.toFixed(3)),
             time_s: Number(time.toFixed(3))
         });
+        if (helpers.metrics && amplitude < CONFIG.MIN_CONFIRMED_LIFT * 1.25) {
+            helpers.metrics.shallow_rep_signals = (helpers.metrics.shallow_rep_signals || 0) + 1;
+            helpers.noteFormFlag('low_situp_lift');
+        }
         tracker.state = STATE.REP_COUNTED;
+        tracker.awaitingFreshLift = true;
         helpers.countValidRep(STATE.DOWN);
         helpers.setStage(STATE.REP_COUNTED);
         publishMetrics(helpers.metrics);
@@ -201,6 +279,13 @@
         }
 
         const dynamicRange = Math.max(CONFIG.MIN_AMPLITUDE, tracker.maxValue - tracker.minValue);
+        const confirmedLift = Math.max(
+            CONFIG.MIN_CONFIRMED_LIFT,
+            Math.min(
+                dynamicRange * CONFIG.ADAPTIVE_AMPLITUDE_RATIO,
+                CONFIG.MIN_CONFIRMED_LIFT * CONFIG.MAX_ADAPTIVE_AMPLITUDE_MULTIPLIER
+            )
+        );
         const reversal = Math.max(CONFIG.MIN_AMPLITUDE * 0.45, dynamicRange * CONFIG.REVERSAL_RATIO);
 
         if (tracker.stage === 'SEEK_HIGH') {
@@ -209,8 +294,9 @@
                 tracker.highTime = time;
             }
             const lift = tracker.high - tracker.low;
-            if (lift >= CONFIG.MIN_CONFIRMED_LIFT) {
+            if (lift >= confirmedLift) {
                 tracker.liftConfirmed = true;
+                tracker.awaitingFreshLift = false;
             }
             if (tracker.liftConfirmed && value <= tracker.high - reversal) {
                 tracker.stage = 'SEEK_LOW';
@@ -220,7 +306,9 @@
             } else {
                 tracker.state = STATE.READY;
                 helpers.setStage(STATE.READY);
-                helpers.setWarning(helpers.sessionStarted ? 'Recording - lift and return shoulders down.' : 'Ready - start sit-ups.');
+                helpers.setWarning(tracker.awaitingFreshLift
+                    ? 'Rep counted - lift again for the next sit-up.'
+                    : (helpers.sessionStarted ? 'Recording - lift and return shoulders down.' : 'Ready - start sit-ups.'));
             }
             return;
         }
@@ -232,7 +320,7 @@
 
         const amplitude = tracker.high - tracker.low;
         const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO;
-        if (tracker.liftConfirmed && amplitude >= CONFIG.MIN_CONFIRMED_LIFT && returnedLowEnough) {
+        if (tracker.liftConfirmed && amplitude >= confirmedLift && returnedLowEnough) {
             if (countRep(time, amplitude, helpers)) {
                 tracker.stage = 'SEEK_HIGH';
                 tracker.low = value;
@@ -240,6 +328,7 @@
                 tracker.high = value;
                 tracker.highTime = time;
                 tracker.liftConfirmed = false;
+                tracker.awaitingFreshLift = true;
             }
             return;
         }
@@ -279,7 +368,9 @@
             metrics.movement_samples.push({
                 time: helpers.sessionElapsedSeconds(),
                 value: Number(Math.max(0, liftPct).toFixed(3)),
-                torso_lift: Number(Math.max(0, liftPct).toFixed(3))
+                torso_lift: Number(Math.max(0, liftPct).toFixed(3)),
+                signal_source: tracker.lastSignalSource,
+                signal_confidence: Number(tracker.lastSignalConfidence.toFixed(3))
             });
             if (metrics.movement_samples.length > 900) metrics.movement_samples.shift();
         }
@@ -302,9 +393,15 @@
 
     function analyze(landmarks, helpers) {
         const smoothed = smoothLandmarks(landmarks);
+        const time = timeSeconds(helpers);
         const signal = situpSignal(smoothed);
         if (!Number.isFinite(signal)) {
             tracker.missingFrames++;
+            if (tracker.missingFrames <= CONFIG.DROPOUT_BRIDGE_FRAMES && Number.isFinite(tracker.previousSignal)) {
+                processWithGapFill(time, tracker.previousSignal, helpers);
+                helpers.setPositionReady(true);
+                return;
+            }
             if (tracker.missingFrames > CONFIG.MAX_MISSING_FRAMES) {
                 helpers.setStage(STATE.NOT_READY);
                 helpers.setWarning('Keep at least one shoulder clearly visible.');
@@ -320,16 +417,16 @@
             tracker.maxValue = Math.max(tracker.maxValue, signal);
             tracker.low = tracker.low === null ? signal : Math.min(tracker.low, signal);
             tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
-            tracker.lowTime = timeSeconds(helpers);
-            tracker.highTime = timeSeconds(helpers);
+            tracker.lowTime = time;
+            tracker.highTime = time;
             tracker.previousSignal = signal;
-            tracker.previousTime = timeSeconds(helpers);
+            tracker.previousTime = time;
             helpers.setStage(STATE.READY);
             helpers.setWarning('Calibrating shoulder height.');
             sampleMetrics(helpers.metrics, helpers, smoothed, signal);
             return;
         }
-        processWithGapFill(timeSeconds(helpers), signal, helpers);
+        processWithGapFill(time, signal, helpers);
         sampleMetrics(helpers.metrics, helpers, smoothed, signal);
     }
 
