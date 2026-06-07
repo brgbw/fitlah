@@ -27,50 +27,45 @@
         // The first rep is armed after a brief valid straight-arm plank hold.
         READY_HOLD_MS: 50,
         // MediaPipe visibility is noisy in side view; this keeps low-confidence frames from moving states.
-        POSE_CONFIDENCE_MIN: 0.2,
+        POSE_CONFIDENCE_MIN: 0.18,
         // EMA smoothing absorbs small landmark jitter without adding visible lag to rep transitions.
         SMOOTHING_ALPHA: 0.4,
         // Straight arms define a valid push-up top position.
-        UP_ELBOW_MIN_ANGLE: 100,
-        // A rep must pass this elbow depth, or an equivalent shoulder drop, before it can count.
-        DOWN_ELBOW_MAX_ANGLE: 160,
-        MIN_SHOULDER_DROP: 0.012,
-        BENCHMARK_ELBOW_MARGIN: 38,
-        BENCHMARK_SHOULDER_DROP_RATIO: 0.55,
-        BENCHMARK_BLEND_ALPHA: 0.18,
-        MIN_ELBOW_BEND_DELTA: 8,
+        UP_ELBOW_MIN_ANGLE: 92,
+        // Used for form analytics only; rep counting is driven by shoulder-height travel.
+        DOWN_ELBOW_MAX_ANGLE: 165,
+        ANALYTICS_SHOULDER_DROP_MIN: 0.008,
         // Prevent quick oscillations or single-frame flicker from becoming duplicate reps.
-        MIN_REP_DURATION_MS: 300,
-        REP_COOLDOWN_MS: 300,
-        STABLE_FRAMES_REQUIRED: 2,
-        INVALID_POSE_GRACE_FRAMES: 5,
+        REP_COOLDOWN_MS: 250,
+        STABLE_FRAMES_REQUIRED: 1,
+        INVALID_POSE_GRACE_FRAMES: 8,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
-        SIGNAL_REVERSAL_RATIO: 0.22,
-        SIGNAL_TOP_RETURN_RATIO: 0.82,
+        SIGNAL_REVERSAL_RATIO: 0.18,
+        SIGNAL_TOP_RETURN_RATIO: 0.72,
         SIGNAL_SMOOTHING_ALPHA: 0.35,
-        SIGNAL_MIN_AMPLITUDE_BODY_RATIO: 0.045,
-        SIGNAL_MIN_AMPLITUDE_PX: 12,
-        SIGNAL_MIN_PERIOD_S: 0.45,
+        SIGNAL_MIN_AMPLITUDE_BODY_RATIO: 0.032,
+        SIGNAL_MIN_AMPLITUDE_PX: 8,
+        SIGNAL_MIN_PERIOD_S: 0.35,
         SIGNAL_MAX_PERIOD_S: 8,
         // Full-body validation thresholds are normalized by body length so they scale with camera distance.
-        BODY_STRAIGHTNESS_TOLERANCE: 0.45,
-        HEAD_ALIGNMENT_TOLERANCE: 0.7,
-        SHOULDER_SYMMETRY_TOLERANCE: 0.45,
-        HIP_SYMMETRY_TOLERANCE: 0.45,
-        MIN_HIP_ANGLE: 95,
-        MIN_KNEE_ANGLE: 100,
-        WRIST_SHOULDER_MAX_OFFSET: 2.6,
-        WRIST_BELOW_SHOULDER_MIN: -0.08,
-        CAMERA_WIDTH_MAX_RATIO: 1.2,
+        BODY_STRAIGHTNESS_TOLERANCE: 0.6,
+        HEAD_ALIGNMENT_TOLERANCE: 0.9,
+        SHOULDER_SYMMETRY_TOLERANCE: 0.65,
+        HIP_SYMMETRY_TOLERANCE: 0.65,
+        MIN_HIP_ANGLE: 85,
+        MIN_KNEE_ANGLE: 90,
+        WRIST_SHOULDER_MAX_OFFSET: 3.1,
+        WRIST_BELOW_SHOULDER_MIN: -0.16,
+        CAMERA_WIDTH_MAX_RATIO: 1.35,
         MIN_BODY_LENGTH: 0.12,
-        LEG_CONTACT_WARN_FRAMES: 6,
+        LEG_CONTACT_WARN_FRAMES: 10,
         LEG_CONTACT_CLEAR_FRAMES: 4,
         LEG_CONTACT_FLOOR_DISTANCE_RATIO: 0.095,
         LEG_CONTACT_FLOOR_Y_TOLERANCE_RATIO: 0.07,
         LEG_CONTACT_HIP_DISTANCE_RATIO: 0.12,
         LEG_CONTACT_KNEE_ANGLE_MAX: 165,
-        LEG_CONTACT_MAX_COUNTED_REPS: 3,
-        LEG_CONTACT_MIN_REPS_BEFORE_STOP: 3
+        LEG_CONTACT_MAX_COUNTED_REPS: 5,
+        LEG_CONTACT_MIN_REPS_BEFORE_STOP: 5
     };
 
     const tracker = {
@@ -79,18 +74,9 @@
         readyConfirmed: false,
         smoothedLandmarks: null,
         upShoulderY: null,
-        downFrames: 0,
         upFrames: 0,
-        repStartedAt: 0,
         lastCountedAt: 0,
-        repInvalid: false,
         invalidPoseFrames: 0,
-        firstRepBenchmark: null,
-        rollingBenchmark: null,
-        acceptedRepCount: 0,
-        lastUpElbowAngle: null,
-        currentRepMinElbowAngle: 180,
-        currentRepMaxShoulderDrop: 0,
         legContactFrames: 0,
         legContactClearFrames: 0,
         legContactActive: false,
@@ -117,7 +103,6 @@
             this.peaks = [];
             this.repCount = 0;
             this.repLogs = [];
-            this.rejectedLogs = [];
             this.currentAscentCounted = false;
             this.currentAscentRepIndex = null;
         }
@@ -141,7 +126,7 @@
         }
 
         processPoint(time, shoulderHeightPx, options = {}) {
-            const result = { repLog: null, rejectedLog: null };
+            const result = { repLog: null };
             if (!Number.isFinite(time) || !Number.isFinite(shoulderHeightPx)) return result;
 
             const minAmplitudePx = Math.max(
@@ -217,9 +202,6 @@
                         result.repLog = this._logRep(period, ascentAmp, this.localExtremeTime);
                         this.currentAscentCounted = true;
                         this.currentAscentRepIndex = this.repLogs.length - 1;
-                    } else if (period >= minPeriodS && ascentAmp >= minAmplitudePx * 0.45) {
-                        result.rejectedLog = this._rejectRep(period, ascentAmp, this.localExtremeTime);
-                        this.currentAscentCounted = true;
                     }
                 }
 
@@ -286,24 +268,12 @@
             log.time_s = Number(this.localExtremeTime.toFixed(3));
         }
 
-        _rejectRep(period, amplitude, time) {
-            const log = {
-                period_s: Number(period.toFixed(3)),
-                amplitude_px: Number(amplitude.toFixed(3)),
-                time_s: Number(time.toFixed(3)),
-                reason: 'shoulder height change was too small'
-            };
-            this.rejectedLogs.push(log);
-            return log;
-        }
     }
 
     tracker.signalAnalyzer = new AdaptivePushupSignalAnalyzer();
     tracker.signalStartedAt = null;
     tracker.signalSeeded = false;
     tracker.smoothedShoulderHeightPx = null;
-    tracker.publishedRepLogs = 0;
-    tracker.publishedRejectedLogs = 0;
 
     function reset() {
         tracker.state = STATE.NOT_READY;
@@ -311,18 +281,9 @@
         tracker.readyConfirmed = false;
         tracker.smoothedLandmarks = null;
         tracker.upShoulderY = null;
-        tracker.downFrames = 0;
         tracker.upFrames = 0;
-        tracker.repStartedAt = 0;
         tracker.lastCountedAt = 0;
-        tracker.repInvalid = false;
         tracker.invalidPoseFrames = 0;
-        tracker.firstRepBenchmark = null;
-        tracker.rollingBenchmark = null;
-        tracker.acceptedRepCount = 0;
-        tracker.lastUpElbowAngle = null;
-        tracker.currentRepMinElbowAngle = 180;
-        tracker.currentRepMaxShoulderDrop = 0;
         tracker.legContactFrames = 0;
         tracker.legContactClearFrames = 0;
         tracker.legContactActive = false;
@@ -332,8 +293,6 @@
         tracker.signalStartedAt = null;
         tracker.signalSeeded = false;
         tracker.smoothedShoulderHeightPx = null;
-        tracker.publishedRepLogs = 0;
-        tracker.publishedRejectedLogs = 0;
     }
 
     function visible(point, minVisibility) {
@@ -628,7 +587,6 @@
             tracker.readyStartedAt = null;
             tracker.readyConfirmed = false;
             tracker.state = STATE.NOT_READY;
-            tracker.downFrames = 0;
             tracker.upFrames = 0;
             helpers.setPositionReady(false);
             helpers.setStage(STATE.NOT_READY);
@@ -653,7 +611,6 @@
         tracker.readyConfirmed = true;
         tracker.state = STATE.READY;
         tracker.upShoulderY = validUpPose.metrics.shoulderY;
-        tracker.lastUpElbowAngle = validUpPose.metrics.elbowAngle;
         if (!tracker.signalSeeded && signalPoint) {
             tracker.signalAnalyzer.seedHighPoint(analyzerTimeSeconds(helpers, now), signalPoint.shoulderHeightPx);
             tracker.signalSeeded = true;
@@ -663,98 +620,17 @@
         return true;
     }
 
-    function updateStableFrames(isDown, isUp) {
-        tracker.downFrames = isDown ? tracker.downFrames + 1 : 0;
+    function updateStableFrames(isUp) {
         tracker.upFrames = isUp ? tracker.upFrames + 1 : 0;
-    }
-
-    function activeBenchmark() {
-        return tracker.rollingBenchmark || tracker.firstRepBenchmark;
-    }
-
-    function benchmarkedDownThresholds() {
-        const benchmark = activeBenchmark();
-        if (!benchmark) {
-            return {
-                elbowMax: CONFIG.DOWN_ELBOW_MAX_ANGLE,
-                shoulderDropMin: CONFIG.MIN_SHOULDER_DROP,
-                minElbowBend: CONFIG.MIN_ELBOW_BEND_DELTA
-            };
-        }
-
-        const first = tracker.firstRepBenchmark || benchmark;
-        const elbowMax = Math.min(
-            CONFIG.DOWN_ELBOW_MAX_ANGLE,
-            Math.min(benchmark.elbowAngle, first.elbowAngle + 18) + CONFIG.BENCHMARK_ELBOW_MARGIN
-        );
-        const shoulderDropMin = benchmark.shoulderDrop > CONFIG.MIN_SHOULDER_DROP
-            ? Math.max(CONFIG.MIN_SHOULDER_DROP, Math.min(0.045, benchmark.shoulderDrop * CONFIG.BENCHMARK_SHOULDER_DROP_RATIO))
-            : CONFIG.MIN_SHOULDER_DROP;
-
-        return {
-            elbowMax: Math.max(138, elbowMax),
-            shoulderDropMin,
-            minElbowBend: Math.max(5, CONFIG.MIN_ELBOW_BEND_DELTA - Math.min(3, tracker.acceptedRepCount))
-        };
-    }
-
-    function isDownPosition(validation) {
-        if (!validation.ok) return false;
-        const metrics = validation.metrics;
-        const thresholds = benchmarkedDownThresholds();
-        const elbowBend = tracker.lastUpElbowAngle === null
-            ? thresholds.minElbowBend
-            : Math.max(0, tracker.lastUpElbowAngle - metrics.elbowAngle);
-        return (metrics.elbowAngle <= thresholds.elbowMax && elbowBend >= thresholds.minElbowBend) ||
-            metrics.shoulderDrop >= thresholds.shoulderDropMin;
     }
 
     function isUpPosition(validation) {
         return validation.ok && validation.metrics.elbowAngle >= CONFIG.UP_ELBOW_MIN_ANGLE;
     }
 
-    function startDownRep(helpers, now) {
+    function startDownRep(helpers) {
         tracker.state = STATE.DOWN;
-        tracker.repStartedAt = now;
-        tracker.repInvalid = false;
-        tracker.currentRepMinElbowAngle = 180;
-        tracker.currentRepMaxShoulderDrop = 0;
         helpers.setStage(STATE.DOWN);
-    }
-
-    function updateCurrentRepBenchmark(validation) {
-        if (!validation.ok || tracker.state !== STATE.DOWN) return;
-        tracker.currentRepMinElbowAngle = Math.min(tracker.currentRepMinElbowAngle, validation.metrics.elbowAngle);
-        tracker.currentRepMaxShoulderDrop = Math.max(tracker.currentRepMaxShoulderDrop, validation.metrics.shoulderDrop || 0);
-    }
-
-    function repSnapshot() {
-        return {
-            elbowAngle: tracker.currentRepMinElbowAngle,
-            shoulderDrop: Math.max(0, tracker.currentRepMaxShoulderDrop)
-        };
-    }
-
-    function captureOrUpdateBenchmark() {
-        const snapshot = repSnapshot();
-        if (!Number.isFinite(snapshot.elbowAngle) || snapshot.elbowAngle >= 180) return;
-
-        if (!tracker.firstRepBenchmark) {
-            tracker.firstRepBenchmark = snapshot;
-            tracker.rollingBenchmark = { ...snapshot };
-            tracker.acceptedRepCount = 1;
-            return;
-        }
-
-        const alpha = CONFIG.BENCHMARK_BLEND_ALPHA;
-        const blendedElbow = tracker.rollingBenchmark.elbowAngle * (1 - alpha) + snapshot.elbowAngle * alpha;
-        const blendedDrop = tracker.rollingBenchmark.shoulderDrop * (1 - alpha) + snapshot.shoulderDrop * alpha;
-
-        tracker.rollingBenchmark = {
-            elbowAngle: Math.min(blendedElbow, tracker.firstRepBenchmark.elbowAngle + 18),
-            shoulderDrop: Math.max(blendedDrop, tracker.firstRepBenchmark.shoulderDrop * 0.6)
-        };
-        tracker.acceptedRepCount++;
     }
 
     function detectLegFloorContact(validation) {
@@ -812,11 +688,9 @@
     }
 
     function rejectCurrentRep(helpers, message) {
-        tracker.repInvalid = true;
         tracker.readyConfirmed = false;
         tracker.readyStartedAt = null;
         tracker.state = STATE.NOT_READY;
-        tracker.downFrames = 0;
         tracker.upFrames = 0;
         tracker.invalidPoseFrames = 0;
         helpers.setPositionReady(false);
@@ -861,10 +735,11 @@
         }
         publishSignalRepMetrics(metrics);
         if (metrics.frames_sampled % 5 !== 0) return;
-        if (elbowAngle <= benchmarkedDownThresholds().elbowMax) metrics.elbow_down_angles.push(Math.round(elbowAngle));
+        if (elbowAngle <= CONFIG.DOWN_ELBOW_MAX_ANGLE) metrics.elbow_down_angles.push(Math.round(elbowAngle));
         if (elbowAngle >= CONFIG.UP_ELBOW_MIN_ANGLE) metrics.elbow_up_angles.push(Math.round(elbowAngle));
         if (validation.metrics.hipAngle < CONFIG.MIN_HIP_ANGLE + 5) helpers.noteFormFlag('hips drifted out of straight plank');
-        if (elbowAngle > benchmarkedDownThresholds().elbowMax && validation.metrics.shoulderDrop < benchmarkedDownThresholds().shoulderDropMin) {
+        if (elbowAngle > CONFIG.DOWN_ELBOW_MAX_ANGLE &&
+            validation.metrics.shoulderDrop < CONFIG.ANALYTICS_SHOULDER_DROP_MIN) {
             metrics.shallow_rep_signals++;
         }
     }
@@ -921,15 +796,13 @@
         tracker.invalidPoseFrames = 0;
         updateLegContactState(movingPose, helpers);
 
-        const isDown = isDownPosition(movingPose);
         const isUp = isUpPosition(upPose);
-        updateStableFrames(isDown, isUp);
+        updateStableFrames(isUp);
 
         if (isUp) {
             tracker.upShoulderY = tracker.upShoulderY === null
                 ? upPose.metrics.shoulderY
                 : tracker.upShoulderY * 0.7 + upPose.metrics.shoulderY * 0.3;
-            tracker.lastUpElbowAngle = upPose.metrics.elbowAngle;
         }
 
         const signalResult = tracker.signalAnalyzer.processPoint(
@@ -944,8 +817,7 @@
         );
 
         if (tracker.signalAnalyzer.state === 'LOOKING_FOR_MIN') {
-            if (tracker.state !== STATE.DOWN) startDownRep(helpers, now);
-            updateCurrentRepBenchmark(movingPose);
+            if (tracker.state !== STATE.DOWN) startDownRep(helpers);
             helpers.setStage(STATE.DOWN);
             helpers.setWarning(helpers.sessionStarted
                 ? 'Recording - lower under control, then return to a straight-arm plank.'
@@ -958,15 +830,7 @@
             helpers.setStage(STATE.READY);
         }
 
-        if (signalResult.rejectedLog) {
-            tracker.publishedRejectedLogs = tracker.signalAnalyzer.rejectedLogs.length;
-            helpers.markInvalid('Lower through a fuller shoulder-height range before counting the push-up.');
-            helpers.noteFormFlag('limited push-up shoulder height range');
-            if (helpers.metrics) helpers.metrics.shallow_rep_signals++;
-        }
-
         if (signalResult.repLog && now - tracker.lastCountedAt >= CONFIG.REP_COOLDOWN_MS) {
-            captureOrUpdateBenchmark();
             tracker.lastCountedAt = now;
             tracker.state = STATE.REP_COUNTED;
             helpers.countValidRep(STATE.UP);
