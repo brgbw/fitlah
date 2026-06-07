@@ -22,14 +22,14 @@ let currentMode = 'pushup';
     const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 18;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
     const POSE_SLOW_FRAME_MS = 1000 / (isMobileLikeDevice ? 8 : 12);
-    const POSE_READY_MIN_FRAMES = 12;
-    const POSE_READY_MIN_SECONDS = 0.8;
-    const POSE_READY_BASELINE_SECONDS = 1;
-    const POSE_READY_VISIBLE_MS = 220;
-    const POSE_READY_MIN_CONFIDENCE = 0.12;
+    const POSE_READY_MIN_FRAMES = 6;
+    const POSE_READY_MIN_SECONDS = 0.5;
+    const POSE_READY_BASELINE_SECONDS = 0.5;
+    const POSE_READY_VISIBLE_MS = 100;
+    const POSE_READY_MIN_CONFIDENCE = 0.1;
     const POSE_READY_JITTER_LIMIT = {
-        pushup: 0.018,
-        situp: 0.016
+        pushup: 0.032,
+        situp: 0.03
     };
     const RECORDING_TARGET_FPS = isMobileLikeDevice ? 24 : 30;
     let poseLoopRequestId = null;
