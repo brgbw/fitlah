@@ -35,7 +35,7 @@
         SHOULDER_BASELINE_ALPHA: 0.08,
         MIN_REP_DURATION_MS: 50,
         REP_COOLDOWN_MS: 50,
-        STABLE_FRAMES_REQUIRED: 2,
+        STABLE_FRAMES_REQUIRED: 1,
         INVALID_POSE_GRACE_FRAMES: 5,
         GRAPH_SAMPLE_EVERY_FRAMES: 2
     };
@@ -189,7 +189,7 @@
             tracker.readyStartedAt = now;
         }
 
-        const heldMs = now - tracker.readyStartedAt;
+        const heldMs = helpers.isReplayMode ? CONFIG.READY_HOLD_MS : now - tracker.readyStartedAt;
         if (heldMs < CONFIG.READY_HOLD_MS) {
             const remaining = Math.max(0.1, (CONFIG.READY_HOLD_MS - heldMs) / 1000).toFixed(1);
             tracker.state = STATE.NOT_READY;
@@ -201,7 +201,7 @@
 
         tracker.readyConfirmed = true;
         tracker.state = STATE.READY;
-        tracker.downShoulderY = validation.metrics.shoulderY;
+        updateDownShoulderBaseline(validation.metrics.shoulderY);
         helpers.setPositionReady(true);
         helpers.setStage(STATE.READY);
         return true;
@@ -215,12 +215,14 @@
     }
 
     function beginRep(helpers, now, validation) {
-        tracker.state = STATE.ASCENDING;
+        tracker.state = validation.metrics.shoulderLift >= CONFIG.SHOULDER_LIFT_MIN
+            ? STATE.UP
+            : STATE.ASCENDING;
         tracker.repStartedAt = now;
         tracker.repStartedAtSeconds = helpers.sessionElapsedSeconds();
         tracker.repStartDownShoulderY = validation.metrics.shoulderY;
-        tracker.maxShoulderLiftThisRep = 0;
-        helpers.setStage(STATE.ASCENDING);
+        tracker.maxShoulderLiftThisRep = validation.metrics.shoulderLift;
+        helpers.setStage(tracker.state);
     }
 
     function invalidateRep(helpers, message) {
@@ -242,6 +244,10 @@
     function updateDownShoulderBaseline(shoulderY) {
         if (!Number.isFinite(shoulderY)) return;
         if (tracker.downShoulderY === null) {
+            tracker.downShoulderY = shoulderY;
+            return;
+        }
+        if (shoulderY > tracker.downShoulderY) {
             tracker.downShoulderY = shoulderY;
             return;
         }
