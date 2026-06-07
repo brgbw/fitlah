@@ -21,13 +21,13 @@
         POSE_CONFIDENCE_MIN: 0.16,
         SMOOTHING_ALPHA: 0.82,
         SIGNAL_ALPHA: 0.82,
-        MIN_AMPLITUDE: 0.014,
-        STARTUP_RETURN_MIN: 0.014,
+        MIN_AMPLITUDE: 0.025,
         REVERSAL_RATIO: 0.2,
-        RETURN_RATIO: 0.45,
-        MIN_REP_PERIOD_S: 0.12,
+        RETURN_RATIO: 0.78,
+        MIN_REP_PERIOD_S: 0.32,
         MAX_REP_PERIOD_S: 8,
-        REP_COOLDOWN_S: 0.12,
+        REP_COOLDOWN_S: 0.38,
+        CALIBRATION_FRAMES: 4,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         MAX_MISSING_FRAMES: 8
@@ -46,8 +46,6 @@
         lowTime: 0,
         high: null,
         highTime: 0,
-        startupHigh: null,
-        startupReturnCounted: false,
         lastCountedAt: -Infinity,
         repLogs: [],
         repCount: 0,
@@ -68,8 +66,6 @@
         tracker.lowTime = 0;
         tracker.high = null;
         tracker.highTime = 0;
-        tracker.startupHigh = null;
-        tracker.startupReturnCounted = false;
         tracker.lastCountedAt = -Infinity;
         tracker.repLogs = [];
         tracker.repCount = 0;
@@ -136,22 +132,10 @@
         return null;
     }
 
-    function torsoScale(landmarks) {
-        const shoulder = shoulderPoint(landmarks);
-        const leftHip = landmarks[LANDMARK.LEFT_HIP];
-        const rightHip = landmarks[LANDMARK.RIGHT_HIP];
-        if (!shoulder) return 1;
-        const hip = visible(leftHip) && visible(rightHip)
-            ? midpoint(leftHip, rightHip)
-            : (visible(leftHip) ? leftHip : rightHip);
-        if (!visible(hip, 0.08)) return 1;
-        return Math.max(0.08, Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y));
-    }
-
     function situpSignal(landmarks) {
         const shoulder = shoulderPoint(landmarks);
         if (!shoulder) return null;
-        const raw = -shoulder.y / torsoScale(landmarks);
+        const raw = -shoulder.y;
         tracker.smoothedSignal = tracker.smoothedSignal === null
             ? raw
             : tracker.smoothedSignal * (1 - CONFIG.SIGNAL_ALPHA) + raw * CONFIG.SIGNAL_ALPHA;
@@ -200,23 +184,9 @@
         return true;
     }
 
-    function maybeRecoverStartupReturn(time, value, helpers) {
-        if (!helpers.isReplayMode || tracker.startupReturnCounted || tracker.startupHigh === null || (helpers.validReps || 0) > 0) {
-            return false;
-        }
-        const drop = tracker.startupHigh - value;
-        if (drop < CONFIG.STARTUP_RETURN_MIN) return false;
-        if (countRep(time, drop, helpers)) {
-            tracker.startupReturnCounted = true;
-            return true;
-        }
-        return false;
-    }
-
     function processSignal(time, value, helpers) {
         tracker.minValue = Math.min(tracker.minValue, value);
         tracker.maxValue = Math.max(tracker.maxValue, value);
-        if (tracker.startupHigh === null || value > tracker.startupHigh) tracker.startupHigh = value;
 
         if (tracker.low === null || value < tracker.low) {
             tracker.low = value;
@@ -225,15 +195,6 @@
         if (tracker.high === null || value > tracker.high) {
             tracker.high = value;
             tracker.highTime = time;
-        }
-
-        if (maybeRecoverStartupReturn(time, value, helpers)) {
-            tracker.stage = 'SEEK_HIGH';
-            tracker.low = value;
-            tracker.lowTime = time;
-            tracker.high = value;
-            tracker.highTime = time;
-            return;
         }
 
         const dynamicRange = Math.max(CONFIG.MIN_AMPLITUDE, tracker.maxValue - tracker.minValue);
@@ -347,6 +308,20 @@
         tracker.missingFrames = 0;
         tracker.framesSeen++;
         helpers.setPositionReady(true);
+        if (tracker.framesSeen <= CONFIG.CALIBRATION_FRAMES) {
+            tracker.minValue = Math.min(tracker.minValue, signal);
+            tracker.maxValue = Math.max(tracker.maxValue, signal);
+            tracker.low = tracker.low === null ? signal : Math.min(tracker.low, signal);
+            tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
+            tracker.lowTime = timeSeconds(helpers);
+            tracker.highTime = timeSeconds(helpers);
+            tracker.previousSignal = signal;
+            tracker.previousTime = timeSeconds(helpers);
+            helpers.setStage(STATE.READY);
+            helpers.setWarning('Calibrating shoulder height.');
+            sampleMetrics(helpers.metrics, helpers, smoothed, signal);
+            return;
+        }
         processWithGapFill(timeSeconds(helpers), signal, helpers);
         sampleMetrics(helpers.metrics, helpers, smoothed, signal);
     }

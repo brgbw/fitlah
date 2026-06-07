@@ -27,12 +27,13 @@
         POSE_CONFIDENCE_MIN: 0.16,
         SMOOTHING_ALPHA: 0.82,
         SIGNAL_ALPHA: 0.82,
-        MIN_AMPLITUDE: 0.018,
+        MIN_AMPLITUDE: 0.04,
         REVERSAL_RATIO: 0.22,
-        RETURN_RATIO: 0.45,
-        MIN_REP_PERIOD_S: 0.22,
+        RETURN_RATIO: 0.82,
+        MIN_REP_PERIOD_S: 0.32,
         MAX_REP_PERIOD_S: 8,
-        REP_COOLDOWN_S: 0.14,
+        REP_COOLDOWN_S: 0.4,
+        CALIBRATION_FRAMES: 4,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         MAX_MISSING_FRAMES: 8
@@ -255,19 +256,9 @@
                 return;
             }
             if (drop >= CONFIG.MIN_AMPLITUDE && value >= tracker.low + reversal) {
-                if (time - tracker.lowTime >= CONFIG.MIN_REP_PERIOD_S) {
-                    if (countRep(time, drop, helpers)) {
-                        tracker.stage = 'SEEK_LOW';
-                        tracker.low = value;
-                        tracker.lowTime = time;
-                        tracker.high = value;
-                        tracker.highTime = time;
-                    }
-                    return;
-                }
                 tracker.state = STATE.DOWN;
                 helpers.setStage(STATE.DOWN);
-                helpers.setWarning('Lowered - keep pushing up.');
+                helpers.setWarning('Lowered - return fully up to count the rep.');
                 return;
             }
             tracker.state = STATE.READY;
@@ -358,6 +349,20 @@
         tracker.missingFrames = 0;
         tracker.framesSeen++;
         helpers.setPositionReady(true);
+        if (tracker.framesSeen <= CONFIG.CALIBRATION_FRAMES) {
+            tracker.minValue = Math.min(tracker.minValue, signal);
+            tracker.maxValue = Math.max(tracker.maxValue, signal);
+            tracker.low = tracker.low === null ? signal : Math.min(tracker.low, signal);
+            tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
+            tracker.lowTime = timeSeconds(helpers);
+            tracker.highTime = timeSeconds(helpers);
+            tracker.previousSignal = signal;
+            tracker.previousTime = timeSeconds(helpers);
+            helpers.setStage(STATE.READY);
+            helpers.setWarning('Calibrating shoulder movement.');
+            sampleMetrics(helpers.metrics, helpers, smoothed, signal);
+            return;
+        }
         processWithGapFill(timeSeconds(helpers), signal, helpers);
         sampleMetrics(helpers.metrics, helpers, smoothed, signal);
     }

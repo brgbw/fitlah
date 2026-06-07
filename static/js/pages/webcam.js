@@ -549,7 +549,7 @@ let currentMode = 'pushup';
             return;
         }
 
-        const minRepGapMs = isReplayMode ? 150 : 500;
+        const minRepGapMs = isReplayMode ? 380 : 500;
         if (Date.now() - lastRepAt < minRepGapMs) {
             stage = nextStage;
             return;
