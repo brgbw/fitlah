@@ -569,7 +569,7 @@ let currentMode = 'pushup';
         const jitter = recentSignalJitter(recentSamples);
         const elapsedSeconds = (now - readiness.firstSignalAtMs) / 1000;
         const stableSignal = confidence >= POSE_READY_MIN_CONFIDENCE &&
-            (recentSamples.length < POSE_READY_MIN_FRAMES || jitter <= jitterLimit);
+            (isReplayMode || recentSamples.length < POSE_READY_MIN_FRAMES || jitter <= jitterLimit);
 
         readiness.stableFrames = stableSignal
             ? readiness.stableFrames + 1
