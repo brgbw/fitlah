@@ -266,6 +266,10 @@
     }
 
     function countRep(time, amplitude, helpers) {
+        if (helpers.canCountReps && !helpers.canCountReps()) {
+            helpers.setWarning(helpers.poseReadinessMessage ? helpers.poseReadinessMessage() : 'Hold position...');
+            return false;
+        }
         if (time - tracker.lastCountedAt < CONFIG.REP_COOLDOWN_S) return false;
         const period = tracker.lowTime > 0 ? time - tracker.lowTime : CONFIG.MIN_REP_PERIOD_S;
         if (period < CONFIG.MIN_REP_PERIOD_S || period > CONFIG.MAX_REP_PERIOD_S) return false;
@@ -449,6 +453,21 @@
         tracker.missingFrames = 0;
         tracker.framesSeen++;
         helpers.setPositionReady(true);
+        if (helpers.markPoseSignalStable && !helpers.markPoseSignalStable({
+            signal,
+            confidence: tracker.lastSignalConfidence
+        })) {
+            tracker.minValue = Math.min(tracker.minValue, signal);
+            tracker.maxValue = Math.max(tracker.maxValue, signal);
+            tracker.low = tracker.low === null ? signal : Math.min(tracker.low, signal);
+            tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
+            tracker.lowTime = time;
+            tracker.highTime = time;
+            tracker.previousSignal = signal;
+            tracker.previousTime = time;
+            helpers.setStage(STATE.READY);
+            return;
+        }
         if (tracker.framesSeen <= CONFIG.CALIBRATION_FRAMES) {
             tracker.minValue = Math.min(tracker.minValue, signal);
             tracker.maxValue = Math.max(tracker.maxValue, signal);

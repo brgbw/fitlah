@@ -27,7 +27,7 @@
         MAX_ADAPTIVE_AMPLITUDE_MULTIPLIER: 1.6,
         REVERSAL_RATIO: 0.2,
         RETURN_RATIO: 0.74,
-        MIN_REP_PERIOD_S: 0.32,
+        MIN_REP_PERIOD_S: 0.15,
         MAX_REP_PERIOD_S: 8,
         REP_COOLDOWN_S: 0.38,
         CALIBRATION_FRAMES: 4,
@@ -238,6 +238,10 @@
     }
 
     function countRep(time, amplitude, helpers) {
+        if (helpers.canCountReps && !helpers.canCountReps()) {
+            helpers.setWarning(helpers.poseReadinessMessage ? helpers.poseReadinessMessage() : 'Hold position...');
+            return false;
+        }
         if (time - tracker.lastCountedAt < CONFIG.REP_COOLDOWN_S) return false;
         const period = tracker.lowTime > 0 ? time - tracker.lowTime : CONFIG.MIN_REP_PERIOD_S;
         if (period < CONFIG.MIN_REP_PERIOD_S || period > CONFIG.MAX_REP_PERIOD_S) return false;
@@ -412,6 +416,21 @@
         tracker.missingFrames = 0;
         tracker.framesSeen++;
         helpers.setPositionReady(true);
+        if (helpers.markPoseSignalStable && !helpers.markPoseSignalStable({
+            signal,
+            confidence: tracker.lastSignalConfidence
+        })) {
+            tracker.minValue = Math.min(tracker.minValue, signal);
+            tracker.maxValue = Math.max(tracker.maxValue, signal);
+            tracker.low = tracker.low === null ? signal : Math.min(tracker.low, signal);
+            tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
+            tracker.lowTime = time;
+            tracker.highTime = time;
+            tracker.previousSignal = signal;
+            tracker.previousTime = time;
+            helpers.setStage(STATE.READY);
+            return;
+        }
         if (tracker.framesSeen <= CONFIG.CALIBRATION_FRAMES) {
             tracker.minValue = Math.min(tracker.minValue, signal);
             tracker.maxValue = Math.max(tracker.maxValue, signal);

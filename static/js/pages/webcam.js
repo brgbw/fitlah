@@ -22,6 +22,15 @@ let currentMode = 'pushup';
     const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 18;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
     const POSE_SLOW_FRAME_MS = 1000 / (isMobileLikeDevice ? 8 : 12);
+    const POSE_READY_MIN_FRAMES = 12;
+    const POSE_READY_MIN_SECONDS = 0.8;
+    const POSE_READY_BASELINE_SECONDS = 1;
+    const POSE_READY_VISIBLE_MS = 220;
+    const POSE_READY_MIN_CONFIDENCE = 0.12;
+    const POSE_READY_JITTER_LIMIT = {
+        pushup: 0.018,
+        situp: 0.016
+    };
     const RECORDING_TARGET_FPS = isMobileLikeDevice ? 24 : 30;
     let poseLoopRequestId = null;
     let poseInFlight = false;
@@ -57,6 +66,7 @@ let currentMode = 'pushup';
     let videoObjectUrl = null;
     let discardRecordingOnStop = false;
     let lastAnalyzedVideoTime = -1;
+    let poseReadiness = null;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -104,6 +114,26 @@ let currentMode = 'pushup';
         getLastSessionId: () => lastSessionId
     });
 
+    function resetPoseReadiness() {
+        poseReadiness = {
+            mode: currentMode,
+            firstSignalAtMs: null,
+            stableFrames: 0,
+            ready: false,
+            readyVisibleAtMs: null,
+            overlayDrawn: false,
+            samples: [],
+            lastMessage: ''
+        };
+    }
+
+    function ensurePoseReadiness() {
+        if (!poseReadiness || poseReadiness.mode !== currentMode) {
+            resetPoseReadiness();
+        }
+        return poseReadiness;
+    }
+
     function lockEntryMode(mode) {
         if (mode === 'camera') {
             attachVideoBtn.style.display = 'none';
@@ -122,11 +152,15 @@ let currentMode = 'pushup';
 
     function setCameraMessage(message, type = '') {
         if (!cameraStatus) return;
-        const shouldShow = type === 'error';
+        const shouldShow = Boolean(message);
         cameraStatus.textContent = shouldShow ? message : '';
         cameraStatus.classList.toggle('visible', shouldShow);
         cameraStatus.classList.toggle('error', type === 'error');
-        cameraStatus.classList.toggle('success', false);
+        cameraStatus.classList.toggle('success', type === 'success');
+    }
+
+    function performanceNow() {
+        return window.performance?.now ? window.performance.now() : Date.now();
     }
 
     function mediaUnsupportedMessage() {
@@ -422,6 +456,7 @@ let currentMode = 'pushup';
 
         if (!results.poseLandmarks) {
             if (!isReplayMode) {
+                resetPoseReadiness();
                 if (currentMode === 'pushup' && window.FitLahPushupExercise) {
                     FitLahPushupExercise.reset();
                 } else if (currentMode === 'situp' && window.FitLahSitupExercise) {
@@ -465,6 +500,7 @@ let currentMode = 'pushup';
 
     function drawBodySkeleton(landmarks) {
         FitLahPoseDrawing.drawBodySkeleton(ctx, poseCanvas, landmarks);
+        markPoseOverlayDrawn();
     }
 
     function bestSide(landmarks) {
@@ -489,6 +525,79 @@ let currentMode = 'pushup';
         positionReady = positionLockFrames >= 5;
     }
 
+    function markPoseOverlayDrawn() {
+        ensurePoseReadiness().overlayDrawn = true;
+    }
+
+    function poseReadinessMessage() {
+        const readiness = ensurePoseReadiness();
+        if (!readiness.overlayDrawn || !readiness.firstSignalAtMs) return 'Finding body...';
+        if (readiness.ready) return 'Ready - start when the guide is stable.';
+        return 'Hold position...';
+    }
+
+    function recentSignalJitter(samples) {
+        if (!samples.length) return Infinity;
+        const values = samples.map(sample => sample.signal);
+        return Math.max(...values) - Math.min(...values);
+    }
+
+    function markPoseSignalStable({ signal, confidence = 1 }) {
+        const readiness = ensurePoseReadiness();
+        const now = performanceNow();
+        if (!Number.isFinite(signal)) {
+            readiness.stableFrames = 0;
+            readiness.samples = [];
+            readiness.firstSignalAtMs = null;
+            readiness.ready = false;
+            readiness.readyVisibleAtMs = null;
+            setWarning('Finding body...');
+            return false;
+        }
+
+        if (readiness.firstSignalAtMs === null) {
+            readiness.firstSignalAtMs = now;
+        }
+
+        readiness.samples.push({ signal, confidence, timeMs: now });
+        readiness.samples = readiness.samples
+            .filter(sample => now - sample.timeMs <= POSE_READY_BASELINE_SECONDS * 1000)
+            .slice(-Math.max(POSE_READY_MIN_FRAMES * 2, 30));
+
+        const recentSamples = readiness.samples.slice(-POSE_READY_MIN_FRAMES);
+        const jitterLimit = POSE_READY_JITTER_LIMIT[currentMode] || 0.018;
+        const jitter = recentSignalJitter(recentSamples);
+        const elapsedSeconds = (now - readiness.firstSignalAtMs) / 1000;
+        const stableSignal = confidence >= POSE_READY_MIN_CONFIDENCE &&
+            (recentSamples.length < POSE_READY_MIN_FRAMES || jitter <= jitterLimit);
+
+        readiness.stableFrames = stableSignal
+            ? readiness.stableFrames + 1
+            : Math.max(0, readiness.stableFrames - 1);
+
+        const gateReady = readiness.overlayDrawn &&
+            readiness.stableFrames >= POSE_READY_MIN_FRAMES &&
+            elapsedSeconds >= Math.max(POSE_READY_MIN_SECONDS, POSE_READY_BASELINE_SECONDS) &&
+            readiness.samples.length >= POSE_READY_MIN_FRAMES;
+
+        if (gateReady && !readiness.ready) {
+            readiness.ready = true;
+            readiness.readyVisibleAtMs = now;
+            setWarning('Ready - start when the guide is stable.');
+        } else if (!readiness.ready) {
+            setWarning(readiness.overlayDrawn && elapsedSeconds > 0.2 ? 'Hold position...' : 'Finding body...');
+        }
+
+        return poseCountingReady();
+    }
+
+    function poseCountingReady() {
+        const readiness = ensurePoseReadiness();
+        return readiness.ready &&
+            readiness.readyVisibleAtMs !== null &&
+            performanceNow() - readiness.readyVisibleAtMs >= POSE_READY_VISIBLE_MS;
+    }
+
     function exerciseHelpers() {
         if (cachedExerciseHelpers) return cachedExerciseHelpers;
 
@@ -510,10 +619,15 @@ let currentMode = 'pushup';
                 return poseCanvas.height || sourceVideo.videoHeight || playbackVideo.videoHeight || 360;
             },
             markInvalid,
+            markPoseSignalStable,
             get metrics() {
                 return cvMetrics;
             },
             noteFormFlag,
+            canCountReps() {
+                return poseCountingReady();
+            },
+            poseReadinessMessage,
             requestStopRecording,
             sessionElapsedSeconds,
             get validReps() {
@@ -545,6 +659,13 @@ let currentMode = 'pushup';
     function countValidRep(nextStage) {
         if (!sessionArmed && !sessionStarted) {
             stage = nextStage;
+            updateCounters();
+            return;
+        }
+
+        if (!poseCountingReady()) {
+            stage = stage || 'ready';
+            setWarning(poseReadinessMessage());
             updateCounters();
             return;
         }
@@ -594,7 +715,14 @@ let currentMode = 'pushup';
     }
 
     function setWarning(text) {
-        return Boolean(text);
+        if (!text) return false;
+        if (cameraStatus) {
+            cameraStatus.textContent = text;
+            cameraStatus.classList.add('visible');
+            cameraStatus.classList.remove('error');
+            cameraStatus.classList.toggle('success', text.startsWith('Ready'));
+        }
+        return true;
     }
 
     function requestStopRecording(message) {
@@ -683,6 +811,7 @@ let currentMode = 'pushup';
         lastAnalyzedVideoTime = -1;
         lastSessionMetrics = null;
         lastSessionId = null;
+        resetPoseReadiness();
         uploadBtn.innerText = 'Save Session';
         uploadBtn.style.pointerEvents = 'auto';
         cvMetrics = null;
@@ -710,6 +839,7 @@ let currentMode = 'pushup';
         stage = null;
         lastCounterSignature = '';
         validReps = 0;
+        resetPoseReadiness();
         if (window.FitLahPushupExercise) {
             FitLahPushupExercise.reset();
         }
