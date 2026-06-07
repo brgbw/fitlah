@@ -34,6 +34,7 @@
         MAX_REP_PERIOD_S: 8,
         REP_COOLDOWN_S: 0.4,
         CALIBRATION_FRAMES: 4,
+        POST_COUNT_DESCENT_RATIO: 0.75,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         MAX_MISSING_FRAMES: 8
@@ -53,6 +54,7 @@
         high: null,
         highTime: 0,
         lastCountedAt: -Infinity,
+        awaitingFreshDescent: false,
         repLogs: [],
         repCount: 0,
         minValue: Infinity,
@@ -73,6 +75,7 @@
         tracker.high = null;
         tracker.highTime = 0;
         tracker.lastCountedAt = -Infinity;
+        tracker.awaitingFreshDescent = false;
         tracker.repLogs = [];
         tracker.repCount = 0;
         tracker.minValue = Infinity;
@@ -216,6 +219,7 @@
             amplitude_px: Number(amplitude.toFixed(3)),
             time_s: Number(time.toFixed(3))
         });
+        tracker.awaitingFreshDescent = true;
         tracker.state = STATE.REP_COUNTED;
         helpers.countValidRep(STATE.UP);
         helpers.setStage(STATE.REP_COUNTED);
@@ -245,6 +249,21 @@
                 tracker.lowTime = time;
             }
             const drop = tracker.high - tracker.low;
+            const freshDescent = drop >= CONFIG.MIN_AMPLITUDE * CONFIG.POST_COUNT_DESCENT_RATIO &&
+                value <= tracker.high - reversal;
+            if (tracker.awaitingFreshDescent) {
+                if (freshDescent) {
+                    tracker.awaitingFreshDescent = false;
+                    tracker.state = STATE.DOWN;
+                    helpers.setStage(STATE.DOWN);
+                    helpers.setWarning('Lowered - return fully up to count the rep.');
+                } else {
+                    tracker.state = STATE.READY;
+                    helpers.setStage(STATE.READY);
+                    helpers.setWarning('Rep counted - start the next push-up by lowering again.');
+                }
+                return;
+            }
             if (drop >= CONFIG.MIN_AMPLITUDE && value >= tracker.low + drop * CONFIG.RETURN_RATIO) {
                 if (countRep(time, drop, helpers)) {
                     tracker.stage = 'SEEK_LOW';

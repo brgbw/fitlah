@@ -22,6 +22,7 @@
         SMOOTHING_ALPHA: 0.82,
         SIGNAL_ALPHA: 0.82,
         MIN_AMPLITUDE: 0.025,
+        MIN_CONFIRMED_LIFT: 0.045,
         REVERSAL_RATIO: 0.2,
         RETURN_RATIO: 0.78,
         MIN_REP_PERIOD_S: 0.32,
@@ -47,6 +48,7 @@
         high: null,
         highTime: 0,
         lastCountedAt: -Infinity,
+        liftConfirmed: false,
         repLogs: [],
         repCount: 0,
         minValue: Infinity,
@@ -67,6 +69,7 @@
         tracker.high = null;
         tracker.highTime = 0;
         tracker.lastCountedAt = -Infinity;
+        tracker.liftConfirmed = false;
         tracker.repLogs = [];
         tracker.repCount = 0;
         tracker.minValue = Infinity;
@@ -206,7 +209,10 @@
                 tracker.highTime = time;
             }
             const lift = tracker.high - tracker.low;
-            if (lift >= CONFIG.MIN_AMPLITUDE && value <= tracker.high - reversal) {
+            if (lift >= CONFIG.MIN_CONFIRMED_LIFT) {
+                tracker.liftConfirmed = true;
+            }
+            if (tracker.liftConfirmed && value <= tracker.high - reversal) {
                 tracker.stage = 'SEEK_LOW';
                 tracker.state = STATE.UP;
                 helpers.setStage(STATE.UP);
@@ -226,13 +232,14 @@
 
         const amplitude = tracker.high - tracker.low;
         const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO;
-        if (amplitude >= CONFIG.MIN_AMPLITUDE && returnedLowEnough) {
+        if (tracker.liftConfirmed && amplitude >= CONFIG.MIN_CONFIRMED_LIFT && returnedLowEnough) {
             if (countRep(time, amplitude, helpers)) {
                 tracker.stage = 'SEEK_HIGH';
                 tracker.low = value;
                 tracker.lowTime = time;
                 tracker.high = value;
                 tracker.highTime = time;
+                tracker.liftConfirmed = false;
             }
             return;
         }
