@@ -67,6 +67,8 @@ let currentMode = 'pushup';
     let discardRecordingOnStop = false;
     let lastAnalyzedVideoTime = -1;
     let poseReadiness = null;
+    let attachmentPreflightActive = false;
+    let suppressRepCounting = false;
 
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
@@ -132,6 +134,29 @@ let currentMode = 'pushup';
             resetPoseReadiness();
         }
         return poseReadiness;
+    }
+
+    function markPoseReadinessReady() {
+        const now = performanceNow();
+        poseReadiness = {
+            mode: currentMode,
+            firstSignalAtMs: now - POSE_READY_BASELINE_SECONDS * 1000,
+            stableFrames: POSE_READY_MIN_FRAMES,
+            ready: true,
+            readyVisibleAtMs: now - POSE_READY_VISIBLE_MS,
+            overlayDrawn: true,
+            samples: [],
+            lastMessage: ''
+        };
+        positionReady = true;
+    }
+
+    function resetActiveExerciseTracker() {
+        if (currentMode === 'pushup' && window.FitLahPushupExercise) {
+            FitLahPushupExercise.reset();
+        } else if (currentMode === 'situp' && window.FitLahSitupExercise) {
+            FitLahSitupExercise.reset();
+        }
     }
 
     function lockEntryMode(mode) {
@@ -338,6 +363,83 @@ let currentMode = 'pushup';
         return poseInputCanvas;
     }
 
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function waitForMediaReady(media) {
+        if (!media || media.readyState >= 2) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const cleanup = () => {
+                media.removeEventListener('loadeddata', onReady);
+                media.removeEventListener('canplay', onReady);
+                media.removeEventListener('error', onError);
+            };
+            const onReady = () => {
+                cleanup();
+                resolve();
+            };
+            const onError = () => {
+                cleanup();
+                reject(new Error('Attached video could not be prepared for analysis.'));
+            };
+            media.addEventListener('loadeddata', onReady, { once: true });
+            media.addEventListener('canplay', onReady, { once: true });
+            media.addEventListener('error', onError, { once: true });
+        });
+    }
+
+    async function prepareAttachedVideoForAnalysis() {
+        if (!attachedVideoFile || !pose || !analyzeReplayMode) return;
+
+        stopPoseLoop();
+        playbackVideo.pause();
+        try {
+            playbackVideo.currentTime = 0;
+        } catch (err) {
+            console.warn('Could not rewind attached video before analysis:', err);
+        }
+        await waitForMediaReady(playbackVideo);
+
+        setWarning('Loading computer vision...');
+        resetPoseReadiness();
+        resetActiveExerciseTracker();
+        attachmentPreflightActive = true;
+        suppressRepCounting = true;
+        const wasRecording = isRecording;
+        isRecording = false;
+
+        const frameCount = Math.max(POSE_READY_MIN_FRAMES, 6);
+        const frameDelayMs = Math.max(35, Math.ceil((POSE_READY_MIN_SECONDS * 1000) / frameCount));
+        try {
+            for (let frame = 0; frame < frameCount; frame++) {
+                await delay(frame === 0 ? 0 : frameDelayMs);
+                const poseInputFrame = preparePoseInputFrame(playbackVideo);
+                if (!poseInputFrame) break;
+                poseInFlight = true;
+                try {
+                    await pose.send({ image: poseInputFrame });
+                } finally {
+                    poseInFlight = false;
+                }
+            }
+        } finally {
+            isRecording = wasRecording;
+            attachmentPreflightActive = false;
+            suppressRepCounting = false;
+        }
+
+        resetActiveExerciseTracker();
+        markPoseReadinessReady();
+        lastAnalyzedVideoTime = -1;
+        try {
+            playbackVideo.currentTime = 0;
+        } catch (err) {
+            console.warn('Could not rewind attached video after computer vision preflight:', err);
+        }
+        setWarning('Ready - analysing attached video.');
+    }
+
     function drawDisplayFrame(results) {
         const displaySource = activeMediaElement();
         const canDrawDisplaySource = displaySource && displaySource.readyState >= 2;
@@ -481,11 +583,12 @@ let currentMode = 'pushup';
             });
         }
 
-        const replayFrameAdvanced = !isReplayMode ||
+        const replayFrameAdvanced = attachmentPreflightActive ||
+            !isReplayMode ||
             (analyzeReplayMode && !playbackVideo.paused && playbackVideo.currentTime !== lastAnalyzedVideoTime);
 
         if (replayFrameAdvanced) {
-            if (isReplayMode) {
+            if (isReplayMode && !attachmentPreflightActive) {
                 lastAnalyzedVideoTime = playbackVideo.currentTime;
             }
             if (currentMode === 'pushup') {
@@ -592,6 +695,7 @@ let currentMode = 'pushup';
     }
 
     function poseCountingReady() {
+        if (suppressRepCounting) return false;
         const readiness = ensurePoseReadiness();
         return readiness.ready &&
             readiness.readyVisibleAtMs !== null &&
@@ -929,7 +1033,9 @@ let currentMode = 'pushup';
                     SoundManager.playSessionEndSound();
                 }
 
-                startPlaybackReplay({ analyze: false });
+                startPlaybackReplay({ analyze: false }).catch(err => {
+                    console.warn('Playback replay could not start:', err);
+                });
             };
         } else {
             mediaRecorder = null;
@@ -959,13 +1065,16 @@ let currentMode = 'pushup';
         setWarning('Recording started. 1 minute on the clock!');
     }
 
-    function startPlaybackReplay(options = {}) {
+    async function startPlaybackReplay(options = {}) {
         isReplayMode = true;
         analyzeReplayMode = Boolean(options.analyze);
         playbackVideo.style.display = 'none';
         poseCanvas.style.display = 'block';
         playbackVideo.currentTime = 0;
         lastAnalyzedVideoTime = -1;
+        if (attachedVideoFile && analyzeReplayMode) {
+            await prepareAttachedVideoForAnalysis();
+        }
         const playReplay = () => playbackVideo.play().catch(() => {});
         if (playbackVideo.readyState >= 2) {
             playReplay();
@@ -1043,15 +1152,27 @@ let currentMode = 'pushup';
         aiCoach.reset();
         updateCounters();
 
+        let replayStarted = false;
+        const startAttachmentReplay = () => {
+            if (replayStarted) return;
+            replayStarted = true;
+            startPlaybackReplay({ analyze: true }).catch(err => {
+                setWarning(err.message || 'Could not prepare attached video analysis.');
+                uploadBtn.style.display = 'none';
+                stopRecBtn.style.display = 'none';
+                startRecBtn.style.display = stream ? 'inline-block' : 'none';
+            });
+        };
+
         playbackVideo.onloadedmetadata = () => {
             resizePoseCanvas(playbackVideo);
             resizePoseInputCanvas(playbackVideo);
-            startPlaybackReplay({ analyze: true });
+            startAttachmentReplay();
         };
         if (playbackVideo.readyState >= 1) {
             resizePoseCanvas(playbackVideo);
             resizePoseInputCanvas(playbackVideo);
-            startPlaybackReplay({ analyze: true });
+            startAttachmentReplay();
         }
     }
 
