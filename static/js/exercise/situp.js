@@ -27,6 +27,7 @@
         MAX_ADAPTIVE_AMPLITUDE_MULTIPLIER: 1.35,
         REVERSAL_RATIO: 0.14,
         RETURN_RATIO: 0.64,
+        MIN_TORSO_ANGLE_CHANGE: 8,
         MIN_REP_PERIOD_S: 0.12,
         MAX_REP_PERIOD_S: 8,
         REP_COOLDOWN_S: 0.28,
@@ -50,8 +51,11 @@
         stage: 'SEEK_HIGH',
         low: null,
         lowTime: 0,
+        lowTorsoAngle: null,
         high: null,
         highTime: 0,
+        highTorsoAngle: null,
+        currentTorsoAngle: null,
         lastCountedAt: -Infinity,
         liftConfirmed: false,
         awaitingFreshLift: false,
@@ -76,8 +80,11 @@
         tracker.stage = 'SEEK_HIGH';
         tracker.low = null;
         tracker.lowTime = 0;
+        tracker.lowTorsoAngle = null;
         tracker.high = null;
         tracker.highTime = 0;
+        tracker.highTorsoAngle = null;
+        tracker.currentTorsoAngle = null;
         tracker.lastCountedAt = -Infinity;
         tracker.liftConfirmed = false;
         tracker.awaitingFreshLift = false;
@@ -176,6 +183,23 @@
         return null;
     }
 
+    function bodyPoint(landmarks, leftIndex, rightIndex, minVisibility = 0.08) {
+        const left = landmarks[leftIndex];
+        const right = landmarks[rightIndex];
+        if (visible(left, minVisibility) && visible(right, minVisibility)) return midpoint(left, right);
+        if (visible(left, minVisibility)) return left;
+        if (visible(right, minVisibility)) return right;
+        return null;
+    }
+
+    function situpTorsoAngle(landmarks, helpers) {
+        const shoulder = shoulderPoint(landmarks);
+        const hip = bodyPoint(landmarks, LANDMARK.LEFT_HIP, LANDMARK.RIGHT_HIP);
+        const knee = bodyPoint(landmarks, LANDMARK.LEFT_KNEE, LANDMARK.RIGHT_KNEE);
+        if (!shoulder || !hip || !knee) return null;
+        return helpers.angle(shoulder, hip, knee);
+    }
+
     function situpSignal(landmarks) {
         const shoulderInfo = averagedPoint([
             landmarks[LANDMARK.LEFT_SHOULDER],
@@ -271,16 +295,19 @@
 
     function processSignal(time, value, helpers) {
         const cycleLowTime = tracker.lowTime;
+        const cycleLowTorsoAngle = tracker.lowTorsoAngle;
         tracker.minValue = Math.min(tracker.minValue, value);
         tracker.maxValue = Math.max(tracker.maxValue, value);
 
         if (tracker.low === null || value < tracker.low) {
             tracker.low = value;
             tracker.lowTime = time;
+            tracker.lowTorsoAngle = tracker.currentTorsoAngle;
         }
         if (tracker.high === null || value > tracker.high) {
             tracker.high = value;
             tracker.highTime = time;
+            tracker.highTorsoAngle = tracker.currentTorsoAngle;
         }
 
         const dynamicRange = Math.max(CONFIG.MIN_AMPLITUDE, tracker.maxValue - tracker.minValue);
@@ -297,9 +324,14 @@
             if (value > tracker.high) {
                 tracker.high = value;
                 tracker.highTime = time;
+                tracker.highTorsoAngle = tracker.currentTorsoAngle;
             }
             const lift = tracker.high - tracker.low;
-            if (lift >= confirmedLift) {
+            const torsoAngleChange = Number.isFinite(tracker.lowTorsoAngle) && Number.isFinite(tracker.highTorsoAngle)
+                ? Math.abs(tracker.highTorsoAngle - tracker.lowTorsoAngle)
+                : null;
+            const torsoLiftCorroborated = torsoAngleChange === null || torsoAngleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE;
+            if (lift >= confirmedLift && torsoLiftCorroborated) {
                 tracker.liftConfirmed = true;
                 tracker.awaitingFreshLift = false;
             }
@@ -321,17 +353,24 @@
         if (value < tracker.low) {
             tracker.low = value;
             tracker.lowTime = time;
+            tracker.lowTorsoAngle = tracker.currentTorsoAngle;
         }
 
         const amplitude = tracker.high - tracker.low;
         const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO;
         if (tracker.liftConfirmed && amplitude >= confirmedLift && returnedLowEnough) {
-            if (countRep(time, amplitude, helpers, cycleLowTime)) {
+            const repTorsoAngleChange = Number.isFinite(cycleLowTorsoAngle) && Number.isFinite(tracker.highTorsoAngle)
+                ? Math.abs(tracker.highTorsoAngle - cycleLowTorsoAngle)
+                : null;
+            const torsoRepCorroborated = repTorsoAngleChange === null || repTorsoAngleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE;
+            if (torsoRepCorroborated && countRep(time, amplitude, helpers, cycleLowTime)) {
                 tracker.stage = 'SEEK_HIGH';
                 tracker.low = value;
                 tracker.lowTime = time;
+                tracker.lowTorsoAngle = tracker.currentTorsoAngle;
                 tracker.high = value;
                 tracker.highTime = time;
+                tracker.highTorsoAngle = tracker.currentTorsoAngle;
                 tracker.liftConfirmed = false;
                 tracker.awaitingFreshLift = true;
             }
@@ -400,6 +439,7 @@
         const smoothed = smoothLandmarks(landmarks);
         const time = timeSeconds(helpers);
         const signal = situpSignal(smoothed);
+        tracker.currentTorsoAngle = situpTorsoAngle(smoothed, helpers);
         if (!Number.isFinite(signal)) {
             tracker.missingFrames++;
             if (tracker.missingFrames <= CONFIG.DROPOUT_BRIDGE_FRAMES && Number.isFinite(tracker.previousSignal)) {
@@ -427,6 +467,8 @@
             tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
             tracker.lowTime = time;
             tracker.highTime = time;
+            tracker.lowTorsoAngle = tracker.currentTorsoAngle;
+            tracker.highTorsoAngle = tracker.currentTorsoAngle;
             tracker.previousSignal = signal;
             tracker.previousTime = time;
             helpers.setStage(STATE.READY);
@@ -439,6 +481,8 @@
             tracker.high = tracker.high === null ? signal : Math.max(tracker.high, signal);
             tracker.lowTime = time;
             tracker.highTime = time;
+            tracker.lowTorsoAngle = tracker.currentTorsoAngle;
+            tracker.highTorsoAngle = tracker.currentTorsoAngle;
             tracker.previousSignal = signal;
             tracker.previousTime = time;
             helpers.setStage(STATE.READY);
