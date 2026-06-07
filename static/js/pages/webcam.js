@@ -370,22 +370,39 @@ let currentMode = 'pushup';
     function waitForMediaReady(media) {
         if (!media || media.readyState >= 2) return Promise.resolve();
         return new Promise((resolve, reject) => {
+            let settled = false;
             const cleanup = () => {
                 media.removeEventListener('loadeddata', onReady);
                 media.removeEventListener('canplay', onReady);
                 media.removeEventListener('error', onError);
+                clearTimeout(timeoutId);
             };
             const onReady = () => {
+                if (settled) return;
+                settled = true;
                 cleanup();
                 resolve();
             };
             const onError = () => {
+                if (settled) return;
+                settled = true;
                 cleanup();
                 reject(new Error('Attached video could not be prepared for analysis.'));
             };
+            const timeoutId = setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                resolve();
+            }, 1200);
             media.addEventListener('loadeddata', onReady, { once: true });
             media.addEventListener('canplay', onReady, { once: true });
             media.addEventListener('error', onError, { once: true });
+            try {
+                media.load();
+            } catch (err) {
+                console.warn('Could not force attached video load:', err);
+            }
         });
     }
 
@@ -1076,10 +1093,10 @@ let currentMode = 'pushup';
             await prepareAttachedVideoForAnalysis();
         }
         const playReplay = () => playbackVideo.play().catch(() => {});
-        if (playbackVideo.readyState >= 2) {
-            playReplay();
-        } else {
+        playReplay();
+        if (playbackVideo.readyState < 2) {
             playbackVideo.onloadeddata = playReplay;
+            playbackVideo.oncanplay = playReplay;
         }
         setWarning(analyzeReplayMode
             ? 'Analysing attached video.'
