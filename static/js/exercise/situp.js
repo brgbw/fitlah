@@ -23,15 +23,15 @@
 
     const CONFIG = {
         // The first rep is armed after a brief stable lying/down setup hold.
-        READY_HOLD_MS: 300,
+        READY_HOLD_MS: 100,
         // MediaPipe visibility can flicker during floor exercises; low-confidence frames do not move states.
         POSE_CONFIDENCE_MIN: 0.2,
         // EMA smoothing reduces small landmark jitter while keeping transitions responsive.
         SMOOTHING_ALPHA: 0.4,
         // Sit-up counting is intentionally lenient: a rep is driven by shoulder height only.
         SHOULDER_LIFT_MIN: 0.035,
-        SHOULDER_LIFT_RETURN_TOLERANCE: 0.035,
-        SHOULDER_DESCENT_MIN: 0.018,
+        SHOULDER_LIFT_RETURN_TOLERANCE: 0.030,
+        SHOULDER_DESCENT_MIN: 0.020,
         SHOULDER_BASELINE_ALPHA: 0.08,
         MIN_REP_DURATION_MS: 50,
         REP_COOLDOWN_MS: 50,
