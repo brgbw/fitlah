@@ -7,11 +7,27 @@ let currentMode = 'pushup';
     let poseScriptPromise = null;
     let detectLoopRunning = false;
     const isMobileLikeDevice = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 760;
-    const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 20;
+    const CAMERA_QUALITY = isMobileLikeDevice
+        ? { width: 960, height: 540, frameRate: 30 }
+        : { width: 1280, height: 720, frameRate: 30 };
+    const CAMERA_FALLBACK_QUALITY = isMobileLikeDevice
+        ? { width: 640, height: 360, frameRate: 24 }
+        : { width: 960, height: 540, frameRate: 30 };
+    const DISPLAY_CANVAS_LIMIT = isMobileLikeDevice
+        ? { width: 960, height: 540 }
+        : { width: 1280, height: 720 };
+    const POSE_INPUT_LIMIT = isMobileLikeDevice
+        ? { width: 432, height: 243 }
+        : { width: 640, height: 360 };
+    const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 18;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
+    const POSE_SLOW_FRAME_MS = 1000 / (isMobileLikeDevice ? 8 : 12);
+    const RECORDING_TARGET_FPS = isMobileLikeDevice ? 24 : 30;
     let poseLoopRequestId = null;
     let poseInFlight = false;
     let lastPoseSentAt = 0;
+    let adaptivePoseMinFrameMs = POSE_MIN_FRAME_MS;
+    let fastPoseFrames = 0;
     let cachedExerciseHelpers = null;
     let lastCounterSignature = '';
     let mediaRecorder = null;
@@ -45,6 +61,8 @@ let currentMode = 'pushup';
     const sourceVideo = document.getElementById('sourceVideo');
     const poseCanvas = document.getElementById('poseCanvas');
     const ctx = poseCanvas.getContext('2d');
+    const poseInputCanvas = document.createElement('canvas');
+    const poseInputCtx = poseInputCanvas.getContext('2d', { alpha: false, desynchronized: true });
     const playbackVideo = document.getElementById('playbackVideo');
     const cameraPlaceholder = document.getElementById('cameraPlaceholder');
     const startCamBtn = document.getElementById('startCamBtn');
@@ -198,6 +216,7 @@ let currentMode = 'pushup';
             sourceVideo.srcObject = stream;
             await sourceVideo.play();
             resizePoseCanvas(sourceVideo);
+            resizePoseInputCanvas(sourceVideo);
 
             cameraPlaceholder.style.display = 'none';
             poseCanvas.style.display = 'block';
@@ -215,17 +234,7 @@ let currentMode = 'pushup';
     }
 
     async function openCameraStream() {
-        const preferredFacingMode = 'user';
-        const fallbackFacingMode = 'environment';
-        const preferred = {
-            video: {
-                width: { ideal: isMobileLikeDevice ? 480 : 640 },
-                height: { ideal: isMobileLikeDevice ? 270 : 360 },
-                frameRate: { ideal: POSE_TARGET_FPS, max: isMobileLikeDevice ? 15 : 30 },
-                facingMode: { ideal: preferredFacingMode }
-            },
-            audio: false
-        };
+        const preferred = cameraConstraints(CAMERA_QUALITY, 'user');
 
         try {
             return await navigator.mediaDevices.getUserMedia(preferred);
@@ -233,28 +242,95 @@ let currentMode = 'pushup';
             const canRetry = err && ['OverconstrainedError', 'ConstraintNotSatisfiedError', 'NotFoundError'].includes(err.name);
             if (canRetry) {
                 try {
-                    return await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: { ideal: isMobileLikeDevice ? 480 : 640 },
-                            height: { ideal: isMobileLikeDevice ? 270 : 360 },
-                            frameRate: { ideal: POSE_TARGET_FPS, max: isMobileLikeDevice ? 15 : 30 },
-                            facingMode: { ideal: fallbackFacingMode }
-                        },
-                        audio: false
-                    });
+                    return await navigator.mediaDevices.getUserMedia(cameraConstraints(CAMERA_QUALITY, 'environment'));
                 } catch (fallbackErr) {
-                    return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    try {
+                        return await navigator.mediaDevices.getUserMedia(cameraConstraints(CAMERA_FALLBACK_QUALITY, 'user'));
+                    } catch (simpleErr) {
+                        return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    }
                 }
             }
             throw new Error(cameraErrorMessage(err));
         }
     }
 
+    function cameraConstraints(quality, facingMode) {
+        return {
+            video: {
+                width: { ideal: quality.width },
+                height: { ideal: quality.height },
+                frameRate: { ideal: quality.frameRate, max: quality.frameRate },
+                facingMode: { ideal: facingMode }
+            },
+            audio: false
+        };
+    }
+
     function resizePoseCanvas(media) {
-        const width = media.videoWidth || (isMobileLikeDevice ? 480 : 640);
-        const height = media.videoHeight || Math.round(width * 9 / 16);
-        poseCanvas.width = width;
-        poseCanvas.height = height;
+        const size = fittedMediaSize(media, DISPLAY_CANVAS_LIMIT);
+        if (poseCanvas.width !== size.width || poseCanvas.height !== size.height) {
+            poseCanvas.width = size.width;
+            poseCanvas.height = size.height;
+        }
+    }
+
+    function resizePoseInputCanvas(media) {
+        const size = fittedMediaSize(media, POSE_INPUT_LIMIT);
+        if (poseInputCanvas.width !== size.width || poseInputCanvas.height !== size.height) {
+            poseInputCanvas.width = size.width;
+            poseInputCanvas.height = size.height;
+        }
+    }
+
+    function fittedMediaSize(media, limit) {
+        const sourceWidth = media.videoWidth || (isMobileLikeDevice ? 640 : 1280);
+        const sourceHeight = media.videoHeight || Math.round(sourceWidth * 9 / 16);
+        const scale = Math.min(1, limit.width / sourceWidth, limit.height / sourceHeight);
+        return {
+            width: Math.max(2, Math.round(sourceWidth * scale)),
+            height: Math.max(2, Math.round(sourceHeight * scale))
+        };
+    }
+
+    function activeMediaElement() {
+        return isReplayMode ? playbackVideo : sourceVideo;
+    }
+
+    function preparePoseInputFrame(media) {
+        if (!media || media.readyState < 2 || !poseInputCtx) return null;
+        resizePoseInputCanvas(media);
+        poseInputCtx.drawImage(media, 0, 0, poseInputCanvas.width, poseInputCanvas.height);
+        return poseInputCanvas;
+    }
+
+    function drawDisplayFrame(results) {
+        const displaySource = activeMediaElement();
+        const canDrawDisplaySource = displaySource && displaySource.readyState >= 2;
+        if (canDrawDisplaySource) {
+            resizePoseCanvas(displaySource);
+            ctx.drawImage(displaySource, 0, 0, poseCanvas.width, poseCanvas.height);
+        } else if (results.image) {
+            ctx.drawImage(results.image, 0, 0, poseCanvas.width, poseCanvas.height);
+        }
+    }
+
+    function updateAdaptivePoseBudget(elapsedMs) {
+        if (elapsedMs > adaptivePoseMinFrameMs * 0.85) {
+            adaptivePoseMinFrameMs = Math.min(POSE_SLOW_FRAME_MS, adaptivePoseMinFrameMs * 1.12);
+            fastPoseFrames = 0;
+            return;
+        }
+
+        if (elapsedMs < POSE_MIN_FRAME_MS * 0.45 && adaptivePoseMinFrameMs > POSE_MIN_FRAME_MS) {
+            fastPoseFrames++;
+            if (fastPoseFrames >= 20) {
+                adaptivePoseMinFrameMs = Math.max(POSE_MIN_FRAME_MS, adaptivePoseMinFrameMs * 0.92);
+                fastPoseFrames = 0;
+            }
+        } else {
+            fastPoseFrames = 0;
+        }
     }
 
     async function initPose() {
@@ -285,6 +361,8 @@ let currentMode = 'pushup';
     function startPoseLoop() {
         if (poseLoopRequestId !== null) return;
         detectLoopRunning = true;
+        adaptivePoseMinFrameMs = POSE_MIN_FRAME_MS;
+        fastPoseFrames = 0;
         poseLoopRequestId = requestAnimationFrame(runPoseLoop);
     }
 
@@ -308,17 +386,25 @@ let currentMode = 'pushup';
             return;
         }
 
-        const imageSource = isReplayMode ? playbackVideo : sourceVideo;
+        const imageSource = activeMediaElement();
         const replayIsPaused = isReplayMode && playbackVideo.paused;
 
         if (imageSource.readyState >= 2 &&
             !poseInFlight &&
             !replayIsPaused &&
-            timestamp - lastPoseSentAt >= POSE_MIN_FRAME_MS) {
+            timestamp - lastPoseSentAt >= adaptivePoseMinFrameMs) {
+            const poseInputFrame = preparePoseInputFrame(imageSource);
+            if (!poseInputFrame) {
+                poseLoopRequestId = requestAnimationFrame(runPoseLoop);
+                return;
+            }
+
             poseInFlight = true;
             lastPoseSentAt = timestamp;
             try {
-                await pose.send({ image: imageSource });
+                const frameStart = performance.now();
+                await pose.send({ image: poseInputFrame });
+                updateAdaptivePoseBudget(performance.now() - frameStart);
             } catch (err) {
                 console.warn('Pose frame skipped:', err);
             } finally {
@@ -332,7 +418,7 @@ let currentMode = 'pushup';
     function handlePoseResults(results) {
         ctx.save();
         ctx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
-        ctx.drawImage(results.image, 0, 0, poseCanvas.width, poseCanvas.height);
+        drawDisplayFrame(results);
 
         if (!results.poseLandmarks) {
             if (!isReplayMode) {
@@ -675,7 +761,7 @@ let currentMode = 'pushup';
         }
         
         if (!metadataOnlyUploads()) {
-            const canvasStream = poseCanvas.captureStream(POSE_TARGET_FPS);
+            const canvasStream = poseCanvas.captureStream(RECORDING_TARGET_FPS);
             const mimeType = ['video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
             mediaRecorder = mimeType
                 ? new MediaRecorder(canvasStream, { mimeType })
@@ -828,10 +914,12 @@ let currentMode = 'pushup';
 
         playbackVideo.onloadedmetadata = () => {
             resizePoseCanvas(playbackVideo);
+            resizePoseInputCanvas(playbackVideo);
             startPlaybackReplay({ analyze: true });
         };
         if (playbackVideo.readyState >= 1) {
             resizePoseCanvas(playbackVideo);
+            resizePoseInputCanvas(playbackVideo);
             startPlaybackReplay({ analyze: true });
         }
     }

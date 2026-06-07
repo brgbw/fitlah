@@ -457,15 +457,21 @@
             return tracker.smoothedLandmarks;
         }
 
-        tracker.smoothedLandmarks = landmarks.map((point, idx) => {
-            const previous = tracker.smoothedLandmarks[idx] || cloneLandmark(point);
-            return {
-                x: previous.x * (1 - CONFIG.SMOOTHING_ALPHA) + point.x * CONFIG.SMOOTHING_ALPHA,
-                y: previous.y * (1 - CONFIG.SMOOTHING_ALPHA) + point.y * CONFIG.SMOOTHING_ALPHA,
-                z: previous.z * (1 - CONFIG.SMOOTHING_ALPHA) + (point.z || 0) * CONFIG.SMOOTHING_ALPHA,
-                visibility: previous.visibility * (1 - CONFIG.SMOOTHING_ALPHA) + (point.visibility || 0) * CONFIG.SMOOTHING_ALPHA
-            };
-        });
+        const inverseAlpha = 1 - CONFIG.SMOOTHING_ALPHA;
+        for (let idx = 0; idx < landmarks.length; idx++) {
+            const point = landmarks[idx];
+            let previous = tracker.smoothedLandmarks[idx];
+            if (!previous) {
+                previous = cloneLandmark(point);
+                tracker.smoothedLandmarks[idx] = previous;
+                continue;
+            }
+            previous.x = previous.x * inverseAlpha + point.x * CONFIG.SMOOTHING_ALPHA;
+            previous.y = previous.y * inverseAlpha + point.y * CONFIG.SMOOTHING_ALPHA;
+            previous.z = previous.z * inverseAlpha + (point.z || 0) * CONFIG.SMOOTHING_ALPHA;
+            previous.visibility = previous.visibility * inverseAlpha + (point.visibility || 0) * CONFIG.SMOOTHING_ALPHA;
+        }
+        tracker.smoothedLandmarks.length = landmarks.length;
         return tracker.smoothedLandmarks;
     }
 
