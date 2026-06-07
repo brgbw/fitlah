@@ -31,6 +31,7 @@ let currentMode = 'pushup';
         pushup: 0.032,
         situp: 0.03
     };
+    const SITUP_REPLAY_TAIL_TRIM_S = 1.15;
     const RECORDING_TARGET_FPS = isMobileLikeDevice ? 24 : 30;
     let poseLoopRequestId = null;
     let poseInFlight = false;
@@ -910,6 +911,33 @@ let currentMode = 'pushup';
         return payload;
     }
 
+    function removeTrailingAttachedSitupRep() {
+        if (!attachedVideoFile || currentMode !== 'situp' || !cvMetrics || !Number.isFinite(playbackVideo.duration)) {
+            return false;
+        }
+
+        const reps = Array.isArray(cvMetrics.rep_metrics) ? cvMetrics.rep_metrics : [];
+        if (!reps.length) return false;
+
+        const duration = Number(playbackVideo.duration || 0);
+        const lastRep = reps[reps.length - 1];
+        const lastRepTime = Number(lastRep?.time_s);
+        if (!Number.isFinite(lastRepTime) || lastRepTime < duration - SITUP_REPLAY_TAIL_TRIM_S) {
+            return false;
+        }
+
+        reps.pop();
+        cvMetrics.rep_metrics = reps.map((rep, index) => ({
+            ...rep,
+            rep: index + 1
+        }));
+        cvMetrics.rep_count_signal = cvMetrics.rep_metrics.length;
+        cvMetrics.rep_metrics_csv = webcamMetrics.repMetricsCsv(cvMetrics.rep_metrics);
+        validReps = Math.min(validReps, cvMetrics.rep_metrics.length);
+        updateCounters();
+        return true;
+    }
+
     function updateCounters() {
         const nextStage = stage || 'Ready';
         const signature = `${validReps}|${nextStage}`;
@@ -1126,6 +1154,7 @@ let currentMode = 'pushup';
             sessionStarted = false;
             sessionArmed = false;
             if (wasAnalyzingAttachment) {
+                removeTrailingAttachedSitupRep();
                 lastSessionMetrics = finalizeSessionMetrics();
                 setWarning('Attached video analysis complete. Save the session.');
             } else {
