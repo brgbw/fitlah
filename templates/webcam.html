@@ -62,22 +62,21 @@
         </div>
         <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
         <div class="camera-status-card" id="cameraStatus" role="status" aria-live="polite"></div>
-    </div>
-</div>
-
-<div class="control-strip">
-    <div class="control-actions">
-        <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
-        <button type="button" class="stop-btn" id="attachVideoBtn" onclick="selectRecordedVideo()">Attach Video</button>
-        <input id="videoAttachmentInput" type="file" accept="video/*" style="display: none;">
-        <button type="button" class="stop-btn danger-action" id="startRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
-        <button type="button" class="stop-btn danger-action" id="stopRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
-        <div class="save-done-group">
-            <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
-            <button type="button" class="stop-btn complete-disabled" id="completeBtn" onclick="saveAndReturn()">Done</button>
+        <div class="control-strip">
+            <div class="control-actions">
+                <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
+                <button type="button" class="stop-btn" id="attachVideoBtn" onclick="selectRecordedVideo()">Attach Video</button>
+                <input id="videoAttachmentInput" type="file" accept="video/*" style="display: none;">
+                <button type="button" class="stop-btn danger-action" id="startRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
+                <button type="button" class="stop-btn danger-action" id="stopRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
+                <div class="save-done-group">
+                    <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
+                    <button type="button" class="stop-btn complete-disabled" id="completeBtn" onclick="saveAndReturn()">Done</button>
+                </div>
+            </div>
+            <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
         </div>
     </div>
-    <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
 </div>
 
 <script src="{{ asset_url('js/sound_manager.js') }}"></script>

@@ -5,7 +5,7 @@
         gap: 20px;
         flex: 1;
         margin-bottom: 20px;
-        align-items: start;
+        align-items: stretch;
     }
 
     .vision-main-column {
@@ -70,10 +70,11 @@
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
+        justify-content: center;
         align-items: stretch;
         text-align: left;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        flex: 1;
     }
     
     .metric-v-card:hover {
@@ -156,10 +157,10 @@
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 8px;
-        padding: 16px 24px;
+        padding: 16px;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: stretch;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         flex-shrink: 0;
     }
@@ -266,18 +267,18 @@
 
     .control-strip {
         border-radius: 8px;
-        padding: 18px 22px;
-        gap: 16px;
-        flex-wrap: wrap;
-        align-items: center;
+        padding: 16px;
+        gap: 12px;
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .control-actions {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 10px;
-        align-items: center;
-        flex: 1;
+        align-items: stretch;
+        width: 100%;
     }
 
     .control-actions .stop-btn {
@@ -289,10 +290,11 @@
 
     .save-done-group {
         display: flex;
-        margin-left: auto;
+        width: 100%;
     }
 
     .save-done-group .stop-btn {
+        flex: 1;
         margin-left: 0 !important;
     }
 
