@@ -27,16 +27,17 @@
         MAX_ADAPTIVE_AMPLITUDE_MULTIPLIER: 1.35,
         REVERSAL_RATIO: 0.14,
         RETURN_RATIO: 0.64,
-        MIN_TORSO_ANGLE_CHANGE: 8,
+        MIN_TORSO_ANGLE_CHANGE: 5,
         MIN_REP_PERIOD_S: 0.12,
         MAX_REP_PERIOD_S: 8,
         REP_COOLDOWN_S: 0.28,
         REPLAY_END_GUARD_S: 1.15,
         CALIBRATION_FRAMES: 4,
-        NOISE_ALPHA: 0.18,
-        VELOCITY_ALPHA: 0.45,
-        MIN_TURN_DISTANCE: 0.005,
-        TURN_NOISE_MULTIPLIER: 2.6,
+        ANALYZER_WINDOW_FRAMES: 7,
+        ANALYZER_DIRECTION_FRAMES: 1,
+        ANALYZER_NOISE_FLOOR: 0.0035,
+        ANALYZER_NOISE_MULTIPLIER: 2.2,
+        ANALYZER_MIN_TURN_DROP_RATIO: 0.28,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         DROPOUT_BRIDGE_FRAMES: 6,
@@ -61,11 +62,12 @@
         highTime: 0,
         highTorsoAngle: null,
         currentTorsoAngle: null,
-        analyzerSignal: null,
-        signalVelocity: 0,
-        signalNoise: 0,
-        signalTrend: 0,
-        signalTrendFrames: 0,
+        analyzerSamples: [],
+        analyzerDirection: 0,
+        analyzerDirectionFrames: 0,
+        analyzerHigh: null,
+        analyzerLow: null,
+        lastAnalyzerEvent: null,
         lastCountedAt: -Infinity,
         liftConfirmed: false,
         awaitingFreshLift: false,
@@ -95,11 +97,12 @@
         tracker.highTime = 0;
         tracker.highTorsoAngle = null;
         tracker.currentTorsoAngle = null;
-        tracker.analyzerSignal = null;
-        tracker.signalVelocity = 0;
-        tracker.signalNoise = 0;
-        tracker.signalTrend = 0;
-        tracker.signalTrendFrames = 0;
+        tracker.analyzerSamples = [];
+        tracker.analyzerDirection = 0;
+        tracker.analyzerDirectionFrames = 0;
+        tracker.analyzerHigh = null;
+        tracker.analyzerLow = null;
+        tracker.lastAnalyzerEvent = null;
         tracker.lastCountedAt = -Infinity;
         tracker.liftConfirmed = false;
         tracker.awaitingFreshLift = false;
@@ -314,65 +317,126 @@
         return true;
     }
 
-    function updateAdaptiveSignal(value) {
-        if (tracker.analyzerSignal === null) {
-            tracker.analyzerSignal = value;
-            tracker.signalVelocity = 0;
-            tracker.signalNoise = CONFIG.MIN_TURN_DISTANCE;
-            tracker.signalTrend = 0;
-            tracker.signalTrendFrames = 0;
-            return {
-                direction: 0,
-                noise: tracker.signalNoise,
-                turnDistance: CONFIG.MIN_TURN_DISTANCE
+    function median(values) {
+        if (!values.length) return 0;
+        const sorted = values.slice().sort((a, b) => a - b);
+        return sorted[Math.floor(sorted.length / 2)];
+    }
+
+    function resetAnalyzerCycle(value, time) {
+        tracker.analyzerSamples = [];
+        tracker.analyzerDirection = 0;
+        tracker.analyzerDirectionFrames = 0;
+        tracker.analyzerHigh = { value, time, torsoAngle: tracker.currentTorsoAngle };
+        tracker.analyzerLow = { value, time, torsoAngle: tracker.currentTorsoAngle };
+        tracker.lastAnalyzerEvent = null;
+    }
+
+    function torsoCorroborates(angleChange, amplitude) {
+        const clearShoulderLift = amplitude >= CONFIG.MIN_CONFIRMED_LIFT * 1.1 &&
+            tracker.lastSignalConfidence >= CONFIG.POSE_CONFIDENCE_MIN * 0.75;
+        if (!Number.isFinite(angleChange)) return clearShoulderLift;
+        return angleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE || clearShoulderLift;
+    }
+
+    function analyzeSignalSample(sample) {
+        const previous = tracker.analyzerSamples.length
+            ? tracker.analyzerSamples[tracker.analyzerSamples.length - 1]
+            : null;
+        tracker.analyzerSamples.push(sample);
+        if (tracker.analyzerSamples.length > CONFIG.ANALYZER_WINDOW_FRAMES) {
+            tracker.analyzerSamples.shift();
+        }
+
+        const deltas = [];
+        for (let index = 1; index < tracker.analyzerSamples.length; index++) {
+            deltas.push(Math.abs(tracker.analyzerSamples[index].value - tracker.analyzerSamples[index - 1].value));
+        }
+        const baseNoise = Math.max(
+            CONFIG.ANALYZER_NOISE_FLOOR,
+            median(deltas) * CONFIG.ANALYZER_NOISE_MULTIPLIER
+        );
+        const confidencePenalty = sample.confidence < CONFIG.POSE_CONFIDENCE_MIN
+            ? 1.8
+            : (sample.confidence < 0.3 ? 1.25 : 1);
+        const noise = baseNoise * confidencePenalty;
+
+        const delta = previous ? sample.value - previous.value : 0;
+        let direction = 0;
+        if (delta > noise * 0.45) direction = 1;
+        if (delta < -noise * 0.45) direction = -1;
+
+        const previousDirection = tracker.analyzerDirection;
+        const previousHigh = tracker.analyzerHigh;
+        const previousLow = tracker.analyzerLow;
+
+        if (!tracker.analyzerHigh || sample.value >= tracker.analyzerHigh.value) {
+            tracker.analyzerHigh = {
+                value: sample.value,
+                time: sample.time,
+                torsoAngle: sample.torsoAngle
+            };
+        }
+        if (!tracker.analyzerLow || sample.value <= tracker.analyzerLow.value) {
+            tracker.analyzerLow = {
+                value: sample.value,
+                time: sample.time,
+                torsoAngle: sample.torsoAngle
             };
         }
 
-        const delta = value - tracker.analyzerSignal;
-        const absDelta = Math.abs(delta);
-        tracker.analyzerSignal = value;
-        tracker.signalNoise = tracker.signalNoise * (1 - CONFIG.NOISE_ALPHA) + absDelta * CONFIG.NOISE_ALPHA;
-        tracker.signalVelocity = tracker.signalVelocity * (1 - CONFIG.VELOCITY_ALPHA) + delta * CONFIG.VELOCITY_ALPHA;
-
-        const trendEpsilon = Math.max(CONFIG.MIN_TURN_DISTANCE * 0.18, tracker.signalNoise * 0.75);
-        let direction = 0;
-        if (tracker.signalVelocity > trendEpsilon) direction = 1;
-        if (tracker.signalVelocity < -trendEpsilon) direction = -1;
-
         if (direction === 0) {
-            tracker.signalTrendFrames = Math.max(0, tracker.signalTrendFrames - 1);
-        } else if (direction === tracker.signalTrend) {
-            tracker.signalTrendFrames++;
+            tracker.analyzerDirectionFrames = Math.max(0, tracker.analyzerDirectionFrames - 1);
+        } else if (direction === previousDirection) {
+            tracker.analyzerDirectionFrames++;
         } else {
-            tracker.signalTrend = direction;
-            tracker.signalTrendFrames = 1;
+            tracker.analyzerDirection = direction;
+            tracker.analyzerDirectionFrames = 1;
         }
 
+        const amplitude = tracker.analyzerHigh && tracker.analyzerLow
+            ? tracker.analyzerHigh.value - tracker.analyzerLow.value
+            : 0;
+        const minTurnDrop = Math.max(noise, amplitude * CONFIG.ANALYZER_MIN_TURN_DROP_RATIO);
+        const turnedDown = previousDirection > 0 &&
+            tracker.analyzerDirection < 0 &&
+            tracker.analyzerDirectionFrames >= CONFIG.ANALYZER_DIRECTION_FRAMES &&
+            previousHigh &&
+            previousHigh.value - sample.value >= minTurnDrop;
+        const turnedUp = previousDirection < 0 &&
+            tracker.analyzerDirection > 0 &&
+            tracker.analyzerDirectionFrames >= CONFIG.ANALYZER_DIRECTION_FRAMES &&
+            previousLow &&
+            sample.value - previousLow.value >= minTurnDrop;
+
+        const event = !sample.interpolated && turnedDown
+            ? { type: 'peak', point: previousHigh, noise, amplitude }
+            : (!sample.interpolated && turnedUp)
+                ? { type: 'trough', point: previousLow, noise, amplitude }
+                : null;
+        if (event) tracker.lastAnalyzerEvent = event;
+
         return {
-            direction,
-            noise: tracker.signalNoise,
-            turnDistance: Math.max(CONFIG.MIN_TURN_DISTANCE, tracker.signalNoise * CONFIG.TURN_NOISE_MULTIPLIER)
+            direction: tracker.analyzerDirection,
+            directionFrames: tracker.analyzerDirectionFrames,
+            event,
+            noise,
+            amplitude,
+            high: tracker.analyzerHigh,
+            low: tracker.analyzerLow
         };
     }
 
-    function hasTurnedDown(signalInfo, value, high, fallbackReversal) {
-        if (high === null) return false;
-        const dropFromHigh = high - value;
-        return dropFromHigh >= Math.min(fallbackReversal, signalInfo.turnDistance) &&
-            (signalInfo.direction < 0 || dropFromHigh >= fallbackReversal);
-    }
-
-    function hasTurnedUp(signalInfo, value, low, fallbackReversal) {
-        if (low === null) return false;
-        const riseFromLow = value - low;
-        return riseFromLow >= Math.min(fallbackReversal, signalInfo.turnDistance) &&
-            (signalInfo.direction > 0 || riseFromLow >= fallbackReversal);
-    }
-
-    function processSignal(time, value, helpers) {
+    function processSignal(time, value, helpers, options = {}) {
         const cycleLowTime = tracker.lowTime;
         const cycleLowTorsoAngle = tracker.lowTorsoAngle;
-        const signalInfo = updateAdaptiveSignal(value);
+        const signalInfo = analyzeSignalSample({
+            time,
+            value,
+            torsoAngle: tracker.currentTorsoAngle,
+            confidence: tracker.lastSignalConfidence,
+            interpolated: Boolean(options.interpolated)
+        });
         tracker.minValue = Math.min(tracker.minValue, value);
         tracker.maxValue = Math.max(tracker.maxValue, value);
 
@@ -398,7 +462,7 @@
         const reversal = Math.max(
             CONFIG.MIN_AMPLITUDE * 0.45,
             dynamicRange * CONFIG.REVERSAL_RATIO,
-            signalInfo.turnDistance * 0.75
+            signalInfo.noise
         );
 
         if (tracker.stage === 'SEEK_HIGH') {
@@ -411,12 +475,37 @@
             const torsoAngleChange = Number.isFinite(tracker.lowTorsoAngle) && Number.isFinite(tracker.highTorsoAngle)
                 ? Math.abs(tracker.highTorsoAngle - tracker.lowTorsoAngle)
                 : null;
-            const torsoLiftCorroborated = torsoAngleChange === null || torsoAngleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE;
+            const torsoLiftCorroborated = torsoCorroborates(torsoAngleChange, lift);
             if (lift >= confirmedLift && torsoLiftCorroborated) {
                 tracker.liftConfirmed = true;
                 tracker.awaitingFreshLift = false;
             }
-            if (tracker.liftConfirmed && hasTurnedDown(signalInfo, value, tracker.high, reversal)) {
+            const peakEvent = signalInfo.event && signalInfo.event.type === 'peak'
+                ? signalInfo.event.point
+                : null;
+            const peakDrop = tracker.high - value;
+            const peakConfirmed = peakEvent
+                ? peakEvent.value >= tracker.low + confirmedLift * 0.75
+                : false;
+            const fallbackPeakConfirmed = peakDrop >= reversal &&
+                value < tracker.high;
+            if (tracker.liftConfirmed && (peakConfirmed || fallbackPeakConfirmed)) {
+                const lateReturn = lift >= confirmedLift &&
+                    value <= tracker.high - lift * CONFIG.RETURN_RATIO &&
+                    !options.interpolated;
+                if (lateReturn && countRep(time, lift, helpers, cycleLowTime)) {
+                    tracker.stage = 'SEEK_HIGH';
+                    tracker.low = value;
+                    tracker.lowTime = time;
+                    tracker.lowTorsoAngle = tracker.currentTorsoAngle;
+                    tracker.high = value;
+                    tracker.highTime = time;
+                    tracker.highTorsoAngle = tracker.currentTorsoAngle;
+                    tracker.liftConfirmed = false;
+                    tracker.awaitingFreshLift = true;
+                    resetAnalyzerCycle(value, time);
+                    return;
+                }
                 tracker.stage = 'SEEK_LOW';
                 tracker.state = STATE.UP;
                 helpers.setStage(STATE.UP);
@@ -438,24 +527,26 @@
         }
 
         const amplitude = tracker.high - tracker.low;
-        const troughTurned = hasTurnedUp(signalInfo, value, tracker.low, reversal);
-        const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO ||
-            (troughTurned && tracker.low <= tracker.high - amplitude * CONFIG.RETURN_RATIO);
-        if (tracker.liftConfirmed && amplitude >= confirmedLift && returnedLowEnough) {
+        const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO;
+        const countableReturn = returnedLowEnough &&
+            !options.interpolated &&
+            signalInfo.direction <= 0;
+        if (tracker.liftConfirmed && amplitude >= confirmedLift && countableReturn) {
             const repTorsoAngleChange = Number.isFinite(cycleLowTorsoAngle) && Number.isFinite(tracker.highTorsoAngle)
                 ? Math.abs(tracker.highTorsoAngle - cycleLowTorsoAngle)
                 : null;
-            const torsoRepCorroborated = repTorsoAngleChange === null || repTorsoAngleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE;
+            const torsoRepCorroborated = torsoCorroborates(repTorsoAngleChange, amplitude);
             if (torsoRepCorroborated && countRep(time, amplitude, helpers, cycleLowTime)) {
                 tracker.stage = 'SEEK_HIGH';
-                tracker.low = troughTurned ? tracker.low : value;
+                tracker.low = value;
                 tracker.lowTime = time;
                 tracker.lowTorsoAngle = tracker.currentTorsoAngle;
-                tracker.high = tracker.low;
+                tracker.high = value;
                 tracker.highTime = time;
                 tracker.highTorsoAngle = tracker.currentTorsoAngle;
                 tracker.liftConfirmed = false;
                 tracker.awaitingFreshLift = true;
+                resetAnalyzerCycle(value, time);
             }
             return;
         }
@@ -475,7 +566,8 @@
                     processSignal(
                         tracker.previousTime + gap * ratio,
                         tracker.previousSignal + (value - tracker.previousSignal) * ratio,
-                        helpers
+                        helpers,
+                        { interpolated: true }
                     );
                 }
             }
