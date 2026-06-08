@@ -23,9 +23,15 @@
             <h1 id="stationHeader">Exercise Recording Station</h1>
             <p>Use a side-on view. Your first valid rep starts a 1-minute recording session.</p>
         </div>
-        <div class="mode-toggle">
-            <button id="modePushupBtn" type="button" class="stop-btn mode-active" onclick="setExerciseMode('pushup')">Push-Up</button>
-            <button id="modeSitupBtn" type="button" class="stop-btn" onclick="setExerciseMode('situp')">Sit-Up</button>
+        <div class="mode-toggle mode-pushup" id="modeToggle">
+            <button id="modePushupBtn" type="button" class="stop-btn mode-active" onclick="setExerciseMode('pushup')">
+                <img src="{{ asset_url('icons/greenpushup.png') }}" alt="">
+                <span>Push-Up</span>
+            </button>
+            <button id="modeSitupBtn" type="button" class="stop-btn" onclick="setExerciseMode('situp')">
+                <img src="{{ asset_url('icons/bluesitup.png') }}" alt="">
+                <span>Sit-Up</span>
+            </button>
         </div>
     </div>
 </div>
@@ -42,8 +48,16 @@
     </div>
 
     <div class="diagnostics-sidebar">
-        <div class="metric-v-card counter-focus-valid">
-            <div class="hud-lbl">Valid Reps</div>
+        <div class="metric-v-card counter-focus-valid counter-pushup" id="counterCard">
+            <div class="counter-card-topline">
+                <span class="counter-icon-wrap">
+                    <img id="counterExerciseIcon" src="{{ asset_url('icons/greenpushup.png') }}" alt="">
+                </span>
+                <div>
+                    <div class="hud-lbl">Valid Reps</div>
+                    <div class="counter-exercise-label" id="counterExerciseLabel">Push-Up</div>
+                </div>
+            </div>
             <div class="giant-counter" id="repCounter">0</div>
         </div>
         <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>

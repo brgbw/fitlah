@@ -89,7 +89,11 @@ let currentMode = 'pushup';
     const timerDisplay = document.getElementById('timerDisplay');
     const modePushupBtn = document.getElementById('modePushupBtn');
     const modeSitupBtn = document.getElementById('modeSitupBtn');
+    const modeToggle = document.getElementById('modeToggle');
     const repCounter = document.getElementById('repCounter');
+    const counterCard = document.getElementById('counterCard');
+    const counterExerciseIcon = document.getElementById('counterExerciseIcon');
+    const counterExerciseLabel = document.getElementById('counterExerciseLabel');
     const stationHeader = document.getElementById('stationHeader');
     const handsBadge = document.getElementById('handsBadge');
     const cameraStatus = document.getElementById('cameraStatus');
@@ -241,12 +245,32 @@ let currentMode = 'pushup';
         if (mode === 'pushup') {
             modePushupBtn.classList.add('mode-active');
             modeSitupBtn.classList.remove('mode-active');
+            if (modeToggle) {
+                modeToggle.classList.add('mode-pushup');
+                modeToggle.classList.remove('mode-situp');
+            }
+            if (counterCard) {
+                counterCard.classList.add('counter-pushup');
+                counterCard.classList.remove('counter-situp');
+            }
+            if (counterExerciseIcon) counterExerciseIcon.src = '/static/icons/greenpushup.png';
+            if (counterExerciseLabel) counterExerciseLabel.textContent = 'Push-Up';
             if (handsBadge) handsBadge.style.display = 'none';
             if (stationHeader) stationHeader.innerText = 'Push-up Recording';
             setWarning('Place your camera side-on. Get into push-up position. Your first full rep will start the 1-minute timer.');
         } else {
             modeSitupBtn.classList.add('mode-active');
             modePushupBtn.classList.remove('mode-active');
+            if (modeToggle) {
+                modeToggle.classList.add('mode-situp');
+                modeToggle.classList.remove('mode-pushup');
+            }
+            if (counterCard) {
+                counterCard.classList.add('counter-situp');
+                counterCard.classList.remove('counter-pushup');
+            }
+            if (counterExerciseIcon) counterExerciseIcon.src = '/static/icons/bluesitup.png';
+            if (counterExerciseLabel) counterExerciseLabel.textContent = 'Sit-Up';
             if (handsBadge) handsBadge.style.display = 'none';
             if (stationHeader) stationHeader.innerText = 'Sit-up Recording';
             setWarning('Lie back, then sit up. Your first valid rep starts the 1-minute timer.');

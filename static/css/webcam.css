@@ -59,21 +59,20 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        min-height: 280px;
+        min-height: 0;
     }
 
     .metric-v-card {
         background-color: #FFFFFF;
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 24px 18px;
+        padding: 18px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        flex: 1;
+        justify-content: flex-start;
+        align-items: stretch;
+        text-align: left;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     
@@ -87,17 +86,66 @@
         border-color: #E2E8F0;
     }
 
-    .giant-counter {
-        font-family: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
-        font-size: 96px;
-        font-weight: 800;
-        line-height: 1;
-        margin-top: 12px;
-        letter-spacing: 0;
-        font-variant-numeric: tabular-nums;
+    .counter-focus-valid.counter-pushup {
+        border-color: rgba(1, 89, 54, 0.22);
     }
 
-    .counter-focus-valid .giant-counter { color: #15803D; }
+    .counter-focus-valid.counter-situp {
+        border-color: rgba(37, 99, 235, 0.22);
+    }
+
+    .counter-card-topline {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .counter-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #F0FDF4;
+        border: 1px solid #BBF7D0;
+        flex: 0 0 auto;
+    }
+
+    .counter-situp .counter-icon-wrap {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+    }
+
+    .counter-icon-wrap img {
+        width: 31px;
+        height: 31px;
+        object-fit: contain;
+        display: block;
+    }
+
+    .counter-exercise-label {
+        margin-top: 3px;
+        color: var(--text-main);
+        font-size: 17px;
+        font-weight: 750;
+        line-height: 1.2;
+    }
+
+    .giant-counter {
+        font-family: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+        font-size: 88px;
+        font-weight: 800;
+        line-height: 1;
+        margin-top: 18px;
+        letter-spacing: 0;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+    }
+
+    .counter-focus-valid .giant-counter { color: var(--marker-pushup); }
+    .counter-focus-valid.counter-situp .giant-counter { color: var(--marker-situp); }
     .giant-counter span {
         font-size: 14px;
         font-weight: 600;
@@ -166,18 +214,34 @@
     .mode-toggle .stop-btn {
         text-transform: none;
         letter-spacing: 0;
-        padding: 10px 20px;
+        padding: 9px 14px;
         border-radius: 8px;
         font-size: 13px;
-
         background: transparent;
         color: var(--text-muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .mode-toggle .stop-btn.mode-active {
-        background: #ff8800 ;
         color: #fff;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+    }
+
+    .mode-toggle.mode-pushup .stop-btn.mode-active {
+        background: var(--marker-pushup);
+    }
+
+    .mode-toggle.mode-situp .stop-btn.mode-active {
+        background: var(--marker-situp);
+    }
+
+    .mode-toggle .stop-btn img {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+        display: block;
     }
 
     .video-feed-card {
@@ -195,8 +259,8 @@
     .counter-focus-valid .hud-lbl {
         color: #166534;
         font-family: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
-        font-size: 16px;
-        font-weight: 750;
+        font-size: 11px;
+        font-weight: 700;
         letter-spacing: 0;
     }
 
@@ -416,6 +480,10 @@
         padding: 16px;
     }
 
+    .counter-card-topline {
+        justify-content: center;
+    }
+
     .giant-counter {
         font-size: clamp(56px, 24vw, 84px);
     }
@@ -578,10 +646,31 @@
         padding: 8px;
         background: rgba(255, 255, 255, 0.94);
         box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+        align-items: center;
+        text-align: center;
+    }
+
+    .counter-card-topline {
+        gap: 6px;
+        justify-content: center;
+    }
+
+    .counter-icon-wrap {
+        width: 34px;
+        height: 34px;
+    }
+
+    .counter-icon-wrap img {
+        width: 22px;
+        height: 22px;
     }
 
     .metric-v-card .hud-lbl {
-        font-size: 10px;
+        font-size: 9px;
+    }
+
+    .counter-exercise-label {
+        display: none;
     }
 
     .giant-counter {
