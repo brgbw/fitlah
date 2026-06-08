@@ -33,6 +33,10 @@
         REP_COOLDOWN_S: 0.28,
         REPLAY_END_GUARD_S: 1.15,
         CALIBRATION_FRAMES: 4,
+        NOISE_ALPHA: 0.18,
+        VELOCITY_ALPHA: 0.45,
+        MIN_TURN_DISTANCE: 0.005,
+        TURN_NOISE_MULTIPLIER: 2.6,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         DROPOUT_BRIDGE_FRAMES: 6,
@@ -57,6 +61,11 @@
         highTime: 0,
         highTorsoAngle: null,
         currentTorsoAngle: null,
+        analyzerSignal: null,
+        signalVelocity: 0,
+        signalNoise: 0,
+        signalTrend: 0,
+        signalTrendFrames: 0,
         lastCountedAt: -Infinity,
         liftConfirmed: false,
         awaitingFreshLift: false,
@@ -86,6 +95,11 @@
         tracker.highTime = 0;
         tracker.highTorsoAngle = null;
         tracker.currentTorsoAngle = null;
+        tracker.analyzerSignal = null;
+        tracker.signalVelocity = 0;
+        tracker.signalNoise = 0;
+        tracker.signalTrend = 0;
+        tracker.signalTrendFrames = 0;
         tracker.lastCountedAt = -Infinity;
         tracker.liftConfirmed = false;
         tracker.awaitingFreshLift = false;
@@ -300,9 +314,65 @@
         return true;
     }
 
+    function updateAdaptiveSignal(value) {
+        if (tracker.analyzerSignal === null) {
+            tracker.analyzerSignal = value;
+            tracker.signalVelocity = 0;
+            tracker.signalNoise = CONFIG.MIN_TURN_DISTANCE;
+            tracker.signalTrend = 0;
+            tracker.signalTrendFrames = 0;
+            return {
+                direction: 0,
+                noise: tracker.signalNoise,
+                turnDistance: CONFIG.MIN_TURN_DISTANCE
+            };
+        }
+
+        const delta = value - tracker.analyzerSignal;
+        const absDelta = Math.abs(delta);
+        tracker.analyzerSignal = value;
+        tracker.signalNoise = tracker.signalNoise * (1 - CONFIG.NOISE_ALPHA) + absDelta * CONFIG.NOISE_ALPHA;
+        tracker.signalVelocity = tracker.signalVelocity * (1 - CONFIG.VELOCITY_ALPHA) + delta * CONFIG.VELOCITY_ALPHA;
+
+        const trendEpsilon = Math.max(CONFIG.MIN_TURN_DISTANCE * 0.18, tracker.signalNoise * 0.75);
+        let direction = 0;
+        if (tracker.signalVelocity > trendEpsilon) direction = 1;
+        if (tracker.signalVelocity < -trendEpsilon) direction = -1;
+
+        if (direction === 0) {
+            tracker.signalTrendFrames = Math.max(0, tracker.signalTrendFrames - 1);
+        } else if (direction === tracker.signalTrend) {
+            tracker.signalTrendFrames++;
+        } else {
+            tracker.signalTrend = direction;
+            tracker.signalTrendFrames = 1;
+        }
+
+        return {
+            direction,
+            noise: tracker.signalNoise,
+            turnDistance: Math.max(CONFIG.MIN_TURN_DISTANCE, tracker.signalNoise * CONFIG.TURN_NOISE_MULTIPLIER)
+        };
+    }
+
+    function hasTurnedDown(signalInfo, value, high, fallbackReversal) {
+        if (high === null) return false;
+        const dropFromHigh = high - value;
+        return dropFromHigh >= Math.min(fallbackReversal, signalInfo.turnDistance) &&
+            (signalInfo.direction < 0 || dropFromHigh >= fallbackReversal);
+    }
+
+    function hasTurnedUp(signalInfo, value, low, fallbackReversal) {
+        if (low === null) return false;
+        const riseFromLow = value - low;
+        return riseFromLow >= Math.min(fallbackReversal, signalInfo.turnDistance) &&
+            (signalInfo.direction > 0 || riseFromLow >= fallbackReversal);
+    }
+
     function processSignal(time, value, helpers) {
         const cycleLowTime = tracker.lowTime;
         const cycleLowTorsoAngle = tracker.lowTorsoAngle;
+        const signalInfo = updateAdaptiveSignal(value);
         tracker.minValue = Math.min(tracker.minValue, value);
         tracker.maxValue = Math.max(tracker.maxValue, value);
 
@@ -325,7 +395,11 @@
                 CONFIG.MIN_CONFIRMED_LIFT * CONFIG.MAX_ADAPTIVE_AMPLITUDE_MULTIPLIER
             )
         );
-        const reversal = Math.max(CONFIG.MIN_AMPLITUDE * 0.45, dynamicRange * CONFIG.REVERSAL_RATIO);
+        const reversal = Math.max(
+            CONFIG.MIN_AMPLITUDE * 0.45,
+            dynamicRange * CONFIG.REVERSAL_RATIO,
+            signalInfo.turnDistance * 0.75
+        );
 
         if (tracker.stage === 'SEEK_HIGH') {
             if (value > tracker.high) {
@@ -342,7 +416,7 @@
                 tracker.liftConfirmed = true;
                 tracker.awaitingFreshLift = false;
             }
-            if (tracker.liftConfirmed && value <= tracker.high - reversal) {
+            if (tracker.liftConfirmed && hasTurnedDown(signalInfo, value, tracker.high, reversal)) {
                 tracker.stage = 'SEEK_LOW';
                 tracker.state = STATE.UP;
                 helpers.setStage(STATE.UP);
@@ -364,7 +438,9 @@
         }
 
         const amplitude = tracker.high - tracker.low;
-        const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO;
+        const troughTurned = hasTurnedUp(signalInfo, value, tracker.low, reversal);
+        const returnedLowEnough = value <= tracker.high - amplitude * CONFIG.RETURN_RATIO ||
+            (troughTurned && tracker.low <= tracker.high - amplitude * CONFIG.RETURN_RATIO);
         if (tracker.liftConfirmed && amplitude >= confirmedLift && returnedLowEnough) {
             const repTorsoAngleChange = Number.isFinite(cycleLowTorsoAngle) && Number.isFinite(tracker.highTorsoAngle)
                 ? Math.abs(tracker.highTorsoAngle - cycleLowTorsoAngle)
@@ -372,10 +448,10 @@
             const torsoRepCorroborated = repTorsoAngleChange === null || repTorsoAngleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE;
             if (torsoRepCorroborated && countRep(time, amplitude, helpers, cycleLowTime)) {
                 tracker.stage = 'SEEK_HIGH';
-                tracker.low = value;
+                tracker.low = troughTurned ? tracker.low : value;
                 tracker.lowTime = time;
                 tracker.lowTorsoAngle = tracker.currentTorsoAngle;
-                tracker.high = value;
+                tracker.high = tracker.low;
                 tracker.highTime = time;
                 tracker.highTorsoAngle = tracker.currentTorsoAngle;
                 tracker.liftConfirmed = false;
