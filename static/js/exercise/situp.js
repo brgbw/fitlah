@@ -38,6 +38,7 @@
         ANALYZER_NOISE_FLOOR: 0.0035,
         ANALYZER_NOISE_MULTIPLIER: 2.2,
         ANALYZER_MIN_TURN_DROP_RATIO: 0.28,
+        ANALYZER_MIN_REP_AMPLITUDE: 0.12,
         MAX_INTERPOLATION_STEP_S: 1 / 18,
         GRAPH_SAMPLE_EVERY_FRAMES: 2,
         DROPOUT_BRIDGE_FRAMES: 6,
@@ -339,6 +340,10 @@
         return angleChange >= CONFIG.MIN_TORSO_ANGLE_CHANGE || clearShoulderLift;
     }
 
+    function repAmplitudeMeetsAnalyzerThreshold(amplitude) {
+        return amplitude >= CONFIG.ANALYZER_MIN_REP_AMPLITUDE;
+    }
+
     function analyzeSignalSample(sample) {
         const previous = tracker.analyzerSamples.length
             ? tracker.analyzerSamples[tracker.analyzerSamples.length - 1]
@@ -491,6 +496,7 @@
                 value < tracker.high;
             if (tracker.liftConfirmed && (peakConfirmed || fallbackPeakConfirmed)) {
                 const lateReturn = lift >= confirmedLift &&
+                    repAmplitudeMeetsAnalyzerThreshold(lift) &&
                     value <= tracker.high - lift * CONFIG.RETURN_RATIO &&
                     !options.interpolated;
                 if (lateReturn && countRep(time, lift, helpers, cycleLowTime)) {
@@ -531,7 +537,10 @@
         const countableReturn = returnedLowEnough &&
             !options.interpolated &&
             signalInfo.direction <= 0;
-        if (tracker.liftConfirmed && amplitude >= confirmedLift && countableReturn) {
+        if (tracker.liftConfirmed &&
+            amplitude >= confirmedLift &&
+            repAmplitudeMeetsAnalyzerThreshold(amplitude) &&
+            countableReturn) {
             const repTorsoAngleChange = Number.isFinite(cycleLowTorsoAngle) && Number.isFinite(tracker.highTorsoAngle)
                 ? Math.abs(tracker.highTorsoAngle - cycleLowTorsoAngle)
                 : null;
