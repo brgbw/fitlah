@@ -185,7 +185,7 @@ let currentMode = 'pushup';
     function setCameraMessage(message, type = '') {
         if (!cameraStatus) return;
         const shouldShow = Boolean(message);
-        cameraStatus.textContent = shouldShow ? message : '';
+        cameraStatus.innerHTML = shouldShow ? message : '';
         cameraStatus.classList.toggle('visible', shouldShow);
         cameraStatus.classList.toggle('error', type === 'error');
         cameraStatus.classList.toggle('success', type === 'success');
@@ -226,7 +226,7 @@ let currentMode = 'pushup';
         if (window.Pose) return Promise.resolve();
         if (poseScriptPromise) return poseScriptPromise;
 
-        setCameraMessage('Loading pose model. This may take a moment on mobile data.');
+        setCameraMessage('Loading pose model.<br>This may take a moment on mobile data.');
         poseScriptPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = '/static/mediapipe/pose/pose.js';
@@ -291,7 +291,7 @@ let currentMode = 'pushup';
         if (stream) return;
         startCamBtn.disabled = true;
         startCamBtn.textContent = 'Starting...';
-        setCameraMessage('Starting camera. Allow access when your browser asks.');
+        setCameraMessage('Starting camera.<br>Allow access when your browser asks.');
         try {
             const unsupported = mediaUnsupportedMessage();
             if (unsupported) throw new Error(unsupported);
@@ -311,7 +311,7 @@ let currentMode = 'pushup';
             startRecBtn.style.display = 'inline-block';
             armSession();
             startPoseLoop();
-            setCameraMessage('Camera ready. Keep your full side profile inside the frame.', 'success');
+            setCameraMessage('Camera ready.<br>Keep your full side profile inside the frame.', 'success');
         } catch (err) {
             setCameraMessage(err.message || cameraErrorMessage(err), 'error');
             startCamBtn.disabled = false;
@@ -481,7 +481,7 @@ let currentMode = 'pushup';
         } catch (err) {
             console.warn('Could not rewind attached video after computer vision preflight:', err);
         }
-        setWarning('Ready - analysing attached video.');
+        setWarning('Ready.<br>Analysing attached video.');
     }
 
     function drawDisplayFrame(results) {
@@ -680,7 +680,7 @@ let currentMode = 'pushup';
     function poseReadinessMessage() {
         const readiness = ensurePoseReadiness();
         if (!readiness.overlayDrawn || !readiness.firstSignalAtMs) return 'Finding body...';
-        if (readiness.ready) return 'Ready - start when the guide is stable.';
+        if (readiness.ready) return 'Ready.<br>Start when the guide is stable.';
         return 'Hold position...';
     }
 
@@ -731,7 +731,7 @@ let currentMode = 'pushup';
         if (gateReady && !readiness.ready) {
             readiness.ready = true;
             readiness.readyVisibleAtMs = now;
-            setWarning('Ready - start when the guide is stable.');
+            setWarning('Ready.<br>Start when the guide is stable.');
         } else if (!readiness.ready) {
             setWarning(readiness.overlayDrawn && elapsedSeconds > 0.2 ? 'Hold position...' : 'Finding body...');
         }
@@ -873,7 +873,7 @@ let currentMode = 'pushup';
     function setWarning(text) {
         if (!text) return false;
         if (cameraStatus) {
-            cameraStatus.textContent = text;
+            cameraStatus.innerHTML = text;
             cameraStatus.classList.add('visible');
             cameraStatus.classList.remove('error');
             cameraStatus.classList.toggle('success', text.startsWith('Ready'));
@@ -1389,7 +1389,7 @@ let currentMode = 'pushup';
         uploadBtn.innerText = 'Save Session';
         uploadBtn.style.pointerEvents = 'auto';
         aiCoach.reset();
-        setCameraMessage(message || 'Session stopped. Start the camera or attach a video to try again.');
+        setCameraMessage(message || 'Session stopped.<br>Start the camera or attach a video to try again.');
         setWarning(message || 'Session stopped. Start again when ready.');
     }
 
@@ -1495,8 +1495,11 @@ let currentMode = 'pushup';
                     aiCoach.enqueue(metricsForAi, true, result.session_id);
                 }
                 const label = currentMode === 'pushup' ? 'Push-up' : 'Sit-up';
-                setWarning(`${label} saved. ${result.valid_reps} reps logged. Record another exercise or tap Done.`);
+                setWarning(`${label} saved.<br>${result.valid_reps} reps logged.<br>Record another exercise or tap Done.`);
+                const savedReps = validReps;
                 resetRepState();
+                validReps = savedReps;
+                if (repCounter) repCounter.textContent = String(validReps);
                 if (stream) {
                     armSession();
                     startPoseLoop();
