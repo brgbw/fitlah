@@ -7,6 +7,7 @@
         REP_COUNTED: 'rep_counted'
     };
 
+    //
     const LANDMARK = {
         NOSE: 0,
         LEFT_SHOULDER: 11,
