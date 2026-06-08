@@ -20,6 +20,7 @@
   let currentMonth = requestedDateMatch ? Number(requestedDateMatch.slice(5, 7)) - 1 : today.getMonth();
   let selectedDate = requestedDateMatch;
   let entries = {};
+  let selectedEntryIndex = 0;
 
   function setEntriesFromLogs(logs) {
     entries = {};
@@ -153,6 +154,7 @@
 
   function selectDay(key) {
     selectedDate = key;
+    selectedEntryIndex = 0;
     renderCalendar();
     renderDetails();
   }
@@ -182,29 +184,48 @@
       return;
     }
 
-    dayEntries.forEach((entry) => {
-      const metricsHtml = renderEntryMetrics(entry);
-      const card = document.createElement('div');
-      card.className = 'agenda-card';
-      card.innerHTML = `
-        <div class="agenda-item">
-          <div class="agenda-color-bar ${entry.type}"></div>
-          <div class="agenda-details">
-            <div style="display:flex;align-items:center;">
-              <div>
-                <div class="agenda-date">${friendlyDate(key)} &middot; ${escapeHtml(typeName(entry.type))}</div>
-                <div class="agenda-name">${escapeHtml(entry.name)}</div>
-              </div>
-              <button class="delete-btn" title="Delete entry" onclick="deleteEntry(${entry.id})">&#x2715;</button>
+    if (selectedEntryIndex >= dayEntries.length) {
+      selectedEntryIndex = 0;
+    }
+
+    if (dayEntries.length > 1) {
+      const tabs = document.createElement('div');
+      tabs.className = 'agenda-tabs';
+      dayEntries.forEach((entry, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'agenda-tab' + (idx === selectedEntryIndex ? ' active' : '');
+        btn.textContent = escapeHtml(entry.name || typeName(entry.type));
+        btn.onclick = () => {
+          selectedEntryIndex = idx;
+          renderDetails();
+        };
+        tabs.appendChild(btn);
+      });
+      panel.appendChild(tabs);
+    }
+
+    const entry = dayEntries[selectedEntryIndex];
+    const metricsHtml = renderEntryMetrics(entry);
+    const card = document.createElement('div');
+    card.className = 'agenda-card';
+    card.innerHTML = `
+      <div class="agenda-item">
+        <div class="agenda-color-bar ${entry.type}"></div>
+        <div class="agenda-details">
+          <div style="display:flex;align-items:center;">
+            <div>
+              <div class="agenda-date">${friendlyDate(key)} &middot; ${escapeHtml(typeName(entry.type))}</div>
+              <div class="agenda-name">${escapeHtml(entry.name)}</div>
             </div>
-            <div class="recording-metric-container">
-              ${metricsHtml}
-            </div>
-            ${renderAiCoachBlock(entry.ai_recommendation)}
+            <button class="delete-btn" title="Delete entry" onclick="deleteEntry(${entry.id})">&#x2715;</button>
           </div>
-        </div>`;
-      panel.appendChild(card);
-    });
+          <div class="recording-metric-container">
+            ${metricsHtml}
+          </div>
+          ${renderAiCoachBlock(entry.ai_recommendation)}
+        </div>
+      </div>`;
+    panel.appendChild(card);
   }
 
   function metricBlock(label, value) {

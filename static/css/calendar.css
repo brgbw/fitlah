@@ -42,6 +42,35 @@
   margin: 0;
 }
 
+.agenda-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.agenda-tab {
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border, #E2E8F0);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #64748B);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.agenda-tab:hover {
+  background: var(--bg-subtle, #F8FAFC);
+}
+
+.agenda-tab.active {
+  background: var(--marker-pushup, #00A86B);
+  color: #FFFFFF;
+  border-color: var(--marker-pushup, #00A86B);
+}
+
 .mobile-month-list {
   display: none;
 }
