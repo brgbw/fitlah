@@ -19,8 +19,8 @@
 
     const CONFIG = {
         POSE_CONFIDENCE_MIN: 0.16,
-        SMOOTHING_ALPHA: 0.82,
-        SIGNAL_ALPHA: 0.82,
+        SMOOTHING_ALPHA: 0.9,
+        SIGNAL_ALPHA: 0.9,
         MIN_AMPLITUDE: 0.016,
         MIN_CONFIRMED_LIFT: 0.028,
         ADAPTIVE_AMPLITUDE_RATIO: 0.12,

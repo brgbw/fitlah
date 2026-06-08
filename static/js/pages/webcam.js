@@ -19,9 +19,9 @@ let currentMode = 'pushup';
     const POSE_INPUT_LIMIT = isMobileLikeDevice
         ? { width: 432, height: 243 }
         : { width: 640, height: 360 };
-    const POSE_TARGET_FPS = isMobileLikeDevice ? 12 : 18;
+    const POSE_TARGET_FPS = isMobileLikeDevice ? 15 : 24;
     const POSE_MIN_FRAME_MS = 1000 / POSE_TARGET_FPS;
-    const POSE_SLOW_FRAME_MS = 1000 / (isMobileLikeDevice ? 8 : 12);
+    const POSE_SLOW_FRAME_MS = 1000 / (isMobileLikeDevice ? 10 : 15);
     const POSE_READY_MIN_FRAMES = 6;
     const POSE_READY_MIN_SECONDS = 0.5;
     const POSE_READY_BASELINE_SECONDS = 0.5;
@@ -462,11 +462,12 @@ let currentMode = 'pushup';
     function drawDisplayFrame(results) {
         const displaySource = activeMediaElement();
         const canDrawDisplaySource = displaySource && displaySource.readyState >= 2;
-        if (canDrawDisplaySource) {
+        if (results.image) {
+            if (canDrawDisplaySource) resizePoseCanvas(displaySource);
+            ctx.drawImage(results.image, 0, 0, poseCanvas.width, poseCanvas.height);
+        } else if (canDrawDisplaySource) {
             resizePoseCanvas(displaySource);
             ctx.drawImage(displaySource, 0, 0, poseCanvas.width, poseCanvas.height);
-        } else if (results.image) {
-            ctx.drawImage(results.image, 0, 0, poseCanvas.width, poseCanvas.height);
         }
     }
 
@@ -497,7 +498,7 @@ let currentMode = 'pushup';
             });
             pose.setOptions({
                 modelComplexity: 1,
-                smoothLandmarks: true,
+                smoothLandmarks: false,
                 enableSegmentation: false,
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
