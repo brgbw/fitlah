@@ -72,8 +72,10 @@
         <input id="videoAttachmentInput" type="file" accept="video/*" style="display: none;">
         <button type="button" class="stop-btn danger-action" id="startRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
         <button type="button" class="stop-btn danger-action" id="stopRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
-        <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
-        <button type="button" class="stop-btn complete-disabled" id="completeBtn" onclick="saveAndReturn()">Done</button>
+        <div class="save-done-group">
+            <button type="button" class="stop-btn" id="uploadBtn" onclick="uploadVideo()" style="display: none;">Save Session</button>
+            <button type="button" class="stop-btn complete-disabled" id="completeBtn" onclick="saveAndReturn()">Done</button>
+        </div>
     </div>
     <div id="timerDisplay" class="session-timer" style="display: none;">01:00</div>
 </div>

@@ -287,21 +287,32 @@
         font-size: 13px;
     }
 
-    .control-actions .stop-btn#startCamBtn {
-        background: #0A64BC;
-    }
-
-    .control-actions .stop-btn#uploadBtn {
-        background: #0F766E;
-    }
-
-    .control-actions .stop-btn#attachVideoBtn {
-        background: #16A34A;
-    }
-
-    .control-actions .stop-btn#completeBtn {
+    .save-done-group {
+        display: flex;
         margin-left: auto;
-        background: #475569 !important;
+    }
+
+    .save-done-group .stop-btn {
+        margin-left: 0 !important;
+    }
+
+    .save-done-group #uploadBtn:not([style*="display: none"]) {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .save-done-group #uploadBtn:not([style*="display: none"]) + #completeBtn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    #completeBtn.complete-disabled {
+        display: none !important;
+    }
+    
+    #completeBtn[style*="opacity: 1"] {
+        display: inline-block !important;
     }
 
     .session-timer {
@@ -502,10 +513,18 @@
         width: 100%;
     }
 
-    .control-actions .stop-btn,
-    .control-actions .stop-btn#completeBtn {
+    .control-actions .stop-btn {
         width: 100%;
         margin-left: 0;
+    }
+
+    .save-done-group {
+        width: 100%;
+        margin-left: 0;
+    }
+    
+    .save-done-group .stop-btn {
+        flex: 1;
     }
 
     .session-timer {
@@ -712,8 +731,7 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    .control-actions .stop-btn,
-    .control-actions .stop-btn#completeBtn {
+    .control-actions .stop-btn {
         flex: 0 0 auto;
         width: auto;
         min-height: 40px;
