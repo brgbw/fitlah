@@ -171,6 +171,7 @@ let currentMode = 'pushup';
             startCamBtn.style.display = 'none';
         } else if (mode === 'attachment') {
             startCamBtn.style.display = 'none';
+            attachVideoBtn.style.display = 'none';
         }
     }
 
