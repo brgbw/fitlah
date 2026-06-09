@@ -231,7 +231,7 @@
                         <h2><img src="{{ asset_url('icons/greentarget.png') }}" alt=""><b>Dos</b></h2>
                         <ul>
                             {% for item in ai.dos %}
-                            <li>{{ item|markdown }}</li>
+                            <li>{{ item|ai_bold }}</li>
                             {% endfor %}
                         </ul>
                     </section>

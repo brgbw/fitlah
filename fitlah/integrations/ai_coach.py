@@ -303,7 +303,8 @@ def _build_system_prompt():
             "Write detailed explanations of what the user must avoid doing in *future* exercises, or highlight specific "
             "poor habits from the data that will negatively affect their fitness level. Translate technical errors into "
             "easy-to-understand feedback. Give minimally 3 points in slightly clearer detail. Specify the rep range where the individual slows down (e.g., rep 13-16 poorer consistency, rep 16-17 have poorer push up/sit up form). "
-            "Do NOT use terms like \"shallow rep\" or \"period fluctuations\"."
+            "Do NOT use terms like \"shallow rep\" or \"period fluctuations\". "
+            "Ensure that key words and action cues MUST be bolded using Markdown **double asterisks** for consistency."
         ),
         "focus_examples": '"Core Strength", "Pacing"',
     })
