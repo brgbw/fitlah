@@ -296,12 +296,14 @@ def _build_system_prompt():
         "dos": (
             "Write detailed, comprehensive recommended actions for the user to take in *future* training sessions. "
             "Evaluate their pacing and range of motion, and use your fitness knowledge to explain *how* they can improve. "
+            "Give minimally 3 points in slightly clearer detail. Specify the rep range where the individual slows down (e.g., rep 13-16 poorer consistency, rep 16-17 have poorer push up/sit up form). "
             "Do NOT quote the specific raw amplitude or period numbers."
         ),
         "donts": (
             "Write detailed explanations of what the user must avoid doing in *future* exercises, or highlight specific "
             "poor habits from the data that will negatively affect their fitness level. Translate technical errors into "
-            "easy-to-understand feedback. Do NOT use terms like \"shallow rep\" or \"period fluctuations\"."
+            "easy-to-understand feedback. Give minimally 3 points in slightly clearer detail. Specify the rep range where the individual slows down (e.g., rep 13-16 poorer consistency, rep 16-17 have poorer push up/sit up form). "
+            "Do NOT use terms like \"shallow rep\" or \"period fluctuations\"."
         ),
         "focus_examples": '"Core Strength", "Pacing"',
     })

@@ -401,8 +401,8 @@
         <h5 class="ai-analysis-heading"><img class="ai-summary-inline-icon" src="/static/icons/aisummary.png" alt="">AI PERSONALISED COACH</h5>
         <div class="ai-analysis-summary">${aiTextHtml(ai.summary)}</div>
         <div class="ai-analysis-grid">
-          ${dos ? `<div class="ai-analysis-list dos"><h6><img src="/static/icons/greentarget.png" alt="">RECOMMENDED ACTIONS</h6><ul>${dos}</ul></div>` : ''}
-          ${donts ? `<div class="ai-analysis-list avoid donts"><h6><img src="/static/icons/exclaim.png" alt="">AVOID NEXT</h6><ul>${donts}</ul></div>` : ''}
+          ${dos ? `<div class="ai-analysis-list dos"><h6><img src="/static/icons/greentarget.png" alt=""><b>Dos</b></h6><ul>${dos}</ul></div>` : ''}
+          ${donts ? `<div class="ai-analysis-list avoid donts"><h6><img src="/static/icons/exclaim.png" alt=""><b>Don'ts</b></h6><ul>${donts}</ul></div>` : ''}
         </div>
         ${focus ? `<div class="ai-analysis-focus"><img src="/static/icons/bluetarget.png" alt=""><span><strong>Focus area:</strong> ${aiTextHtml(focus)}</span></div>` : ''}
       </div>`;

@@ -228,10 +228,10 @@
                 <div class="ai-analysis-grid">
                     {% if ai.dos %}
                     <section class="ai-analysis-list dos">
-                        <h2><img src="{{ asset_url('icons/greentarget.png') }}" alt="">RECOMMENDED ACTIONS</h2>
+                        <h2><img src="{{ asset_url('icons/greentarget.png') }}" alt=""><b>Dos</b></h2>
                         <ul>
                             {% for item in ai.dos %}
-                            <li>{{ item|ai_bold }}</li>
+                            <li>{{ item|markdown }}</li>
                             {% endfor %}
                         </ul>
                     </section>
@@ -239,7 +239,7 @@
 
                     {% if ai.donts %}
                     <section class="ai-analysis-list avoid donts">
-                        <h2><img src="{{ asset_url('icons/exclaim.png') }}" alt="">AVOID NEXT</h2>
+                        <h2><img src="{{ asset_url('icons/exclaim.png') }}" alt=""><b>Don'ts</b></h2>
                         <ul>
                             {% for item in ai.donts %}
                             <li>{{ item|ai_bold }}</li>
