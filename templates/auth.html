@@ -150,19 +150,7 @@
             max-width: 440px;
             margin: 0 auto;
         }
-        .mode-badge {
-            display: inline-block;
-            background-color: var(--bg-badge);
-            color: var(--primary);
-            border: 1px solid #BCEBD9;
-            font-size: calc(16px * var(--font-scale));
-            font-weight: 800;
-            padding: 4px 9px;
-            border-radius: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0;
-            margin-bottom: 12px;
-        }
+      
         h1 {
             font-size: calc(38px * var(--font-scale));
             font-weight: 800;
@@ -322,7 +310,6 @@
         <section class="form-panel">
             <div class="auth-form-wrap">
                 <div class="logo">Fit<span>Lah</span></div>
-                <div class="mode-badge">{% if mode == 'signup' %}Create Account{% else %}Secure Access{% endif %}</div>
                 <h1>{% if mode == 'signup' %}Set up your FitLah account{% else %}Welcome back{% endif %}</h1>
                 <p class="subcopy">
                     {% if mode == 'signup' %}
