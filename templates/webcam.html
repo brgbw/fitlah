@@ -48,8 +48,8 @@
     </div>
 
     <div class="diagnostics-sidebar">
-        <div class="metric-v-card counter-focus-valid counter-pushup" id="counterCard">
-            <div class="counter-card-topline">
+        <div class="metric-v-card counter-focus-valid counter-pushup" id="counterCard" style="overflow: hidden; display: flex; flex-direction: column;">
+            <div class="counter-card-topline" style="flex: 0 0 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
                 <span class="counter-icon-wrap">
                     <img id="counterExerciseIcon" src="{{ asset_url('icons/greenpushup.png') }}" alt="">
                 </span>
@@ -58,14 +58,14 @@
                     <div class="counter-exercise-label" id="counterExerciseLabel">Push-Up</div>
                 </div>
             </div>
-            <div class="giant-counter" id="repCounter">0</div>
+            <div class="giant-counter" id="repCounter" style="flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: clamp(2rem, 15cqi, 88px); container-type: inline-size;">0</div>
         </div>
         <span id="handsBadge" class="hands-ok-badge bad" style="display: none;"></span>
         <div class="camera-status-card" id="cameraStatus" role="status" aria-live="polite"></div>
         <div class="control-strip">
-            <div class="control-actions">
-                <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()">Start Camera</button>
-                <button type="button" class="stop-btn" id="attachVideoBtn" onclick="selectRecordedVideo()">Attach Video</button>
+            <div class="control-actions" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button type="button" class="stop-btn" id="startCamBtn" onclick="startCamera()" style="flex: 1; min-width: 45%;">Start Camera</button>
+                <button type="button" class="stop-btn" id="attachVideoBtn" onclick="selectRecordedVideo()" style="flex: 1; min-width: 45%;">Attach Video</button>
                 <input id="videoAttachmentInput" type="file" accept="video/*" style="display: none;">
                 <button type="button" class="stop-btn danger-action" id="startRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>
                 <button type="button" class="stop-btn danger-action" id="stopRecBtn" onclick="stopSession()" style="display: none;">Stop Session</button>

@@ -105,8 +105,8 @@
                 options.status.textContent = 'AI personalised coaching';
             }
 
-            const dos = (data.dos || []).slice(0, 1);
-            const donts = (data.donts || []).slice(0, 1);
+            const dos = (data.dos || []);
+            const donts = (data.donts || []);
             const focusAreas = (data.focus_areas || []).slice(0, 1);
             if (options.dos) options.dos.innerHTML = '';
             if (options.donts) options.donts.innerHTML = '';

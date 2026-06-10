@@ -62,13 +62,13 @@ function renderRunCoachCard(rec) {
             <div class="ai-analysis-grid strava-coach-grid">
                 ${recommendations.length ? `
                     <div class="ai-analysis-list strava-coach-list dos">
-                        <h6><img src="/static/icons/greentarget.png" alt="">RECOMMENDED ACTIONS</h6>
+                        <h6><img src="/static/icons/greentarget.png" alt=""><b>Dos</b></h6>
                         <ul>${recommendations.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
                 ${avoid.length ? `
                     <div class="ai-analysis-list strava-coach-list avoid donts">
-                        <h6><img src="/static/icons/exclaim.png" alt="">AVOID NEXT</h6>
+                        <h6><img src="/static/icons/exclaim.png" alt=""><b>Don'ts</b></h6>
                         <ul>${avoid.map(item => `<li>${aiTextHtml(item)}</li>`).join('')}</ul>
                     </div>
                 ` : ''}
